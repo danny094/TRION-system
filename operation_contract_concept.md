@@ -53,3 +53,12 @@ The Operation Contract then maps this meaning to the **`list`** operation.
 * **Fail-Closed Security:** If a tool call lacks required arguments or attempts to perform an action outside the approved operation, it is immediately blocked.
 * **No Endless Error Loops:** The **Run Governor** sets strict, global budgets for steps, replans, and time. If the agent gets stuck, it is terminated cleanly instead of looping infinitely.
 * **Predictable Outcomes:** Because the expected output (evidence) is defined in the contract, the agent only finishes when it has gathered the actual facts, preventing false "success" reports.
+
+
+<p align="center">
+  <img
+    width="800"
+    alt="Operation Contract Concept - Standalone"
+    src="https://github.com/user-attachments/assets/5c98582c-b486-4387-936e-c9c562d294d4"
+  />
+</p>
