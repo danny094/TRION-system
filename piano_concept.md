@@ -60,7 +60,6 @@ By decoupling the rules from the engine, TRION remains lightweight and highly ma
 * **Transparent Governance:** Administrators can audit exactly what rules the agent is following by looking at the shared behavioral CSV files.
 
 
-
 <p align="center">
-<img width="1307" height="3612" alt="PIANO Architecture - Standalone" src="https://github.com/user-attachments/assets/d536bef1-2999-4595-ace5-1d9c051f3ffd" />
+<img width="1307" height="2862" alt="PIANO Architecture - Standalone" src="https://github.com/user-attachments/assets/762aaf28-0885-4a94-b9dd-b16a9e456c6a" />
 </p>
