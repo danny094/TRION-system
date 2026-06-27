@@ -58,3 +58,9 @@ By decoupling the rules from the engine, TRION remains lightweight and highly ma
 * **No Code Drift:** System behavior is predictable because the rules are clearly defined in a single place.
 * **No Big-Bang Rewrites:** Adding features is a surgical process of extending configuration tables rather than refactoring monolithic files.
 * **Transparent Governance:** Administrators can audit exactly what rules the agent is following by looking at the shared behavioral CSV files.
+
+
+
+<p align="center">
+<img width="1307" height="3612" alt="PIANO Architecture - Standalone" src="https://github.com/user-attachments/assets/d536bef1-2999-4595-ace5-1d9c051f3ffd" />
+</p>
