@@ -1,31 +1,95 @@
-# TRION Documentation: Concepts & User Guide
+<div align="center">
 
-Welcome to TRION's user-facing documentation. These guides are written for end-users, system administrators, and integrators who want to understand the concepts, security features, and benefits of TRION. 
+<svg width="52" height="46" viewBox="0 0 36 32" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tri" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+  </defs>
+  <polygon points="18,2 34,30 2,30" fill="none" stroke="url(#tri)" stroke-width="2.5" stroke-linejoin="round"/>
+</svg>
 
-Unlike developers who need to read the source code, this documentation explains **how TRION works conceptually** to make AI agent execution safe, reliable, and predictable. No programming experience is required.
+# TRION
 
----
+**Modular AI system with clean layer architecture.**  
+Control through architecture — not through the model.
 
-## Guide Index
-
-Explore our core cognitive concepts:
-
-### 🎹 [1. PIANO Architecture Concept](file:///Users/denniskassner/Documents/trion-docs/docs/website/piano_concept.md)
-* **What it is:** The structural foundation of TRION.
-* **Why it matters:** It explains how TRION separates logic from behavior using a central decision gateway (the bottleneck) and dynamic rules tables, preventing the agent from acting uncontrollably.
-
-### 🧠 [2. TMR Concept (Consistent Intent)](file:///Users/denniskassner/Documents/trion-docs/docs/website/tmr_concept.md)
-* **What it is:** TRION's semantic translation layer (TRION Meaning Representation).
-* **Why it matters:** It shows how TRION abstracts away language (German, English, mixed phrasing) and paraphrasing. This ensures that the agent understands the exact meaning of your request consistently.
-
-### 📑 [3. Operation Contract Concept (Ironclad Security)](file:///Users/denniskassner/Documents/trion-docs/docs/website/operation_contract_concept.md)
-* **What it is:** The mathematical boundary gatekeeper for tool execution.
-* **Why it matters:** It explains how TRION restricts the agent to a pre-authorized contract. This blocks unauthorized actions (such as destructive system commands or prompt injection tricks) and halts endless loops automatically.
+</div>
 
 ---
 
-## Core Philosophy
+```
+Classifier: 0 LLM  ·  Orchestrator: 0 LLM  ·  Task Loop: 0 LLM
+Thinking: 1 LLM    ·  Verifier: 1 LLM       ·  Output: 1 LLM
+─────────────────────────────────────────────────────────────────
+total: 3 LLM-Calls  ·  no fallback to raw text  ·  fail-closed
+```
 
-TRION is built on **Zero Trust Agent Execution**. 
+---
 
-Most AI assistants are given tools and trusted to use them correctly. TRION is different. By separating **meaning** from **action**, TRION forces the AI to sign a static contract of what it is allowed to do before it is allowed to touch any system resource or execute any tool. 
+## Architecture
+
+TRION is a sequential pipeline with a single bottleneck. The `routing_frame` is built once and read by all downstream layers. No module re-interprets the request. No decision is made twice.
+
+| Layer | Responsibility | LLM |
+|---|---|---|
+| **Classifier** | Coarse routing, safety level, category | 0 |
+| **routing_frame** | Bottleneck — intent, domain, evidence, operation contract | 0 |
+| **Orchestrator** | Tool filtering, context collection (complex path only) | 0 |
+| **Thinking** | Plans, selects tools, analyses | 1 |
+| **Verifier** | Validates plan against GuardDecision + anti_patterns | 1 |
+| **Task Loop** | Deterministic execution, evidence gate | 0 |
+| **Output** | Streaming, claim validation | 1 |
+
+---
+
+## Core Principles
+
+```
+routing_frame → operation_contract → all layers
+```
+**Decided once. Valid everywhere.** What the pipeline decided applies to all downstream modules simultaneously.
+
+```
+without operation_contract → eligible_tools = []
+```
+**No fallback to raw text.** The layer that derived tool selection from user text wasn't refactored — it was deleted.
+
+```
+done = required_evidence ⊆ observed_evidence  ·  else: blocked
+```
+**Errors are called errors.** Missing evidence blocks before execution. Tool success alone does not complete a task.
+
+```
+Classifier: 0  ·  Orchestrator: 0  ·  Task Loop: 0  ·  Thinking: 1  ·  Verifier: 1  ·  Output: 1
+```
+**Three LLM calls. No more.** Tool selection, routing, and execution happen without a model.
+
+---
+
+## Documentation
+
+| Document | Content |
+|---|---|
+| [The Pipeline](./docs/pipeline.md) | Full architecture, both paths, all layers |
+| [System Map](./docs/systemkarte.md) | Visual overview of the entire architecture |
+| [TMR System](./docs/tmr.md) | TRION Meaning Representation — normalisation before routing |
+| [Philosophy](./docs/philosophie.md) | Four architectural ground rules |
+
+### Technical Docs
+
+| Folder | Content |
+|---|---|
+| [`docs/architecture/`](./docs/architecture/) | System, core and PIANO target design |
+| [`docs/routing/`](./docs/routing/) | Routing frame, capability manifest, current state |
+| [`docs/memory-grounding/`](./docs/memory-grounding/) | Memory, evidence, self-context |
+| [`docs/task-loop/`](./docs/task-loop/) | Autonomy, task loop, error behaviour |
+| [`docs/governance/`](./docs/governance/) | Design, lifecycle and veto rules |
+| [`docs/implementation-plans/`](./docs/implementation-plans/) | Active and completed plans |
+
+---
+
+<div align="center">
+<sub>TRION — <code>code decides over truth</code></sub>
+</div>
