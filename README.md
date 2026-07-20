@@ -44,6 +44,8 @@ TRION is not tied to a single model vendor. The LLM layer runs on a central prov
 
 **Supported providers:** OpenAI · Anthropic · OpenRouter · MiniMax · Ollama (local & cloud)
 
+This means you can run TRION **fully local** with Ollama — no request ever leaves your machine — or point any individual role at a hosted model (OpenAI, Anthropic, OpenRouter, MiniMax, or Ollama Cloud). Local and cloud can be mixed per role: for example a small local `CONTROL` model with a hosted `OUTPUT` model.
+
 API keys are never hard-coded — the target architecture stores them encrypted in the backend and resolves them internally at the LLM layer; the UI only ever sees status (`set`, `empty`, `test failed`), never plaintext.
 
 ## Quickstart
@@ -61,8 +63,11 @@ This starts:
 
 Health checks: `GET /health` on both the Admin API and the WebUI.
 
+> **Tested on:** macOS on Apple Silicon (M4). The stack is fully Docker-based, so it is expected to run on any Docker host — other platforms are simply not yet as widely tested.
+
 ## Concepts & deep dives
 
+- [Architecture — the full pipeline](docs/architecture.md)
 - [PIANO — the cognitive engine](piano_concept.md)
 - [Operation Contract concept](operation_contract_concept.md)
 - [TRION Meaning Representation (TMR)](tmr_concept.md)
