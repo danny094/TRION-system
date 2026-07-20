@@ -48,6 +48,12 @@ This means you can run TRION **fully local** with Ollama — no request ever lea
 
 API keys are never hard-coded — the target architecture stores them encrypted in the backend and resolves them internally at the LLM layer; the UI only ever sees status (`set`, `empty`, `test failed`), never plaintext.
 
+## Your data & privacy
+
+Your data stays on your machine. TRION collects nothing and phones home to no one. Memory lives in a local database on your own system — there are no cloud backups, so keeping regular backups is on you.
+
+The only data that ever leaves your machine is what you deliberately send to a hosted model: if a role points at a cloud provider, those messages go to that provider under their terms — that's between you and them. Run local models via Ollama and everything, inference included, stays fully local — which also means TRION works completely offline.
+
 ## Quickstart
 
 TRION ships with a minimal Docker stack (WebUI + Admin API + Memory):
@@ -63,7 +69,7 @@ This starts:
 
 Health checks: `GET /health` on both the Admin API and the WebUI.
 
-> **Tested on:** macOS on Apple Silicon (M4). The stack is fully Docker-based, so it is expected to run on any Docker host — other platforms are simply not yet as widely tested.
+> **Tested on:** macOS on Apple Silicon (M4). The stack is fully Docker-based, so it is expected to run on any Docker host — other platforms are simply not yet as widely tested. Ubuntu support is planned.
 
 ## Concepts & deep dives
 
