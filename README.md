@@ -1,95 +1,111 @@
-<div align="center">
-
-<svg width="52" height="46" viewBox="0 0 36 32" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="tri" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#a855f7"/>
-      <stop offset="100%" stop-color="#6366f1"/>
-    </linearGradient>
-  </defs>
-  <polygon points="18,2 34,30 2,30" fill="none" stroke="url(#tri)" stroke-width="2.5" stroke-linejoin="round"/>
-</svg>
+[![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/HDsSbSQaC)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
+![Status: active development](https://img.shields.io/badge/status-active%20development-orange)
+![Python](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)
 
 # TRION
 
-**Modular AI system with clean layer architecture.**  
-Control through architecture — not through the model.
-
-</div>
+**An open-source framework for AI agents whose behavior is predictable, auditable, and safe *by design* — because the rules that govern routing, tool use, and safety live in transparent configuration, not buried in code.**
 
 ---
 
+## The problem
+
+Most AI agents are unpredictable because their behavior is scattered across the codebase. The logic that decides *how* the agent responds, *which* tools it may use, and *how* safety is enforced is tangled into application source — so you can't easily see, verify, or change what the agent does without rewriting it.
+
+TRION pulls that behavior **out of the code and into explicit, auditable rules**. The result is an agent you can reason about.
+
+## What makes TRION different
+
+TRION is built on three pillars:
+
+### 1. Rule-driven, not code-driven
+Agent behavior is governed by an explicit architectural pattern (**PIANO**) and lives in transparent configuration — routing policies, capability contracts, and safety rules — instead of being hard-coded. Behavior becomes predictable and changeable **without a rewrite**, and even non-developers can steer it through governed configuration rather than source edits.
+
+### 2. Isolated, guarded capabilities
+Every capability the agent can use runs as its own **isolated MCP server** (Container Commander, Memory, Skills, Cron), behind guarded, allow-listed tools. Capabilities are bounded, sandboxed, and auditable — the agent can only do what it has been explicitly granted.
+
+### 3. Grounded output
+A strict **evidence policy** ties answers to verified tool results. When TRION lacks grounded facts, it says so — a deliberate, narrow *"unknown"* fallback instead of a confident hallucination. Honesty is enforced by the pipeline, not left to the model's goodwill.
+
+Together these map to a simple goal: agents that are **controllable, safe, and honest**.
+
+## Architecture at a glance
+
+A deterministic control-classifier routes every request; simple requests take the short path, complex ones enter a verified, tool-using task loop. Purple marks the (few) LLM steps, green the deterministic stages.
+
+![TRION system map — deterministic routing from input through Classifier, routing_frame, Thinking, Verifier, Task Loop and Output, with isolated MCP capability servers (Memory, Container Commander, Time)](assets/systemkarte.png)
+
+Every stage is small, testable, and replaceable. Output only leaves the pipeline after verification and grounding checks — and the whole path uses just three LLM calls.
+
+## Provider-agnostic by design
+
+TRION is not tied to a single model vendor. The LLM layer runs on a central provider registry, and each role — `CONTROL`, `THINKING`, `OUTPUT` — can be pointed at a different model.
+
+**Supported providers:** OpenAI · Anthropic · OpenRouter · MiniMax · Ollama (local & cloud)
+
+API keys are never hard-coded — the target architecture stores them encrypted in the backend and resolves them internally at the LLM layer; the UI only ever sees status (`set`, `empty`, `test failed`), never plaintext.
+
+## Quickstart
+
+TRION ships with a minimal Docker stack (WebUI + Admin API + Memory):
+
+```bash
+docker compose up --build -d
 ```
-Classifier: 0 LLM  ·  Orchestrator: 0 LLM  ·  Task Loop: 0 LLM
-Thinking: 1 LLM    ·  Verifier: 1 LLM       ·  Output: 1 LLM
-─────────────────────────────────────────────────────────────────
-total: 3 LLM-Calls  ·  no fallback to raw text  ·  fail-closed
-```
 
----
+This starts:
+- `trion-webui` — the web interface (Vite / React / TypeScript)
+- `trion-admin-api` — the backend (chat, models, workspace, routers)
+- `trion-memory` — the SQL-backed memory server
 
-## Architecture
+Health checks: `GET /health` on both the Admin API and the WebUI.
 
-TRION is a sequential pipeline with a single bottleneck. The `routing_frame` is built once and read by all downstream layers. No module re-interprets the request. No decision is made twice.
+## Concepts & deep dives
 
-| Layer | Responsibility | LLM |
-|---|---|---|
-| **Classifier** | Coarse routing, safety level, category | 0 |
-| **routing_frame** | Bottleneck — intent, domain, evidence, operation contract | 0 |
-| **Orchestrator** | Tool filtering, context collection (complex path only) | 0 |
-| **Thinking** | Plans, selects tools, analyses | 1 |
-| **Verifier** | Validates plan against GuardDecision + anti_patterns | 1 |
-| **Task Loop** | Deterministic execution, evidence gate | 0 |
-| **Output** | Streaming, claim validation | 1 |
+- [PIANO — the cognitive engine](piano_concept.md)
+- [Operation Contract concept](operation_contract_concept.md)
+- [TRION Meaning Representation (TMR)](tmr_concept.md)
 
----
-
-## Core Principles
+## Project layout
 
 ```
-routing_frame → operation_contract → all layers
+TRION/
+├── adapters/
+│   ├── webui/          web interface (Vite/React/TS, direct Admin-API client)
+│   └── admin-api/      backend: chat, models, workspace, routers
+├── core/
+│   ├── pipeline/       run_chat() — short path + task-loop entry
+│   ├── classifier/     deterministic control-classifier (pattern routing)
+│   ├── thinking/       analyzer / planner / replanner
+│   ├── verifier/       deterministic + LLM plan verification
+│   ├── output/         grounded answer generation + evidence guard
+│   ├── orchestrator/   context assembly + tool selection
+│   └── task_loop/      multi-step execution + replanner hook
+├── mcp/                MCP hub + client + transports
+├── mcp-servers/        isolated capability servers (container-commander, skills, cron)
+├── memory/             SQL memory MCP server
+├── intelligence_modules/  routing CSVs, prompts, prompt manager
+├── tools/              tool executor
+└── config/             environment configuration (no hard-coded values)
 ```
-**Decided once. Valid everywhere.** What the pipeline decided applies to all downstream modules simultaneously.
 
-```
-without operation_contract → eligible_tools = []
-```
-**No fallback to raw text.** The layer that derived tool selection from user text wasn't refactored — it was deleted.
+## Status
 
-```
-done = required_evidence ⊆ observed_evidence  ·  else: blocked
-```
-**Errors are called errors.** Missing evidence blocks before execution. Tool success alone does not complete a task.
+TRION is in **active development**. Working today: the core vertical slice (`Classifier → Thinking → Verifier → Output`), the multi-step task loop, the MCP layer with a live installer, the SQL memory server, the WebUI v2, and a Docker stack verified to build, start, and pass a chat smoke test. The read-only Container Commander v2 path and guarded start/stop tools run against a live container. Orchestrator, autonomous tool execution, and provider/secret management are actively being hardened.
 
-```
-Classifier: 0  ·  Orchestrator: 0  ·  Task Loop: 0  ·  Thinking: 1  ·  Verifier: 1  ·  Output: 1
-```
-**Three LLM calls. No more.** Tool selection, routing, and execution happen without a model.
+## Contributing & community
 
----
+TRION is built in the open. Issues, ideas, and PRs are welcome — join the [Discord](https://discord.gg/HDsSbSQaC) to discuss architecture and direction.
 
-## Documentation
+If TRION helps you, you can support development via [GitHub Sponsors](https://github.com/sponsors/danny094).
 
-| Document | Content |
-|---|---|
-| [The Pipeline](./docs/pipeline.md) | Full architecture, both paths, all layers |
-| [System Map](./docs/systemkarte.md) | Visual overview of the entire architecture |
-| [TMR System](./docs/tmr.md) | TRION Meaning Representation — normalisation before routing |
-| [Philosophy](./docs/philosophie.md) | Four architectural ground rules |
+Contact: trlon.devs.dk@gmail.com
 
-### Technical Docs
+## License
 
-| Folder | Content |
-|---|---|
-| [`docs/architecture/`](./docs/architecture/) | System, core and PIANO target design |
-| [`docs/routing/`](./docs/routing/) | Routing frame, capability manifest, current state |
-| [`docs/memory-grounding/`](./docs/memory-grounding/) | Memory, evidence, self-context |
-| [`docs/task-loop/`](./docs/task-loop/) | Autonomy, task loop, error behaviour |
-| [`docs/governance/`](./docs/governance/) | Design, lifecycle and veto rules |
-| [`docs/implementation-plans/`](./docs/implementation-plans/) | Active and completed plans |
+Copyright © 2026 Dennis
 
----
+TRION is free software, licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** — see [LICENSE](LICENSE). You may use, study, share, and modify it; if you run a modified version as a network service, you must make your source available under the same terms.
 
-<div align="center">
-<sub>TRION — <code>code decides over truth</code></sub>
-</div>
+A separate **commercial license** (without the AGPL copyleft obligations) is available for organizations that cannot comply with the AGPL — contact trlon.devs.dk@gmail.com.
