@@ -94,6 +94,8 @@ TRION/
 
 TRION is in **active development**. Working today: the core vertical slice (`Classifier → Thinking → Verifier → Output`), the multi-step task loop, the MCP layer with a live installer, the SQL memory server, the WebUI v2, and a Docker stack verified to build, start, and pass a chat smoke test. The read-only Container Commander v2 path and guarded start/stop tools run against a live container. Orchestrator, autonomous tool execution, and provider/secret management are actively being hardened.
 
+> **⚠️ MCP layer under active revision.** The MCP structured-output and desired-state contracts (`mcp/`) are currently being reworked. Interfaces and payload shapes in that layer may change between commits — treat them as unstable until this note is removed.
+
 ## Contributing & community
 
 TRION is built in the open. Issues, ideas, and PRs are welcome — join the [Discord](https://discord.gg/HDsSbSQaC) to discuss architecture and direction.

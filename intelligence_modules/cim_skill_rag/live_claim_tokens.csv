@@ -1,0 +1,53 @@
+token,claim_kind,language
+wie viel uhr,time,de
+wie spaet,time,de
+wie spät,time,de
+uhrzeit,time,de
+aktuelle zeit,time,de
+current time,time,en
+utc,time,any
+datum,time,de
+uhr,time,de
+/trion-home/,file_content,any
+.txt,file_content,any
+datei,file_content,de
+file,file_content,any
+dateiinhalt,file_content,de
+inhalt der datei,file_content,de
+ram,hardware,any
+vram,hardware,any
+gpu,hardware,any
+cpu,hardware,any
+arbeitsspeicher,hardware,de
+hardware,hardware,any
+ressourcen,hardware,de
+speicherauslastung,hardware,de
+container,container_runtime,any
+docker,container_runtime,any
+blueprint,container_runtime,any
+session bind,container_runtime,any
+gebunden,container_runtime,de
+läuft,container_runtime,de
+laeuft,container_runtime,de
+welche skills,skill_inventory,de
+welche tools,skill_inventory,de
+verfügbare tools,skill_inventory,de
+verfuegbare tools,skill_inventory,de
+installierte skills,skill_inventory,de
+installierte tools,skill_inventory,de
+list_skills,skill_inventory,any
+installiert,skill_inventory,de
+faehigkeiten,skill_inventory,de
+fähigkeiten,skill_inventory,de
+was kannst du,skill_inventory,de
+classifier,meta_pipeline,any
+thinking plan,meta_pipeline,any
+verifier result,meta_pipeline,any
+selected_tools,meta_pipeline,any
+semantic_score,meta_pipeline,any
+ambiguity gate,meta_pipeline,any
+orchestrator,meta_pipeline,any
+pipeline,meta_pipeline,any
+trace,meta_pipeline,any
+bruchstelle,meta_pipeline,de
+wo entsteht das problem,meta_pipeline,de

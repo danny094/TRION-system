@@ -1,0 +1,12 @@
+signal_phrase,tool_name,language,priority
+container,request_container,any,10
+deploy,request_container,any,10
+sandbox,request_container,any,10
+merke,memory_save,de,20
+remember,memory_save,any,20
+speicher,memory_save,de,20
+save,memory_save,any,20
+erinner,memory_graph_search,de,30
+wei,memory_graph_search,de,30
+remember,memory_graph_search,any,30
+know,memory_graph_search,any,30

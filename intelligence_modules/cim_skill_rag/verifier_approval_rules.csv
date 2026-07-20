@@ -1,0 +1,5 @@
+rule_id,description,target_tools,required_prior_tools_any,step_risk,reason_code,hint
+VAR-01,Deploy with confirmation risk requires explicit approval_request,deploy_container,approval_request,needs_confirmation,deploy_missing_approval_request,Fuege vor deploy_container einen approval_request-Schritt ein, wenn der Plan als needs_confirmation markiert ist.
+VAR-02,Risky exec requires explicit approval_request,exec_in_container,approval_request,needs_confirmation,exec_missing_approval_request,Fuege vor riskantem exec_in_container einen approval_request-Schritt ein.
+VAR-03,Blueprint delete requires explicit approval_request,blueprint_delete,approval_request,needs_confirmation,blueprint_delete_missing_approval_request,Fuege vor blueprint_delete einen approval_request-Schritt ein.
+VAR-04,Secret delete requires explicit approval_request,secret_delete,approval_request,needs_confirmation,secret_delete_missing_approval_request,Fuege vor secret_delete einen approval_request-Schritt ein.

@@ -1,0 +1,9 @@
+token,language,role,value
+zuhause,de,scope,home
+home,en,scope,home
+hier,de,scope,home
+home-space,de,scope,home
+home space,en,scope,home
+this container,en,scope,home
+trion-home,de,target_alias,trion-home
+trion-home,en,target_alias,trion-home

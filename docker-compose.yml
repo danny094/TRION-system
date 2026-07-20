@@ -1,0 +1,119 @@
+services:
+  trion-memory:
+    build:
+      context: .
+      dockerfile: memory/Dockerfile
+    container_name: trion-memory
+    environment:
+      DB_PATH: /app/data/memory.db
+      ADMIN_API_URL: http://trion-admin-api:8200
+    volumes:
+      - trion-memory-data:/app/data
+    ports:
+      - "${MEMORY_PORT:-8001}:8081"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import sys, urllib.request, urllib.error; url='http://127.0.0.1:8081/mcp';\ntry:\n urllib.request.urlopen(url, timeout=3)\nexcept urllib.error.HTTPError as exc:\n sys.exit(0 if exc.code in (200, 400, 404, 405) else 1)\nexcept Exception:\n sys.exit(1)\nelse:\n sys.exit(0)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  trion-admin-api:
+    build:
+      context: .
+      dockerfile: adapters/admin-api/Dockerfile
+    container_name: trion-admin-api
+    depends_on:
+      trion-memory:
+        condition: service_healthy
+    environment:
+      OLLAMA_BASE: ${OLLAMA_BASE:-http://host.docker.internal:11434}
+      OLLAMA_CLOUD_BASE: ${OLLAMA_CLOUD_BASE:-https://ollama.com}
+      ADMIN_API_URL: http://trion-admin-api:8200
+      MCP_BASE: http://trion-memory:8081
+      CUSTOM_MCPS_DIR: /app/custom_mcps
+      MCP_REGISTRY_PATH: /app/data/mcp_registry.json
+      MEMORY_URL: http://trion-memory:8081
+      PERSONAS_DIR: /app/personas
+      TRION_PLUGINS_DIR: /app/ui_plugins
+      THINKING_PROVIDER: ${THINKING_PROVIDER:-ollama_cloud}
+      THINKING_ANALYZER_ENABLE: ${THINKING_ANALYZER_ENABLE:-true}
+      CONTROL_PROVIDER: ${CONTROL_PROVIDER:-ollama_cloud}
+      OUTPUT_PROVIDER: ${OUTPUT_PROVIDER:-ollama_cloud}
+      AUTONOMY_PROFILE_MODE: ${AUTONOMY_PROFILE_MODE:-autonom}
+      TASK_LOOP_APPROVAL_MODE: ${TASK_LOOP_APPROVAL_MODE:-permissive}
+      TRION_OLLAMA_CLOUD_SMOKE_MODEL: ${TRION_OLLAMA_CLOUD_SMOKE_MODEL:-ministral-3:8b}
+      ENABLE_CORS: "true"
+      ALLOWED_ORIGINS: "*"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - trion-admin-api-data:/app/data
+      - trion-custom-mcps:/app/custom_mcps
+      - trion-home:/trion-home
+      - trion-memory-files:/app/memory
+      - trion-memory-speicher:/app/memory_speicher
+      - trion-storage-broker:/app/storage_broker
+      - trion-personas:/app/personas
+      - trion-plugins:/app/ui_plugins
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "${ADMIN_API_PORT:-8200}:8200"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8200/health', timeout=3).read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  trion-webui:
+    build:
+      context: ./adapters/webui
+    container_name: trion-webui
+    depends_on:
+      trion-admin-api:
+        condition: service_healthy
+    ports:
+      - "${WEBUI_PORT:-3000}:3000"
+    restart: unless-stopped
+
+  trion-home:
+    image: busybox:1.36
+    container_name: trion-home
+    command:
+      - sh
+      - -c
+      - >-
+        mkdir -p /home/trion/.trion /home/trion/notes /home/trion/diary /home/trion/scratch /home/trion/workspace /home/trion/artifacts /home/trion/memory
+        && printf '%s\n' '{"home_id":"trion-home","blueprint_id":"trion-home","owner_agent":"trion","purpose":"Persistent local workspace for TRION.","runtime_profile":"trion-home","roots":{"home":"/home/trion","workspace":"/home/trion/workspace","notes":"/home/trion/notes","diary":"/home/trion/diary","scratch":"/home/trion/scratch","artifacts":"/home/trion/artifacts"},"rules":{"allowed_write_roots":["/home/trion/notes","/home/trion/diary","/home/trion/scratch","/home/trion/workspace","/home/trion/artifacts"]}}' > /home/trion/.trion/home.json
+        && ln -snf /home/trion /trion-home
+        && echo "trion-home-ready" > /home/trion/status.txt
+        && tail -f /dev/null
+    labels:
+      trion.managed: "true"
+      trion.blueprint: "trion-home"
+      trion.home: "true"
+      trion.role: "home"
+      trion.profile: "trion-home"
+    volumes:
+      - trion-home:/home/trion
+    restart: unless-stopped
+
+volumes:
+  trion-memory-data:
+  trion-admin-api-data:
+  trion-custom-mcps:
+  trion-home:
+  trion-memory-files:
+  trion-memory-speicher:
+  trion-storage-broker:
+  trion-personas:
+  trion-plugins:

@@ -1,0 +1,83 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Node / frontend
+node_modules/
+dist/
+build/
+.vite/
+.next/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.crt
+*.cert
+
+# Runtime data
+data/
+runtime/
+tmp/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+*.log
+
+# Local agent/editor state
+.git/
+.git-meta/
+.git.readonly-backup/
+.claude/
+.codex
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary refactor/backups
+*.broken
+*.old
+*.bak
+*.backup
+*-backup.*
+*.with-*
+
+# OS files
+.DS_Store
+Thumbs.db
+__MACOSX/
+
+# Flache Root-Docs unter docs/ — seit 2026-06-14 liegen diese in Themenordnern
+# (docs/governance/, docs/architecture/, docs/adapters/, docs/implementation-plans/).
+# Flache Kopien sind stale Duplikate und dürfen NICHT committed werden.
+# Die kanonischen Pfade sind in docs/{governance,architecture,adapters,implementation-plans}/.
+# Manuell löschen (Bash-Sandbox kann keine Dateien auf virtiofs löschen):
+#   rm docs/[0-9]*.md docs/p[0-9]*.md docs/test_delete_me.txt
+#   rm docs/README.md docs/README-freeze-status-*.md docs/codex-fragen.md docs/trion_analysis.docx
+docs/[0-9][0-9]-*.md
+docs/p[0-9]*.md
+docs/archive/
+docs/README.md
+docs/README-freeze-status-*.md
+docs/codex-fragen.md
+docs/trion_analysis.docx

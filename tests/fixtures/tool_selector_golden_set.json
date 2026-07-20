@@ -1,0 +1,18 @@
+[
+  {
+    "query": "Wie viel Uhr ist es gerade?",
+    "expected_tools": ["time_now"]
+  },
+  {
+    "query": "Welche Container laufen gerade?",
+    "expected_tools": ["container_list"]
+  },
+  {
+    "query": "Erklaer mir Embeddings einfach.",
+    "expected_tools": []
+  },
+  {
+    "query": "Lies die Datei /trion-home/status.txt.",
+    "expected_tools": []
+  }
+]

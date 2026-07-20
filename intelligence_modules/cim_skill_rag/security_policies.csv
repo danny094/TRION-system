@@ -1,0 +1,10 @@
+policy_id,rule_description,check_function,severity,trigger_keywords,reason_code,verifier_action,hint
+SEC-01,No SMTP Outbound,"port != 25 and port != 587",CRITICAL,"smtp|sendmail|mail server|port 25|port 587",smtp_outbound,hard_block,Nutze keinen Mailversand oder SMTP-Portfreigaben im Plan.
+SEC-02,Memory Limit,"mem_usage < 512MB",High,"memory limit|ram limit|512mb|mem_usage",memory_limit_violation,reject,Plane konservativer und halte Memory-/RAM-Limits explizit ein.
+SEC-03,No Root Access,"uid != 0",CRITICAL,"uid != 0|root user|sudo su|run as root",root_access,hard_block,Nutze keinen Root-Kontext oder eskalierte Rechte im Plan.
+SEC-04,Path Traversal,"'..' not in path",High,"../|path traversal|'..' not in path",path_traversal,hard_block,Greife nur auf erlaubte bekannte Pfade zu und vermeide Path-Traversal-Muster.
+SEC-05,No Eval,"'eval(' not in code",CRITICAL,"eval(|exec(|__import__(",eval_execution,hard_block,Nutze keine dynamische Codeausfuehrung wie eval/exec.
+SEC-06,Destructive Shell,"dangerous host mutation commands are forbidden",CRITICAL,"rm -rf|mkfs|shutdown -h now|curl|sh -c|bash -c",destructive_shell,hard_block,Plane keine destruktiven Shell-Kommandos oder ungeprueften Remote-Skripte.
+SEC-07,Destructive Database,"database destruction commands are forbidden",CRITICAL,"drop database|drop table|delete all tables|truncate all",destructive_database,hard_block,Plane keine irreversiblen Datenbank-Loeschoperationen ohne sicheren isolierten Kontext.
+SEC-08,Credential Exfiltration,"credential dumping and secret exfiltration are forbidden",CRITICAL,"api key|password dump|private key|access token",credential_exfiltration,hard_block,Fordere oder extrahiere keine Secrets, Keys oder Zugangsdaten.
+SEC-09,Malware,"malware creation or deployment is forbidden",CRITICAL,"malware|ransomware|keylogger|phishing",malware,hard_block,Plane keine Malware-, Phishing- oder Credential-Harvesting-Schritte.

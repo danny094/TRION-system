@@ -1,0 +1,60 @@
+token,dialogue_act,language
+ok,ack,any
+okay,ack,any
+okey,ack,any
+passt,ack,de
+verstanden,ack,de
+alles klar,ack,de
+jo,ack,de
+zu hart,feedback,de
+zu streng,feedback,de
+lockerer,feedback,de
+freundlicher,feedback,de
+ton,feedback,de
+tonart,feedback,de
+tonfall,feedback,de
+stil,feedback,de
+formuliert,feedback,de
+bitte,request,de
+prüf,request,de
+pruef,request,de
+check,request,any
+mach,request,de
+mache,request,de
+baue,request,de
+erstelle,request,de
+starte,request,de
+teste,request,de
+zeige,request,de
+gib,request,de
+lies,request,de
+analysier,analysis,de
+analysiere,analysis,de
+ursache,analysis,de
+warum,analysis,de
+problem,analysis,any
+vergleich,analysis,de
+strategie,analysis,de
+wie geht,smalltalk,de
+wie fühl,smalltalk,de
+wie fuehl,smalltalk,de
+laune,smalltalk,de
+mood,smalltalk,any
+wie ist es für dich,smalltalk,de
+wie ist es fuer dich,smalltalk,de
+was hältst du,smalltalk,de
+was haeltst du,smalltalk,de
+wie findest du,smalltalk,de
+für dich,smalltalk,de
+fuer dich,smalltalk,de
+was,question_word,de
+wie,question_word,de
+warum,question_word,de
+wieso,question_word,de
+weshalb,question_word,de
+wann,question_word,de
+wer,question_word,de
+wo,question_word,de
+welche,question_word,de
+welcher,question_word,de
+kannst,question_word,de

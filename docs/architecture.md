@@ -127,6 +127,10 @@ the rest of the code. Modules read configuration through a single `config`
 interface, so models, providers, and budgets can be changed without touching
 source.
 
+> **⚠️ Note:** the MCP layer's structured-output and desired-state contracts
+> (`mcp/`) are under active revision. The shape of that layer described here is a
+> moving target and may change between commits.
+
 ### Memory
 Memory is its own **isolated MCP server** built on SQLite plus embeddings. It is
 called through the MCP hub, never imported directly. It offers short/mid/long

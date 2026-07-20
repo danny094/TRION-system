@@ -1,0 +1,4 @@
+predicate,theme,routing_intent_kind_hint,routing_domain_hint,routing_evidence_need_hint
+runtime_state,container,information,container,runtime_inventory
+lifecycle_action,container,action,container,runtime_status
+log_state,container,information,container,runtime_logs

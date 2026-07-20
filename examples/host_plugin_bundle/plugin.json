@@ -1,0 +1,15 @@
+{
+  "id": "host-plugin-demo",
+  "name": "Host Plugin Demo",
+  "version": "1.0.0",
+  "author": "TRION Core",
+  "description": "Minimales ESM-Plugin fuer den React-Host-Mount.",
+  "kind": "app",
+  "mount": "launchpad",
+  "entry": "entry.js",
+  "permissions": {
+    "api": ["/health"],
+    "tools": ["time_now"],
+    "events": []
+  }
+}

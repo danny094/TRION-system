@@ -1,0 +1,21 @@
+claim_type,token
+runtime_hardware,hardware
+runtime_hardware,gpu
+runtime_hardware,vram
+runtime_hardware,ram
+runtime_hardware,system info
+runtime_hardware,system_info
+runtime_time,time
+runtime_time,clock
+runtime_time,utc
+runtime_time,uhrzeit
+file_content,file
+file_content,read
+file_content,workspace
+file_content,home
+container_runtime,container
+container_runtime,blueprint
+skill_inventory,skill
+skill_inventory,skills
+skill_inventory,catalog
+skill_inventory,inventory

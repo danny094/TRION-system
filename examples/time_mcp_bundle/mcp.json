@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "id": "time-mcp",
+  "display_name": "Time MCP",
+  "version": "1.0.0",
+  "description": "Liefert Uhrzeit und Datumsinformationen fuer TRION.",
+  "transport": "stdio",
+  "entry": {
+    "type": "stdio",
+    "command": ".venv/bin/python server.py"
+  },
+  "ui": {
+    "icon": "assets/icon.svg",
+    "launchpad": {
+      "enabled": true,
+      "label": "Time"
+    },
+    "settings": {
+      "enabled": true,
+      "mode": "config"
+    }
+  },
+  "install": {
+    "healthcheck": {
+      "enabled": true
+    },
+    "runtime": {
+      "kind": "venv"
+    }
+  }
+}

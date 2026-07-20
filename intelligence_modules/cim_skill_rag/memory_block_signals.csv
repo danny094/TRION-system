@@ -1,0 +1,25 @@
+signal_phrase,signal_type,language
+häufig,analysis_block,de
+haeufig,analysis_block,de
+meisten,analysis_block,de
+meist,analysis_block,de
+kategorie,analysis_block,de
+kategorien,analysis_block,de
+thema,analysis_block,de
+themen,analysis_block,de
+wort,analysis_block,de
+wörter,analysis_block,de
+woerter,analysis_block,de
+statistik,analysis_block,de
+beliebig,vague_search_block,de
+beliebigen,vague_search_block,de
+irgendein,vague_search_block,de
+irgendeine,vague_search_block,de
+irgendwel,vague_search_block,de
+selber,vague_search_block,de
+selbst,vague_search_block,de
+such dir,compound_self_search_primary,de
+stichw,context_check,de
+suchbegr,context_check,de
+memory,context_check,any
+memory_graph_search,graph_search_tool,any

@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "tools": [
+    {
+      "name": "memory_save",
+      "description": "Save free-text memory content for a conversation; respects the conversation policy.",
+      "domain": "memory",
+      "operation": "write",
+      "risk": "mutating",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "primary",
+      "can_answer_directly": false
+    },
+    {
+      "name": "memory_fact_save",
+      "description": "Save a structured fact (key/value) for a conversation under the long-term layer.",
+      "domain": "memory",
+      "operation": "write",
+      "risk": "mutating",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "primary",
+      "can_answer_directly": false
+    },
+    {
+      "name": "memory_fact_load",
+      "description": "Load a structured fact by key for a conversation.",
+      "domain": "memory",
+      "operation": "read",
+      "risk": "read_only",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "primary",
+      "can_answer_directly": true
+    },
+    {
+      "name": "memory_recent",
+      "description": "Return the most recent memory rows for a conversation.",
+      "domain": "memory",
+      "operation": "read",
+      "risk": "read_only",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "primary",
+      "can_answer_directly": true
+    },
+    {
+      "name": "memory_search",
+      "description": "Substring search over stored memory rows for a conversation.",
+      "domain": "memory",
+      "operation": "search",
+      "risk": "read_only",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "primary",
+      "can_answer_directly": true
+    },
+    {
+      "name": "memory_search_layered",
+      "description": "Search memory rows with explicit layer scoping (stm/ltm/system).",
+      "domain": "memory",
+      "operation": "search",
+      "risk": "read_only",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "primary",
+      "can_answer_directly": true
+    },
+    {
+      "name": "memory_search_fts",
+      "description": "Full-text search over memory rows; honours the conversation retrieval policy.",
+      "domain": "memory",
+      "operation": "search",
+      "risk": "read_only",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "primary",
+      "can_answer_directly": true
+    },
+    {
+      "name": "memory_autosave_hook",
+      "description": "Internal hook used by the auto-save pipeline; never invoked directly by the assistant.",
+      "domain": "memory",
+      "operation": "write",
+      "risk": "mutating",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "forbidden_direct",
+      "can_answer_directly": false
+    },
+    {
+      "name": "memory_graph_search",
+      "description": "Search the memory knowledge graph for nodes matching a query.",
+      "domain": "memory",
+      "operation": "graph_search",
+      "risk": "read_only",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "primary",
+      "can_answer_directly": true
+    },
+    {
+      "name": "memory_graph_neighbors",
+      "description": "Return the neighbouring nodes/edges of a memory graph node.",
+      "domain": "memory",
+      "operation": "read",
+      "risk": "read_only",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "primary",
+      "can_answer_directly": true
+    },
+    {
+      "name": "memory_graph_stats",
+      "description": "Return aggregate statistics for the memory knowledge graph.",
+      "domain": "memory",
+      "operation": "read",
+      "risk": "read_only",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "primary",
+      "can_answer_directly": true
+    },
+    {
+      "name": "memory_graph_save",
+      "description": "Persist a graph fragment (nodes/edges) to the memory knowledge graph.",
+      "domain": "memory",
+      "operation": "write",
+      "risk": "mutating",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "primary",
+      "can_answer_directly": false
+    },
+    {
+      "name": "graph_add_node",
+      "description": "Add a single node to the memory knowledge graph.",
+      "domain": "memory",
+      "operation": "write",
+      "risk": "mutating",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "primary",
+      "can_answer_directly": false
+    },
+    {
+      "name": "graph_find_duplicate_nodes",
+      "description": "Maintenance scan that locates duplicate nodes in the memory graph.",
+      "domain": "memory",
+      "operation": "maintain",
+      "risk": "mutating",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "forbidden_direct",
+      "can_answer_directly": false
+    },
+    {
+      "name": "graph_merge_nodes",
+      "description": "Maintenance operation that merges duplicate nodes in the memory graph.",
+      "domain": "memory",
+      "operation": "maintain",
+      "risk": "mutating",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "forbidden_direct",
+      "can_answer_directly": false
+    },
+    {
+      "name": "graph_delete_orphan_nodes",
+      "description": "Maintenance operation that deletes orphan nodes from the memory graph.",
+      "domain": "memory",
+      "operation": "delete",
+      "risk": "mutating",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "forbidden_direct",
+      "can_answer_directly": false
+    },
+    {
+      "name": "graph_prune_weak_edges",
+      "description": "Maintenance operation that prunes low-weight edges from the memory graph.",
+      "domain": "memory",
+      "operation": "maintain",
+      "risk": "mutating",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "forbidden_direct",
+      "can_answer_directly": false
+    },
+    {
+      "name": "memory_semantic_save",
+      "description": "Persist an embedded semantic chunk for retrieval.",
+      "domain": "memory",
+      "operation": "write",
+      "risk": "mutating",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "primary",
+      "can_answer_directly": false
+    },
+    {
+      "name": "memory_semantic_search",
+      "description": "Vector-based semantic search over embedded memory chunks; honours the retrieval policy.",
+      "domain": "memory",
+      "operation": "semantic_search",
+      "risk": "read_only",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "primary",
+      "can_answer_directly": true
+    },
+    {
+      "name": "memory_embedding_version_status",
+      "description": "Report the active embedding-model version and backfill status.",
+      "domain": "memory",
+      "operation": "read",
+      "risk": "read_only",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "primary",
+      "can_answer_directly": true
+    },
+    {
+      "name": "memory_embedding_backfill",
+      "description": "Maintenance operation that backfills embeddings for unembedded memory rows.",
+      "domain": "memory",
+      "operation": "maintain",
+      "risk": "mutating",
+      "target_scopes": ["assistant_identity"],
+      "tool_role": "forbidden_direct",
+      "can_answer_directly": false
+    }
+  ]
+}

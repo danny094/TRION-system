@@ -1,0 +1,656 @@
+{
+  "schema_version": 1,
+  "tools": [
+    {
+      "name": "container_list",
+      "description": "List Docker containers with stable status fields for the Container Commander UI and TRION runtime checks.",
+      "domain": "container_runtime",
+      "operation": "list",
+      "supports_entities": ["container"],
+      "evidence_types": ["runtime_inventory", "runtime_status"],
+      "requires": [],
+      "risk": "read_only",
+      "examples": [
+        "Welche Container laufen gerade?",
+        "Zeig mir den Status aller Container.",
+        "Ist der sql-memory Container online?"
+      ],
+      "keywords": ["container", "docker", "status", "laufen", "running", "liste", "list"]
+    },
+    {
+      "name": "container_inspect",
+      "description": "Inspect a specific container with labels, ports, mounts, runtime state, blueprint_id and home_scope.",
+      "domain": "container_runtime",
+      "operation": "inspect",
+      "supports_entities": ["container"],
+      "evidence_types": ["runtime_metadata", "home_scope"],
+      "requires": ["container_id_or_name"],
+      "risk": "read_only",
+      "examples": [
+        "Zeig mir die Details vom sql-memory Container.",
+        "Welche Ports hat trion-admin-api?"
+      ],
+      "keywords": ["container", "details", "inspect", "ports", "labels", "mounts", "docker"]
+    },
+    {
+      "name": "container_logs",
+      "description": "Get bounded log output from a container without opening a shell session.",
+      "domain": "container_runtime",
+      "operation": "logs",
+      "supports_entities": ["container"],
+      "evidence_types": ["runtime_logs"],
+      "requires": ["container_id_or_name"],
+      "risk": "read_only",
+      "examples": [
+        "Zeig mir die letzten Logs von trion-core.",
+        "Was gibt der fs-bridge Container aus?"
+      ],
+      "keywords": ["logs", "ausgabe", "output", "container", "docker", "fehler", "error"]
+    },
+    {
+      "name": "container_stats",
+      "description": "Read live resource stats and network/efficiency signals for one container.",
+      "domain": "container_runtime",
+      "operation": "stats",
+      "supports_entities": ["container"],
+      "evidence_types": ["runtime_metrics", "runtime_status"],
+      "requires": ["container_id_or_name"],
+      "risk": "read_only",
+      "examples": [
+        "Zeig mir die Live-Stats vom sql-memory Container.",
+        "Wie hoch sind CPU und RAM von trion-admin-api?"
+      ],
+      "keywords": ["stats", "cpu", "ram", "memory", "container", "docker", "metriken"]
+    },
+    {
+      "name": "runtime_quota",
+      "description": "Read runtime session quota limits and current managed usage.",
+      "domain": "container_runtime",
+      "operation": "quota",
+      "supports_entities": ["container_runtime"],
+      "evidence_types": ["runtime_limits", "runtime_status"],
+      "requires": [],
+      "risk": "read_only",
+      "examples": [
+        "Wie viel Runtime-Kontingent ist noch frei?",
+        "Zeig mir Container-, RAM- und CPU-Quota."
+      ],
+      "keywords": ["quota", "limit", "cpu", "memory", "container", "runtime", "kontingent"]
+    },
+    {
+      "name": "container_exec",
+      "description": "Execute one bounded command inside a running container.",
+      "domain": "container_runtime",
+      "operation": "exec",
+      "supports_entities": ["container"],
+      "evidence_types": ["runtime_exec"],
+      "requires": ["container_id_or_name", "command"],
+      "risk": "mutating",
+      "examples": [
+        "Fuehre pwd im Container aus.",
+        "Pruefe im Container, welcher User aktiv ist."
+      ],
+      "keywords": ["exec", "command", "shell", "container", "docker", "run"]
+    },
+    {
+      "name": "container_exec_detailed",
+      "description": "Execute one bounded command and return split stdout/stderr details.",
+      "domain": "container_runtime",
+      "operation": "exec_detailed",
+      "supports_entities": ["container"],
+      "evidence_types": ["runtime_exec"],
+      "requires": ["container_id_or_name", "command"],
+      "risk": "mutating",
+      "examples": [
+        "Fuehre einen Diagnosebefehl im Container aus und zeig stdout/stderr."
+      ],
+      "keywords": ["exec", "diagnose", "stdout", "stderr", "container", "docker"]
+    },
+    {
+      "name": "runtime_cleanup_all",
+      "description": "Stop and remove all TRION-managed containers.",
+      "domain": "container_runtime",
+      "operation": "cleanup_all",
+      "supports_entities": ["container"],
+      "evidence_types": ["runtime_state_change"],
+      "requires": [],
+      "risk": "mutating",
+      "examples": [
+        "Raeume alle TRION-Container weg."
+      ],
+      "keywords": ["cleanup", "remove", "stop", "container", "docker", "emergency"]
+    },
+    {
+      "name": "remove_stopped_container",
+      "description": "Remove one stopped TRION-managed container.",
+      "domain": "container_runtime",
+      "operation": "remove",
+      "supports_entities": ["container"],
+      "evidence_types": ["runtime_state_change"],
+      "requires": ["container_id_or_name"],
+      "risk": "mutating",
+      "examples": [
+        "Entferne den gestoppten Container."
+      ],
+      "keywords": ["remove", "delete", "container", "docker", "stop", "cleanup"]
+    },
+    {
+      "name": "network_list",
+      "description": "List TRION-managed Docker networks.",
+      "domain": "container_runtime",
+      "operation": "network_list",
+      "supports_entities": ["network"],
+      "evidence_types": ["runtime_network_inventory"],
+      "requires": [],
+      "risk": "read_only",
+      "examples": [
+        "Welche TRION-Netzwerke gibt es?",
+        "Zeig mir die Docker-Netzwerke von TRION."
+      ],
+      "keywords": ["network", "networks", "docker", "netzwerk", "liste", "list"]
+    },
+    {
+      "name": "network_info",
+      "description": "Get network details for one specific container.",
+      "domain": "container_runtime",
+      "operation": "network_inspect",
+      "supports_entities": ["container", "network"],
+      "evidence_types": ["runtime_network_metadata"],
+      "requires": ["container_id_or_name"],
+      "risk": "read_only",
+      "examples": [
+        "Welche Netzwerke nutzt trion-admin-api?",
+        "Zeig mir die Netzwerkdetails vom SQL-Container."
+      ],
+      "keywords": ["network", "netzwerk", "container", "gateway", "ip", "docker"]
+    },
+    {
+      "name": "network_cleanup",
+      "description": "Remove empty isolated TRION-managed networks.",
+      "domain": "container_runtime",
+      "operation": "network_cleanup",
+      "supports_entities": ["network"],
+      "evidence_types": ["runtime_network_mutation"],
+      "requires": [],
+      "risk": "mutating",
+      "examples": [
+        "Raeume leere TRION-Netzwerke auf."
+      ],
+      "keywords": ["network", "cleanup", "netzwerk", "aufräumen", "docker"]
+    },
+    {
+      "name": "proxy_start",
+      "description": "Enable the commander proxy policy surface for outbound domain controls.",
+      "domain": "container_runtime",
+      "operation": "proxy_start",
+      "supports_entities": ["proxy"],
+      "evidence_types": ["runtime_network_policy"],
+      "requires": [],
+      "risk": "mutating",
+      "examples": [
+        "Aktiviere die Proxy-Regeln fuer Container Commander."
+      ],
+      "keywords": ["proxy", "start", "whitelist", "egress", "netzwerk"]
+    },
+    {
+      "name": "proxy_stop",
+      "description": "Disable the commander proxy policy surface for outbound domain controls.",
+      "domain": "container_runtime",
+      "operation": "proxy_stop",
+      "supports_entities": ["proxy"],
+      "evidence_types": ["runtime_network_policy"],
+      "requires": [],
+      "risk": "mutating",
+      "examples": [
+        "Deaktiviere die Proxy-Regeln fuer Container Commander."
+      ],
+      "keywords": ["proxy", "stop", "disable", "whitelist", "egress", "netzwerk"]
+    },
+    {
+      "name": "proxy_whitelist_get",
+      "description": "Read the allowed outbound domains for a blueprint-specific proxy policy.",
+      "domain": "container_runtime",
+      "operation": "proxy_whitelist_get",
+      "supports_entities": ["proxy", "blueprint"],
+      "evidence_types": ["runtime_network_policy"],
+      "requires": ["blueprint_id"],
+      "risk": "read_only",
+      "examples": [
+        "Zeig mir die Proxy-Whitelist fuer ein Blueprint."
+      ],
+      "keywords": ["proxy", "whitelist", "domains", "blueprint", "egress"]
+    },
+    {
+      "name": "proxy_whitelist_set",
+      "description": "Store the allowed outbound domains for a blueprint-specific proxy policy.",
+      "domain": "container_runtime",
+      "operation": "proxy_whitelist_set",
+      "supports_entities": ["proxy", "blueprint"],
+      "evidence_types": ["runtime_network_policy"],
+      "requires": ["blueprint_id", "domains"],
+      "risk": "mutating",
+      "examples": [
+        "Setze die Proxy-Whitelist fuer ein Blueprint."
+      ],
+      "keywords": ["proxy", "whitelist", "domains", "blueprint", "egress", "set"]
+    },
+    {
+      "name": "dashboard_overview",
+      "description": "Aggregate commander runtime inventory into a dashboard-shaped read model.",
+      "domain": "container_runtime",
+      "operation": "dashboard_overview",
+      "supports_entities": ["container", "blueprint", "network", "volume", "proxy"],
+      "evidence_types": ["runtime_inventory", "runtime_status", "runtime_network_policy"],
+      "requires": [],
+      "risk": "read_only",
+      "examples": [
+        "Zeig mir die Commander-Uebersicht."
+      ],
+      "keywords": ["dashboard", "overview", "status", "containers", "blueprints", "resources"]
+    },
+    {
+      "name": "host_companion_check",
+      "description": "Inspect host-companion/package manifest status for one blueprint.",
+      "domain": "container_runtime",
+      "operation": "host_companion_check",
+      "supports_entities": ["blueprint", "container"],
+      "evidence_types": ["runtime_host_companion_status"],
+      "requires": ["blueprint_id"],
+      "risk": "read_only",
+      "examples": ["Pruefe den Host-Companion fuer ein Blueprint."],
+      "keywords": ["host", "companion", "blueprint", "check", "package"]
+    },
+    {
+      "name": "host_companion_repair",
+      "description": "Attempt host-companion repair for one blueprint.",
+      "domain": "container_runtime",
+      "operation": "host_companion_repair",
+      "supports_entities": ["blueprint", "container"],
+      "evidence_types": ["runtime_host_companion_mutation"],
+      "requires": ["blueprint_id"],
+      "risk": "mutating",
+      "examples": ["Repariere den Host-Companion fuer ein Blueprint."],
+      "keywords": ["host", "companion", "repair", "blueprint", "package"]
+    },
+    {
+      "name": "host_companion_uninstall",
+      "description": "Attempt host-companion uninstall for one blueprint.",
+      "domain": "container_runtime",
+      "operation": "host_companion_uninstall",
+      "supports_entities": ["blueprint", "container"],
+      "evidence_types": ["runtime_host_companion_mutation"],
+      "requires": ["blueprint_id"],
+      "risk": "mutating",
+      "examples": ["Deinstalliere den Host-Companion fuer ein Blueprint."],
+      "keywords": ["host", "companion", "uninstall", "blueprint", "package"]
+    },
+    {
+      "name": "package_manifest_get",
+      "description": "Read the local package manifest for one blueprint if present.",
+      "domain": "container_blueprint",
+      "operation": "package_manifest_get",
+      "supports_entities": ["blueprint"],
+      "evidence_types": ["blueprint_definition"],
+      "requires": ["blueprint_id"],
+      "risk": "read_only",
+      "examples": ["Zeig mir das Package-Manifest fuer ein Blueprint."],
+      "keywords": ["package", "manifest", "blueprint", "host", "companion"]
+    },
+    {
+      "name": "marketplace_bundle_list",
+      "description": "List exported commander marketplace bundles.",
+      "domain": "container_blueprint",
+      "operation": "bundle_list",
+      "supports_entities": ["bundle", "blueprint"],
+      "evidence_types": ["blueprint_inventory"],
+      "requires": [],
+      "risk": "read_only",
+      "examples": [
+        "Welche Commander-Bundles gibt es?"
+      ],
+      "keywords": ["marketplace", "bundle", "bundles", "blueprint", "list"]
+    },
+    {
+      "name": "marketplace_starter_list",
+      "description": "List built-in starter blueprints.",
+      "domain": "container_blueprint",
+      "operation": "starter_list",
+      "supports_entities": ["blueprint"],
+      "evidence_types": ["blueprint_inventory"],
+      "requires": [],
+      "risk": "read_only",
+      "examples": [
+        "Welche Starter-Blueprints gibt es?"
+      ],
+      "keywords": ["marketplace", "starter", "blueprint", "templates", "list"]
+    },
+    {
+      "name": "marketplace_catalog_list",
+      "description": "List cached remote marketplace catalog entries.",
+      "domain": "container_blueprint",
+      "operation": "catalog_list",
+      "supports_entities": ["blueprint", "catalog"],
+      "evidence_types": ["blueprint_inventory"],
+      "requires": [],
+      "risk": "read_only",
+      "examples": [
+        "Zeig mir den Blueprint-Katalog."
+      ],
+      "keywords": ["marketplace", "catalog", "blueprint", "remote", "list"]
+    },
+    {
+      "name": "marketplace_catalog_sync",
+      "description": "Refresh the remote marketplace catalog cache from GitHub.",
+      "domain": "container_blueprint",
+      "operation": "catalog_sync",
+      "supports_entities": ["blueprint", "catalog"],
+      "evidence_types": ["blueprint_inventory"],
+      "requires": [],
+      "risk": "mutating",
+      "examples": [
+        "Aktualisiere den Blueprint-Katalog."
+      ],
+      "keywords": ["marketplace", "catalog", "sync", "blueprint", "refresh"]
+    },
+    {
+      "name": "marketplace_starter_install",
+      "description": "Install one built-in starter blueprint.",
+      "domain": "container_blueprint",
+      "operation": "starter_install",
+      "supports_entities": ["blueprint"],
+      "evidence_types": ["blueprint_mutation"],
+      "requires": ["starter_id"],
+      "risk": "mutating",
+      "examples": [
+        "Installiere das Python-Starter-Blueprint."
+      ],
+      "keywords": ["marketplace", "starter", "install", "blueprint"]
+    },
+    {
+      "name": "marketplace_catalog_install",
+      "description": "Install one blueprint from the cached remote catalog.",
+      "domain": "container_blueprint",
+      "operation": "catalog_install",
+      "supports_entities": ["blueprint", "catalog"],
+      "evidence_types": ["blueprint_mutation"],
+      "requires": ["blueprint_id"],
+      "risk": "mutating",
+      "examples": [
+        "Installiere ein Blueprint aus dem Katalog."
+      ],
+      "keywords": ["marketplace", "catalog", "install", "blueprint"]
+    },
+    {
+      "name": "marketplace_bundle_export",
+      "description": "Export one blueprint as a shareable TRION bundle.",
+      "domain": "container_blueprint",
+      "operation": "bundle_export",
+      "supports_entities": ["bundle", "blueprint"],
+      "evidence_types": ["blueprint_mutation"],
+      "requires": ["blueprint_id"],
+      "risk": "mutating",
+      "examples": [
+        "Exportiere ein Blueprint als Bundle."
+      ],
+      "keywords": ["marketplace", "bundle", "export", "blueprint"]
+    },
+    {
+      "name": "marketplace_bundle_import",
+      "description": "Import one TRION bundle from an archive payload.",
+      "domain": "container_blueprint",
+      "operation": "bundle_import",
+      "supports_entities": ["bundle", "blueprint"],
+      "evidence_types": ["blueprint_mutation"],
+      "requires": ["bundle_payload"],
+      "risk": "mutating",
+      "examples": [
+        "Importiere ein TRION-Bundle."
+      ],
+      "keywords": ["marketplace", "bundle", "import", "blueprint"]
+    },
+    {
+      "name": "volume_list",
+      "description": "List TRION-managed workspace volumes.",
+      "domain": "container_runtime",
+      "operation": "volume_list",
+      "supports_entities": ["volume"],
+      "evidence_types": ["runtime_volume_inventory"],
+      "requires": [],
+      "risk": "read_only",
+      "examples": [
+        "Welche Volumes gibt es fuer TRION?",
+        "Zeig mir die Workspace-Volumes."
+      ],
+      "keywords": ["volume", "volumes", "workspace", "docker", "liste", "list"]
+    },
+    {
+      "name": "volume_get",
+      "description": "Get one volume with snapshot metadata.",
+      "domain": "container_runtime",
+      "operation": "volume_inspect",
+      "supports_entities": ["volume"],
+      "evidence_types": ["runtime_volume_metadata"],
+      "requires": ["volume_name"],
+      "risk": "read_only",
+      "examples": [
+        "Zeig mir Details zum Workspace-Volume."
+      ],
+      "keywords": ["volume", "details", "snapshot", "docker", "mountpoint"]
+    },
+    {
+      "name": "volume_remove",
+      "description": "Remove one workspace volume.",
+      "domain": "container_runtime",
+      "operation": "volume_remove",
+      "supports_entities": ["volume"],
+      "evidence_types": ["runtime_volume_mutation"],
+      "requires": ["volume_name"],
+      "risk": "mutating",
+      "examples": [
+        "Loesche das Workspace-Volume."
+      ],
+      "keywords": ["volume", "remove", "delete", "workspace", "docker"]
+    },
+    {
+      "name": "volume_cleanup",
+      "description": "Find and optionally remove orphaned workspace volumes.",
+      "domain": "container_runtime",
+      "operation": "volume_cleanup",
+      "supports_entities": ["volume"],
+      "evidence_types": ["runtime_volume_mutation"],
+      "requires": [],
+      "risk": "mutating",
+      "examples": [
+        "Raeume verwaiste Workspace-Volumes auf."
+      ],
+      "keywords": ["volume", "cleanup", "workspace", "docker", "orphaned"]
+    },
+    {
+      "name": "snapshot_list",
+      "description": "List snapshots, optionally filtered by volume prefix.",
+      "domain": "container_runtime",
+      "operation": "snapshot_list",
+      "supports_entities": ["snapshot", "volume"],
+      "evidence_types": ["runtime_snapshot_inventory"],
+      "requires": [],
+      "risk": "read_only",
+      "examples": [
+        "Welche Snapshots gibt es?",
+        "Zeig mir Snapshots fuer ein bestimmtes Volume."
+      ],
+      "keywords": ["snapshot", "snapshots", "backup", "volume", "liste", "list"]
+    },
+    {
+      "name": "snapshot_delete",
+      "description": "Delete one stored snapshot tarball.",
+      "domain": "container_runtime",
+      "operation": "snapshot_delete",
+      "supports_entities": ["snapshot"],
+      "evidence_types": ["runtime_snapshot_mutation"],
+      "requires": ["filename"],
+      "risk": "mutating",
+      "examples": [
+        "Loesche den alten Snapshot."
+      ],
+      "keywords": ["snapshot", "delete", "remove", "backup", "loeschen"]
+    },
+    {
+      "name": "snapshot_create",
+      "description": "Create one snapshot tarball for a workspace volume.",
+      "domain": "container_runtime",
+      "operation": "snapshot_create",
+      "supports_entities": ["snapshot", "volume"],
+      "evidence_types": ["runtime_snapshot_mutation"],
+      "requires": ["volume_name"],
+      "risk": "mutating",
+      "examples": [
+        "Erstelle einen Snapshot vom Workspace-Volume."
+      ],
+      "keywords": ["snapshot", "create", "backup", "volume", "sichern"]
+    },
+    {
+      "name": "snapshot_restore",
+      "description": "Restore one snapshot tarball into a target or derived volume.",
+      "domain": "container_runtime",
+      "operation": "snapshot_restore",
+      "supports_entities": ["snapshot", "volume"],
+      "evidence_types": ["runtime_snapshot_mutation"],
+      "requires": ["filename"],
+      "risk": "mutating",
+      "examples": [
+        "Stelle einen Snapshot in ein Volume wieder her."
+      ],
+      "keywords": ["snapshot", "restore", "backup", "volume", "wiederherstellen"]
+    },
+    {
+      "name": "blueprint_list",
+      "description": "List blueprints stored in the Container Commander blueprint store.",
+      "domain": "container_blueprint",
+      "operation": "list",
+      "supports_entities": ["blueprint"],
+      "evidence_types": ["blueprint_inventory"],
+      "requires": [],
+      "risk": "read_only",
+      "examples": [
+        "Welche Blueprints sind installiert?",
+        "Zeig mir alle Container Commander Blueprints."
+      ],
+      "keywords": ["blueprints", "blueprint", "liste", "list", "installiert", "container"]
+    },
+    {
+      "name": "blueprint_get",
+      "description": "Get one blueprint with its readable definition and metadata.",
+      "domain": "container_blueprint",
+      "operation": "inspect",
+      "supports_entities": ["blueprint"],
+      "evidence_types": ["blueprint_definition"],
+      "requires": ["blueprint_id"],
+      "risk": "read_only",
+      "examples": [
+        "Zeig mir das sql-memory Blueprint.",
+        "Was steht im gaming-station Blueprint?"
+      ],
+      "keywords": ["blueprint", "details", "definition", "dockerfile", "image", "container"]
+    },
+    {
+      "name": "blueprint_create",
+      "description": "Create one blueprint in the Container Commander store.",
+      "domain": "container_blueprint",
+      "operation": "create",
+      "supports_entities": ["blueprint"],
+      "evidence_types": ["blueprint_mutation"],
+      "requires": ["blueprint_payload"],
+      "risk": "mutating",
+      "examples": [
+        "Lege ein neues Blueprint fuer einen Python-Container an."
+      ],
+      "keywords": ["blueprint", "create", "erstellen", "anlegen", "container"]
+    },
+    {
+      "name": "blueprint_update",
+      "description": "Update one blueprint in the Container Commander store.",
+      "domain": "container_blueprint",
+      "operation": "update",
+      "supports_entities": ["blueprint"],
+      "evidence_types": ["blueprint_mutation"],
+      "requires": ["blueprint_id", "blueprint_updates"],
+      "risk": "mutating",
+      "examples": [
+        "Aktualisiere das sql-memory Blueprint."
+      ],
+      "keywords": ["blueprint", "update", "bearbeiten", "aendern", "container"]
+    },
+    {
+      "name": "blueprint_delete",
+      "description": "Soft-delete one blueprint in the Container Commander store.",
+      "domain": "container_blueprint",
+      "operation": "delete",
+      "supports_entities": ["blueprint"],
+      "evidence_types": ["blueprint_mutation"],
+      "requires": ["blueprint_id"],
+      "risk": "mutating",
+      "examples": [
+        "Loesche das test-blueprint."
+      ],
+      "keywords": ["blueprint", "delete", "loeschen", "entfernen", "container"]
+    },
+    {
+      "name": "blueprint_import_yaml",
+      "description": "Import one blueprint from YAML content.",
+      "domain": "container_blueprint",
+      "operation": "import",
+      "supports_entities": ["blueprint"],
+      "evidence_types": ["blueprint_mutation"],
+      "requires": ["yaml_content"],
+      "risk": "mutating",
+      "examples": [
+        "Importiere ein Blueprint aus YAML."
+      ],
+      "keywords": ["blueprint", "import", "yaml", "container"]
+    },
+    {
+      "name": "blueprint_export_yaml",
+      "description": "Export one blueprint as YAML content.",
+      "domain": "container_blueprint",
+      "operation": "export",
+      "supports_entities": ["blueprint"],
+      "evidence_types": ["blueprint_definition"],
+      "requires": ["blueprint_id"],
+      "risk": "read_only",
+      "examples": [
+        "Exportiere das sql-memory Blueprint als YAML."
+      ],
+      "keywords": ["blueprint", "export", "yaml", "container"]
+    },
+    {
+      "name": "start_stopped_container",
+      "description": "Start a stopped TRION-managed container with idempotent behavior.",
+      "domain": "container_runtime",
+      "operation": "start",
+      "supports_entities": ["container"],
+      "evidence_types": ["runtime_state_change"],
+      "requires": ["container_id_or_name"],
+      "risk": "mutating",
+      "examples": [
+        "Starte den gestoppten Container wieder.",
+        "Fahre den SQL Memory Container hoch."
+      ],
+      "keywords": ["container", "start", "starten", "hochfahren", "restart", "docker"]
+    },
+    {
+      "name": "stop_container",
+      "description": "Stop a running TRION-managed container with idempotent behavior.",
+      "domain": "container_runtime",
+      "operation": "stop",
+      "supports_entities": ["container"],
+      "evidence_types": ["runtime_state_change"],
+      "requires": ["container_id_or_name"],
+      "risk": "mutating",
+      "examples": [
+        "Stoppe den Container.",
+        "Fahre den Container herunter."
+      ],
+      "keywords": ["container", "stop", "stoppen", "herunterfahren", "docker"]
+    }
+  ]
+}

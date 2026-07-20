@@ -1,0 +1,11 @@
+condition_type,condition_value,requires_also,strategy
+intent_kind,action_request,,first_available
+execution_mode,single_tool,,first_available
+execution_mode,multi_tool_plan,,first_available
+execution_mode,loop,,first_available
+execution_mode,retrieve_context,evidence_need:memory_context,first_available
+execution_mode,retrieve_context,evidence_need:file_context,first_available
+execution_mode,retrieve_context,evidence_need:live_runtime,first_available
+execution_mode,retrieve_context,evidence_need:tool_result,first_available
+classifier_category,tool,,first_available
+classifier_category,planning,,first_available

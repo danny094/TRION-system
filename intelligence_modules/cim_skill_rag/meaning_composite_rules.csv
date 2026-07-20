@@ -1,0 +1,2 @@
+rule_id,language,semantic_sequence,intent_sequence
+container_list_logs,de,runtime_state>log_state,list>logs

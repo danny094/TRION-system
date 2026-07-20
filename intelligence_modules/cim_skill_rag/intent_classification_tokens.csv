@@ -1,0 +1,19 @@
+token,token_type,language
+classifier,meta_token,any
+pipeline,meta_token,any
+trace,meta_token,any
+orchestrator,meta_token,any
+routing,meta_token,any
+thinking plan,meta_token,en
+verifier,meta_token,any
+erinner,memory_domain_token,de
+memory,memory_domain_token,any
+gedaechtnis,memory_domain_token,de
+gedächtnis,memory_domain_token,de
+stichwortsuche,memory_domain_token,de
+such,memory_domain_token,de
+such,capability_test_token,de
+stichwort,capability_test_token,de
+pruef,capability_test_token,de
+prüf,capability_test_token,de
+teste,capability_test_token,de

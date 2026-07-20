@@ -1,0 +1,6 @@
+capability_flag,match_type,value
+has_container_runtime,domain_eq,container_runtime
+has_container_runtime,name_contains,container
+has_container_runtime,description_contains,container
+has_home_workspace,name_prefix,home_
+has_cron_runtime,name_prefix,autonomy_cron_

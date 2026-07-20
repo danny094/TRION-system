@@ -1,0 +1,77 @@
+"""Canonical structured parser for persisted OperationContract data."""
+from collections.abc import Mapping
+from dataclasses import fields
+from typing import Any, get_args, get_origin
+
+from core.routing_frame.contracts import FieldProvenance, OperationContract
+
+
+def parse_operation_contract(value: Any) -> OperationContract | None:
+    if type(value) is OperationContract:
+        return value
+    if not isinstance(value, Mapping):
+        return None
+    names = {item.name for item in fields(OperationContract)}
+    if set(value) != names:
+        return None
+    parsed: dict[str, Any] = {}
+    for item in fields(OperationContract):
+        parsed_value = _field_value(item.type, value[item.name])
+        if parsed_value is _INVALID:
+            return None
+        parsed[item.name] = parsed_value
+    try:
+        contract = OperationContract(**parsed)
+    except TypeError:
+        return None
+    if not _nonempty_string(contract.domain) or not _nonempty_string(contract.primary_operation):
+        return None
+    return contract if contract.primary_operation in contract.allowed_operations else None
+
+
+_INVALID = object()
+
+
+def _field_value(annotation: Any, value: Any) -> Any:
+    origin, args = get_origin(annotation), get_args(annotation)
+    if annotation is str:
+        return value if _clean_string(value) else _INVALID
+    if annotation is bool:
+        return value if type(value) is bool else _INVALID
+    if origin is tuple and args == (str, Ellipsis):
+        parsed = _string_tuple(value)
+        return parsed if parsed is not None else _INVALID
+    if origin is dict and args == (str, FieldProvenance):
+        parsed = _provenance(value)
+        return parsed if parsed is not None else _INVALID
+    return _INVALID
+
+
+def _string_tuple(value: Any) -> tuple[str, ...] | None:
+    if not isinstance(value, (list, tuple)) or any(
+        type(item) is not str or not item or item != item.strip() for item in value
+    ):
+        return None
+    return tuple(value)
+
+
+def _provenance(value: Any) -> dict[str, FieldProvenance] | None:
+    if not isinstance(value, Mapping):
+        return None
+    result: dict[str, FieldProvenance] = {}
+    for key, raw in value.items():
+        if type(key) is not str or not isinstance(raw, Mapping) or set(raw) != {"source", "confidence", "span"}:
+            return None
+        source, confidence, span = raw.get("source"), raw.get("confidence"), raw.get("span")
+        if type(source) is not str or type(confidence) not in (int, float) or type(span) is not str:
+            return None
+        result[key] = FieldProvenance(source=source, confidence=float(confidence), span=span)
+    return result
+
+
+def _nonempty_string(value: Any) -> bool:
+    return type(value) is str and bool(value) and value == value.strip()
+
+
+def _clean_string(value: Any) -> bool:
+    return type(value) is str and value == value.strip()

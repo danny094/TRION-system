@@ -1,0 +1,39 @@
+token,lookup_type,language
+workspace_get,workspace_tool,any
+memory_semantic_search,semantic_tool,any
+quote,exact_lookup,en
+zitat,exact_lookup,de
+exact,exact_lookup,en
+genau,exact_lookup,de
+read,exact_lookup,en
+lies,exact_lookup,de
+abschnitt,exact_lookup,de
+passage,exact_lookup,any
+chunk,exact_lookup,any
+wo steht,exact_lookup,de
+what,semantic_lookup,en
+was,semantic_lookup,de
+worum,semantic_lookup,de
+thema,semantic_lookup,de
+about,semantic_lookup,en
+ueber,semantic_lookup,de
+über,semantic_lookup,de
+find,semantic_lookup,en
+suche,semantic_lookup,de
+search,semantic_lookup,en
+why,semantic_lookup,en
+warum,semantic_lookup,de
+how,semantic_lookup,en
+wie,semantic_lookup,de
+summarize,semantic_lookup,en
+zusammen,semantic_lookup,de
+wie viel kapitel,structure_lookup,de
+wieviel kapitel,structure_lookup,de
+how many chapter,structure_lookup,en
+how many chapters,structure_lookup,en
+inhaltsverzeichnis,structure_lookup,de
+table of contents,structure_lookup,en
+welche kapitel,structure_lookup,de
+list chapters,structure_lookup,en
+chapter list,structure_lookup,en
+gliederung,structure_lookup,de

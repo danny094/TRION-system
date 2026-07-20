@@ -1,0 +1,28 @@
+{
+  "id": "container-commander-ui",
+  "name": "Container Commander",
+  "version": "2.1.0",
+  "author": "TRION Core",
+  "description": "Container lifecycle management — Status, Blueprints, Dockerfile, Resources, Security, Logs.",
+  "kind": "app",
+  "mount": "launchpad",
+  "icon": "icon.svg",
+  "entry": "entry.js",
+  "permissions": {
+    "api": ["/api/mcp/*", "/api/plugins/*"],
+    "tools": [
+      "container_list",
+      "container_inspect",
+      "container_logs",
+      "blueprint_list",
+      "blueprint_get",
+      "start_stopped_container",
+      "stop_container"
+    ],
+    "events": []
+  },
+  "requires_mcp": ["container-commander"],
+  "requires": {
+    "trion": ">=0.9.0"
+  }
+}
