@@ -101,6 +101,10 @@ TRION is in **active development**. Working today: the core vertical slice (`Cla
 
 > **⚠️ MCP layer under active revision.** The MCP structured-output and desired-state contracts (`mcp/`) are currently being reworked. Interfaces and payload shapes in that layer may change between commits — treat them as unstable until this note is removed.
 
+## Known limitations
+
+- **Chat is not persisted across reloads.** Reloading the WebUI clears the current conversation — the chat starts fresh. Session persistence is planned, but other fixes take priority first, so this is a known gap rather than a bug.
+
 ## Contributing & community
 
 TRION is built in the open. Issues, ideas, and PRs are welcome — join the [Discord](https://discord.gg/HDsSbSQaC) to discuss architecture and direction.
