@@ -1,3 +1,4 @@
+[![CI](https://github.com/danny094/TRION-system/actions/workflows/ci.yml/badge.svg)](https://github.com/danny094/TRION-system/actions/workflows/ci.yml)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/HDsSbSQaC)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 ![Status: active development](https://img.shields.io/badge/status-active%20development-orange)
