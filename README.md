@@ -1,5 +1,5 @@
 [![CI](https://github.com/danny094/TRION-system/actions/workflows/ci.yml/badge.svg)](https://github.com/danny094/TRION-system/actions/workflows/ci.yml)
-[![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/HDsSbSQaC)
+[![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/pvYShfjb2)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 ![Status: active development](https://img.shields.io/badge/status-active%20development-orange)
 ![Python](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)
@@ -128,7 +128,7 @@ TRION is in **active development**. Working today: the core vertical slice (`Cla
 
 ## Contributing & community
 
-TRION is built in the open. Issues, ideas, and PRs are welcome — join the [Discord](https://discord.gg/HDsSbSQaC) to discuss architecture and direction.
+TRION is built in the open. Issues, ideas, and PRs are welcome — join the [Discord](https://discord.gg/pvYShfjb2) to discuss architecture and direction.
 
 If TRION helps you, you can support development via [GitHub Sponsors](https://github.com/sponsors/danny094).
 
