@@ -71,6 +71,20 @@ Health checks: `GET /health` on both the Admin API and the WebUI.
 
 > **Tested on:** macOS on Apple Silicon (M4). The stack is fully Docker-based, so it is expected to run on any Docker host — other platforms are simply not yet as widely tested. Ubuntu support is planned.
 
+## A look at the WebUI
+
+The WebUI is organized as a desktop-style workspace: a launchpad where each capability — Chat, Settings, Memory, Cron, Container, and the MCP Installer — is its own app.
+
+![TRION WebUI launchpad with Chat, Settings, MCP Installer, Plugins, Memory, Cron and Container apps](assets/webui-launchpad.png)
+
+The chat doesn't hide the pipeline behind the answer. The Thinking panel shows each stage live — classification, planning, task-loop progress, tool execution, and verification — so you can see *how* an answer was produced, not just the result:
+
+![TRION chat with expanded Thinking panel showing the classifying, planning, task loop, tool and verifying stages of a request](assets/webui-thinking.png)
+
+New capabilities are added through the MCP Installer: drop a ZIP or TAR archive and the server is installed as its own isolated MCP server (install from a GitHub URL is coming soon):
+
+![TRION MCP Installer showing archive drop zone, install options and a GitHub install panel](assets/webui-mcp-installer.png)
+
 ## Concepts & deep dives
 
 - [Architecture — the full pipeline](docs/architecture.md)
