@@ -8,6 +8,12 @@
 
 **An open-source framework for AI agents whose behavior is predictable, auditable, and safe *by design* — because the rules that govern routing, tool use, and safety live in transparent configuration, not buried in code.**
 
+> **Public snapshot notice:** This repository is a curated development snapshot,
+> not a continuously mirrored release branch. Public code updates are reviewed
+> against an explicit scope and publication gate. Follow the issue tracker for
+> current work, and see [Public Update and Release Governance](docs/publication-governance.md)
+> before interpreting a milestone or merged change as a release.
+
 ---
 
 ## The problem
@@ -128,7 +134,15 @@ TRION is in **active development**. Working today: the core vertical slice (`Cla
 
 ## Contributing & community
 
-TRION is built in the open. Issues, ideas, and PRs are welcome — join the [Discord](https://discord.gg/pvYShfjb2) to discuss architecture and direction.
+Issues, ideas, and focused PRs are welcome. Because the public snapshot may lag
+active development, please read [CONTRIBUTING.md](CONTRIBUTING.md) before
+starting a large change. Report suspected vulnerabilities privately through
+[SECURITY.md](SECURITY.md).
+
+Join the [Discord](https://discord.gg/pvYShfjb2) to discuss architecture and
+direction. Public updates follow the documented
+[publication governance](docs/publication-governance.md); issue or milestone
+closure alone does not authorize a release or branch update.
 
 If TRION helps you, you can support development via [GitHub Sponsors](https://github.com/sponsors/danny094).
 

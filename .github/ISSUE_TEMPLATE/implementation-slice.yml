@@ -1,0 +1,53 @@
+name: Implementation proposal
+description: Propose a bounded implementation with measurable acceptance evidence.
+title: "[Implementation]: "
+body:
+  - type: input
+    id: owner
+    attributes:
+      label: Accountable owner or leading contract
+      description: Name the component, public contract, or maintainer responsible for the decision boundary.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Exact scope
+      description: List the files, modules, or public surfaces that may change.
+    validations:
+      required: true
+  - type: textarea
+    id: target
+    attributes:
+      label: Target contract
+      description: State the behavior that must be true when this slice is complete.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Acceptance evidence
+      description: Name the tests, checks, or reproducible proof required before acceptance.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and blockers
+      description: Identify required decisions, milestones, external services, or predecessor work.
+    validations:
+      required: true
+  - type: textarea
+    id: stop
+    attributes:
+      label: Stop criterion and out-of-scope work
+      description: State where this proposal must stop instead of expanding silently.
+    validations:
+      required: true
+  - type: checkboxes
+    id: classification
+    attributes:
+      label: Classification
+      options:
+        - label: This proposal implements an already defined contract and does not make an unresolved product decision.
+          required: true

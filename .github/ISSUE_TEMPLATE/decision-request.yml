@@ -1,0 +1,46 @@
+name: Decision request
+description: Request a human decision about product behavior, ownership, or scope.
+title: "[Decision]: "
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Decision required
+      description: What question cannot be answered from the current public code, tests, or specification?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Current evidence
+      description: Summarize the verified facts without choosing the outcome.
+    validations:
+      required: true
+  - type: textarea
+    id: option_a
+    attributes:
+      label: Option A
+      description: Describe the effect, scope, and tradeoff of this option.
+    validations:
+      required: true
+  - type: textarea
+    id: option_b
+    attributes:
+      label: Option B
+      description: Describe the effect, scope, and tradeoff of this option.
+    validations:
+      required: true
+  - type: textarea
+    id: recommendation
+    attributes:
+      label: Recommendation
+      description: Recommend one option and explain why, without treating it as approved.
+    validations:
+      required: true
+  - type: textarea
+    id: boundary
+    attributes:
+      label: Follow-up boundary
+      description: What work remains blocked until the decision is recorded?
+    validations:
+      required: true

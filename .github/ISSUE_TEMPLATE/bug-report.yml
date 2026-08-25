@@ -1,0 +1,53 @@
+name: Bug report
+description: Report reproducible behavior in the current public snapshot.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a problem. Do not include secrets or security vulnerabilities here; use the private path in SECURITY.md.
+  - type: input
+    id: commit
+    attributes:
+      label: Public commit or version
+      description: Which public commit, branch, or image did you test?
+      placeholder: 02b04d9 or main
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Observed behavior
+      description: What happened, including the smallest reproducible steps?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What public code, documentation, or contract defines the expected result?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Include relevant commands and sanitized output. Do not include credentials or personal data.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and stop criterion
+      description: Which component is affected, and what should this report not expand into?
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety checks
+      options:
+        - label: I checked that this report contains no secrets or private data.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true

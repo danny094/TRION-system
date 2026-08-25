@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/danny094/TRION-system/security/policy
+    about: Report security issues privately using the instructions in SECURITY.md.
+  - name: Architecture discussion
+    url: https://discord.gg/pvYShfjb2
+    about: Discuss broader architecture and direction before opening a large proposal.
