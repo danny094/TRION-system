@@ -1,18 +1,14 @@
-"""Tests fuer scripts/check_doc07_caps.py (W1 SP2).
-
-Deckt beide Quellen beruehrter *.py-Dateien ab: getrackte Aenderungen
-(`git diff --name-only`) und neue, ungetrackte Dateien
-(`git ls-files --others --exclude-standard`). Kein Grandfathering: der
-Nachher-Stand entscheidet, unabhaengig vom Vorher-Stand. Keine Ausnahme fuer
-Testdateien.
-"""
+"""Regression tests for the canonical code-cap preflight."""
 from __future__ import annotations
 
 import subprocess
 import sys
 from pathlib import Path
 
-from scripts.check_doc07_caps import LINE_CAP, find_violations
+from scripts import check_code_caps, check_doc07_caps
+
+EXPECTED_LINE_CAP = 200
+EXPECTED_CODE_SUFFIXES = frozenset({".py", ".ts", ".tsx", ".js", ".css", ".html", ".sh"})
 
 
 def _git(args: list[str], cwd: Path) -> None:
@@ -23,101 +19,129 @@ def _init_repo(tmp_path: Path) -> Path:
     _git(["init"], tmp_path)
     _git(["config", "user.email", "test@example.com"], tmp_path)
     _git(["config", "user.name", "Test"], tmp_path)
-    (tmp_path / "README.md").write_text("baseline\n")
+    (tmp_path / "README.md").write_text("baseline\n", encoding="utf-8")
     _git(["add", "README.md"], tmp_path)
     _git(["commit", "-m", "baseline"], tmp_path)
     return tmp_path
 
 
-def _write_lines(path: Path, n: int) -> None:
-    path.write_text("\n".join(f"# line {i}" for i in range(n)) + "\n")
+def _write_lines(path: Path, count: int) -> None:
+    path.write_text(
+        "\n".join(f"line {number}" for number in range(count)) + "\n",
+        encoding="utf-8",
+    )
 
 
-def test_tracked_change_over_cap_is_violation(tmp_path):
+def _commit_file(repo: Path, name: str, count: int = 50) -> Path:
+    path = repo / name
+    _write_lines(path, count)
+    _git(["add", name], repo)
+    _git(["commit", "-m", f"add {name}"], repo)
+    return path
+
+
+def test_public_code_cap_contract_is_fixed():
+    assert check_code_caps.LINE_CAP == EXPECTED_LINE_CAP
+    assert check_code_caps.CODE_SUFFIXES == EXPECTED_CODE_SUFFIXES
+
+
+def test_untracked_file_over_cap_is_violation(tmp_path):
     repo = _init_repo(tmp_path)
-    target = repo / "module.py"
-    _write_lines(target, 50)
-    _git(["add", "module.py"], repo)
-    _git(["commit", "-m", "add module"], repo)
+    _write_lines(repo / "new_module.py", check_code_caps.LINE_CAP + 1)
 
-    _write_lines(target, LINE_CAP + 1)
-
-    violations = find_violations(repo)
-
-    assert len(violations) == 1
-    path, before, after = violations[0]
-    assert path == "module.py"
-    assert before == 50
-    assert after == LINE_CAP + 1
+    assert check_code_caps.find_violations(repo) == [
+        (Path("new_module.py"), 0, check_code_caps.LINE_CAP + 1)
+    ]
 
 
-def test_untracked_new_file_over_cap_is_violation(tmp_path):
+def test_unstaged_and_staged_changes_are_both_checked(tmp_path):
     repo = _init_repo(tmp_path)
+    unstaged = _commit_file(repo, "unstaged.py")
+    staged = _commit_file(repo, "staged.py")
+    _write_lines(unstaged, check_code_caps.LINE_CAP + 1)
+    _write_lines(staged, check_code_caps.LINE_CAP + 1)
+    _git(["add", "staged.py"], repo)
 
-    new_file = repo / "new_module.py"
-    _write_lines(new_file, LINE_CAP + 1)
-
-    violations = find_violations(repo)
-
-    assert len(violations) == 1
-    path, before, after = violations[0]
-    assert path == "new_module.py"
-    assert before == 0
-    assert after == LINE_CAP + 1
+    assert check_code_caps.find_violations(repo) == [
+        (Path("staged.py"), 50, check_code_caps.LINE_CAP + 1),
+        (Path("unstaged.py"), 50, check_code_caps.LINE_CAP + 1),
+    ]
 
 
-def test_all_files_within_cap_is_clean(tmp_path):
+def test_staged_violation_cannot_be_hidden_by_smaller_worktree_file(tmp_path):
     repo = _init_repo(tmp_path)
-    tracked = repo / "module.py"
-    _write_lines(tracked, 50)
-    _git(["add", "module.py"], repo)
-    _git(["commit", "-m", "add module"], repo)
-    _write_lines(tracked, LINE_CAP)
+    target = _commit_file(repo, "staged.py")
+    _write_lines(target, EXPECTED_LINE_CAP + 1)
+    _git(["add", "staged.py"], repo)
+    _write_lines(target, EXPECTED_LINE_CAP)
 
-    new_file = repo / "new_module.py"
-    _write_lines(new_file, LINE_CAP)
-
-    violations = find_violations(repo)
-
-    assert violations == []
+    assert check_code_caps.find_violations(repo) == [
+        (Path("staged.py"), 50, EXPECTED_LINE_CAP + 1)
+    ]
 
 
-def test_no_exception_for_test_files_over_cap(tmp_path):
+def test_exact_cap_and_all_current_code_suffixes_are_checked(tmp_path):
     repo = _init_repo(tmp_path)
-    test_file = repo / "test_something.py"
-    _write_lines(test_file, LINE_CAP + 1)
+    _write_lines(repo / "exact.py", EXPECTED_LINE_CAP)
+    expected = {Path(f"large{suffix}") for suffix in EXPECTED_CODE_SUFFIXES}
+    for path in expected:
+        _write_lines(repo / path, EXPECTED_LINE_CAP + 1)
+    _write_lines(repo / "notes.md", EXPECTED_LINE_CAP + 1)
 
-    violations = find_violations(repo)
+    violations = check_code_caps.find_violations(repo)
 
-    assert len(violations) == 1
-    assert violations[0][0] == "test_something.py"
+    assert {path for path, _before, _after in violations} == expected
 
 
-def test_non_py_files_are_ignored(tmp_path):
+def test_deleted_code_file_is_not_a_false_positive(tmp_path):
     repo = _init_repo(tmp_path)
-    _write_lines(repo / "notes.md", LINE_CAP + 5)
+    deleted = _commit_file(repo, "deleted.py", check_code_caps.LINE_CAP + 1)
+    deleted.unlink()
 
-    violations = find_violations(repo)
-
-    assert violations == []
+    assert check_code_caps.find_violations(repo) == []
 
 
-def test_cli_exit_code_nonzero_on_violation(tmp_path):
+def test_main_uses_the_mandatory_line_cap(tmp_path):
     repo = _init_repo(tmp_path)
-    new_file = repo / "new_module.py"
-    _write_lines(new_file, LINE_CAP + 1)
+    _write_lines(repo / "too_large.py", check_code_caps.LINE_CAP + 1)
 
+    assert check_code_caps.main(repo) == 1
+
+
+def test_legacy_facade_reexports_the_canonical_owner(tmp_path):
+    repo = _init_repo(tmp_path)
+    _write_lines(repo / "too_large.py", check_code_caps.LINE_CAP + 1)
+
+    assert check_doc07_caps.main is check_code_caps.main
+    assert check_doc07_caps.find_violations is check_code_caps.find_violations
+    assert check_doc07_caps.main(repo) == 1
+
+
+def test_legacy_command_remains_functional(tmp_path):
+    repo = _init_repo(tmp_path)
+    _write_lines(repo / "too_large.py", check_code_caps.LINE_CAP + 1)
     script = Path(__file__).resolve().parents[1] / "scripts" / "check_doc07_caps.py"
-    result = subprocess.run([sys.executable, str(script)], cwd=repo, capture_output=True, text=True)
+
+    result = subprocess.run(
+        [sys.executable, str(script)],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+    )
 
     assert result.returncode == 1
-    assert "new_module.py" in result.stdout
+    assert "too_large.py" in result.stdout
 
 
-def test_cli_exit_code_zero_when_clean(tmp_path):
+def test_legacy_command_exits_zero_when_clean(tmp_path):
     repo = _init_repo(tmp_path)
-
     script = Path(__file__).resolve().parents[1] / "scripts" / "check_doc07_caps.py"
-    result = subprocess.run([sys.executable, str(script)], cwd=repo, capture_output=True, text=True)
+
+    result = subprocess.run(
+        [sys.executable, str(script)],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+    )
 
     assert result.returncode == 0

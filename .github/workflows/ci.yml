@@ -25,5 +25,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install --group test
 
+      - name: Verify code-cap preflight
+        run: pytest -q tests/test_check_doc07_caps.py
+
       - name: Run test suite
         run: pytest -q
