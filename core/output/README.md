@@ -1,201 +1,99 @@
-# Output
+# Output Layer
 
-Generiert die finale Antwort an den User.
-Wird nach Control-Verifier aufgerufen — entweder direkt (einfache Anfragen) oder nach dem Task Loop (multi-step).
+Der Output Layer formuliert und streamt die finale Antwort. Er besitzt genau
+einen LLM-Call und konsumiert den typisierten P12-Evidence-Handoff aus der
+Pipeline.
 
-**Einzige Aufgabe:** Aus dem verifizierten Plan und dem Kontext eine Antwort streamen.
+## Datenfluss
 
----
-
-## Status
-
-- ✅ `contracts.py` implementiert
-- ✅ `output.py` Verdrahtung implementiert
-- ✅ `stream.py` LLM-Call mit System-Prompt + einfachem Postcheck implementiert
-- ✅ `messages.py` Message-Array-Aufbau implementiert
-- ✅ `prompts.py` System-Prompt aus Persona + Plan + Context implementiert
-- ✅ `prompts.py` laedt jetzt auch aktive Contract-Guards fuer Grounding,
-  Analyse und fehlendes Memory situationsabhängig zur Laufzeit
-- ✅ chunk-weises Streaming via optionalem `chunk_sink`-Callback aktiv (siehe [[05-adapters#Chat-Flow-Admin-API|Adapters]])
-
----
-
-## Modulstruktur
-
-```
-core/output/
-├── output.py     ← Einstiegspunkt
-├── contracts.py  ← Datenstrukturen
-├── evidence_contracts.py ← Claim-/Evidence-/Guard-Basisverträge
-├── claim_classifier.py ← erste Claim-Typ-Erkennung für strikte Evidence-Policy
-├── evidence_guard.py ← kleiner Guard für grounded Einzeltool-Antworten
-├── grounding_state.py ← flüchtiger conversation-lokaler Grounding-State mit TTL
-├── stream.py     ← LLM-Call + Streaming + Postcheck
-├── messages.py   ← Message-Array-Aufbau
-└── prompts.py    ← System-Prompt-Builder
+```text
+OutputEvidenceHandoff
+  -> build_output_stage
+  -> OutputRequest(renderable_evidence)
+  -> generate_output Evidence-Preflight
+  -> build_output_messages
+  -> build_output_system_prompt
+  -> Provider / Stream
+  -> Execution- und Markup-Guard
+  -> OutputResult
 ```
 
----
+## Module
 
-## Dateien
+| Modul | Verantwortung |
+|---|---|
+| `contracts.py` | `OutputRequest`, `OutputResult`, `RenderableEvidence` |
+| `output.py` | duenne Output-Orchestrierung und Guard-Reihenfolge |
+| `stream.py` | einziger LLM-/Stream-Pfad und Chunkguard vor `chunk_sink` |
+| `messages.py` | Chat-History und expliziter Prompt-Handoff |
+| `prompts.py` | duenne Systemprompt-Komposition |
+| `public_contract_prompt.py` | einziger Contract-/Typed-Evidence-Promptowner |
+| `renderable_evidence.py` | generische Strukturresultat-Projektion |
+| `claim_classifier.py` | typisierte Claim-Klassifikation |
+| `evidence_requirements.py` | `GuardDecision` aus Claim und Handoff-State |
+| `no_evidence_fallback.py` | einziger fail-closed Evidence-Guard-Owner |
+| `execution_consistency_guard.py` | positive Execution-Behauptungen pruefen |
+| `tool_markup_guard.py` | recovery-freier Batch-Markup-Schutz |
+| `persona_runtime.py` | Persona aus Live-Descriptor-Provenance |
+| `grounding_state.py` | interner fluechtiger State ohne Public-Autoritaet |
+| `grounded_output_selection.py` | gemeinsamer Textnormalisierer |
 
-### `output.py`
-Einstiegspunkt. Ruft `messages.py` und `stream.py` auf und gibt das `OutputResult` zurück. Enthält nur dünne Verdrahtung plus Hook für den kleinen Evidence-Guard.
-**Max 80 Zeilen.**
+## Evidence-Vertrag
 
-### `evidence_guard.py`
-Kleiner Guard für grounded Einzeltool-Antworten.
-Zusätzlich darf er bei Artefakten ohne verifizierte Evidence auf einen engen
-`Unbekannt`-Fallback herunterstufen.
-Seit der ersten Strict-Evidence-Stufe unterscheidet er zusätzlich grob zwischen
-Claim-Typen wie Hardware, Dateiinhalt, Container-Runtime, Skill-Inventar und
-konzeptueller Analyse.
-Keine Tool-Aufrufe, keine Approval-Logik, kein eigener Runtime-State.
-Wichtig: Im regulaeren Chat-Flow gibt es keinen direkten Grounded-Bypass mehr.
-Ob die Anfrage fachlich abgeschlossen ist, entscheidet nicht Output, sondern
-Thinking/Task Loop.
+`OutputRequest.output_evidence` ist ein verpflichtender immutable
+`OutputEvidenceHandoff`. `renderable_evidence` ist ein separates immutable Tuple
+aus `RenderableEvidence`; es wird ausschliesslich in
+`core/pipeline/output_stage.py` erzeugt.
 
-### `evidence_contracts.py`
-Kleine typisierte Basis für die Strict-Evidence-Policy:
+Nicht erlaubt sind:
 
-- `ClaimType`
-- `GuardDecision`
-- `EvidenceClaim`
-- `EvidenceBundle`
+- `context["renderable_evidence"]`,
+- Rohresultat-, Toolname- oder Dict-Rekonstruktion,
+- Memory-, TaskLoop-, Grounding-State-, Home- oder Self-Context als
+  Public-Evidence,
+- Evidence-Entscheidungen im Prompt oder Provideradapter.
 
-Nur stdlib und Datamodelle, keine Runtime-Logik.
+## Guard-Reihenfolge
 
-### `claim_classifier.py`
-Kleiner deterministischer Classifier für die ersten Claim-Typen.
-Noch kein Tool-Routing und kein Ersatz für `core/classifier/`, sondern
-eine enge Output-/Evidence-Hilfsschicht.
+1. `apply_no_evidence_fallback(..., preflight=True)` blockiert im Streaming
+   evidenzpflichtige Claims ohne renderbare validierte Evidence vor Provider und
+   Sink; im Batchpfad greift derselbe Guard vor der Antwortprojektion.
+2. `_stream_output` prueft jeden Chunk vor `chunk_sink` auf Tool-Markup und
+   kumulativ auf unbelegte positive Execution-Behauptungen; verdaechtige
+   Prefixe bleiben bis zur Entscheidung pending.
+3. `apply_execution_consistency_guard` bleibt die einzige Execution-Policy;
+   `_stream_output` platziert sie im Stream, `generate_output` nur im Batch.
+4. `apply_tool_markup_guard` prueft den finalen Batchtext ohne Recovery.
+5. `apply_no_evidence_fallback` bestaetigt den finalen Evidence-Zustand.
 
-### `grounding_state.py`
-Kleiner flüchtiger Runtime-State für grounded Tool-Evidenz pro Conversation.
-Nur TTL-begrenzte Evidence-Snapshots, kein Long-Term-Memory, keine Adapter-Logik,
-keine Persistenzpflicht.
+Wenn ein finaler Guard den bereits gestreamten Text ersetzt, transportiert die
+Admin-API `final_content`; die WebUI ersetzt damit den bisherigen Inhalt.
 
-### `contracts.py`
-Alle Datenstrukturen: `OutputRequest`, `OutputResult`.
-Importiert **nichts** aus dem eigenen Modul — nur stdlib.
-**Max 80 Zeilen.**
+## Prompt-Grenze
 
-```python
-@dataclass
-class OutputRequest:
-    user_text: str
-    thinking_plan: ThinkingPlan       # Von Thinking / Task Loop
-    context: Dict[str, Any]           # Memory, Tool-Ergebnisse, Chat-History
-    stream: bool = True
+`prompts.py` komponiert Persona, Basisprompt, Contract, Plan, Dialog und den
+typisierten Evidence-Block. `public_contract_prompt.py` baut Contractbloecke aus
+User-Intent und autoritativem Routing-Frame-Signal; sein Evidence-Pfad
+formatiert nur bereits erzeugte `RenderableEvidence`-Werte.
 
-@dataclass
-class OutputResult:
-    content: str                      # Finale Antwort
-    truncated: bool                   # Durch char_cap abgeschnitten
-    postcheck_applied: bool           # Postcheck-Fix wurde angewendet
-```
+Die entfernten Legacyprojektionen fuer Memory, TaskLoop-Artefakte,
+`grounded_tool_results`, Home-Context und Self-Context besitzen keinen Caller.
 
-### `stream.py`
-Einziger LLM-Call im gesamten Output-Modul.
-Bei `OutputRequest.stream=True` und übergebenem `chunk_sink` nutzt es
-`stream_chat()` aus `core/llm` und reicht jeden Token-Chunk direkt an den Sink
-weiter; `OutputResult.content` wird dabei am Ende aus den Chunks
-zusammengesetzt. Ohne Sink (oder bei `stream=False`) fällt es auf den
-non-streaming `complete_chat()` Pfad zurück.
-Postcheck (Hollow-Prefix-Stripping) greift einmalig am ersten Chunk vor dem
-Sink-Aufruf — der Stream bleibt sauber und kein nachträgliches Korrigieren
-nötig.
-**Max 200 Zeilen.**
+## Tests
 
-### `messages.py`
-Baut das Message-Array für den LLM-Call: `[system, ...history, user]`.
-Ruft `prompts.py` für den System-Prompt auf.
-Chat-History: max. 10 vorherige Turns.
-Keine LLM-Calls, keine Business-Logik.
-**Max 100 Zeilen.**
+- `tests/test_output_prompt_split_structure.py`
+- `tests/test_output_public_contract.py`
+- `tests/test_output_typed_evidence_contract.py`
+- `tests/test_output_typed_renderers.py`
+- `tests/test_output_streaming.py`
+- `tests/test_output_late_guard_final_content.py`
+- `tests/test_output_execution_consistency_guard.py`
+- `tests/test_webui_chat_final_content_contract.py`
 
-### `prompts.py`
-Baut den System-Prompt sektionsweise aus `intelligence_modules`.
-Kein hardcodierter Prompt-Text im Code — alles aus den Prompt-Templates.
+## Grenzen
 
-Sektionen in Reihenfolge:
-1. Persona-Basis
-2. aktive Contract-Guards fuer Grounding / Analyse / Memory-Halluzination
-3. Plan-Hinweise
-4. Memory / Tool-Ergebnisse
-5. Antwort-Budget, Stil und Ton ueber die geladenen Prompt-Templates
-
-**Max 150 Zeilen.**
-
----
-
-## Regeln
-
-- **Max 200 Zeilen pro Datei** — wird eine Datei größer, wird sie aufgeteilt
-- **Nur ein LLM-Call im gesamten Modul** — in `stream.py`
-- **Kein 6-Datei Grounding-System** — einfacher Postcheck in `stream.py`
-- **Kein plan_runtime_bridge** — kein verstecktes Runtime-State-Modul
-- **Kein Contract-Handling für Container/Skills** — gehört nicht in Output
-- **Kein hardcodierter Prompt-Text** — alles aus `intelligence_modules`
-- **`contracts.py` ist das Fundament** — wird zuerst geschrieben, danach nichts mehr daran ändern ohne Review
-
----
-
-## Entscheidungsfluss
-
-```
-OutputRequest eingehend
-        ↓
-[ messages.py ]   ← baut system + history + user
-        ↓
-[ stream.py ]     ← LLM-Call, aktuell non-streaming
-        ↓
-[ postcheck ]     ← einfache Halluzinationsprüfung am Ende
-        ↓
-OutputResult      → WebUI streamt an User
-```
-
----
-
-## Output
-
-```python
-# Normaler Stream
-OutputResult(content="...", truncated=False, postcheck_applied=False)
-
-# Antwort wurde abgeschnitten
-OutputResult(content="...", truncated=True, postcheck_applied=False)
-
-# Postcheck hat korrigiert
-OutputResult(content="...", truncated=False, postcheck_applied=True)
-```
-
----
-
-## Abhängigkeiten
-
-```
-output.py
-  ├── messages.py
-  │     ├── contracts.py
-  │     └── prompts.py
-  └── stream.py
-        ├── contracts.py
-        └── core/llm_provider_client.py
-
-intelligence_modules (nur lesend):
-  ├── prompts/layers/output*
-  ├── cim_skill_rag/output_standards.csv
-  └── cim_skill_rag/error_handling_patterns.csv
-```
-
----
-
-## Was Output NICHT macht
-
-- Kein Tool-Routing
-- Kein Grounding mit 6 Dateien
-- Keine Container- oder Skill-Catalog-Kontrakte
-- Kein plan_runtime_bridge oder verstecktes Runtime-State
-- Keine Re-Planning-Logik
-- Keine Entscheidung über execution_mode oder turn_mode
+- Kein LLM-Call im TaskLoop.
+- Kein Provider-Retry oder Tool-Routing im Output Layer.
+- Keine Public-Evidence-Persistenz ueber Resume.
+- Kein Markup-Parsing oder Rohresultat-Recovery.
+- P12-Lifecycle-PASS und Live-E2E bleiben separate Gates.

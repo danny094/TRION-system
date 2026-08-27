@@ -28,12 +28,87 @@ ohnehin nicht auf, weil nur ueber `hub.list_tools()` iteriert wird.
 Fail-closed-Guard an - keine zweite, potenziell abweichende Eligibility-Logik.
 Siehe tests/test_tool_intent_truth_source.py und tests/test_tool_runner_bridge.py.
 """
+from collections.abc import Mapping
 from typing import Any, List
 
 from core.orchestrator.tool_descriptor_projection import is_eligible_tool_intent
-from core.task_loop.executor import TaskToolCall, TaskToolResult, ToolRunner
-from tools.contracts import ToolCall
+from core.pipeline.output_evidence_contracts import OutputEvidenceItem
+from core.task_loop.executor import (
+    TaskStructuralValidationStatus,
+    TaskToolCall,
+    TaskToolResult,
+    TaskToolResultStatus,
+    ToolRunner,
+)
+from mcp.structural_validation_contracts import MCPStructuralValidationResult, MCPStructuralValidationStatus
+from mcp.structural_validator import validate_structured_output
+from mcp.tool_result_contracts import (
+    MCPResultPresence,
+    MCPToolCallStatus,
+    MCPToolResultEnvelope,
+    project_tool_result_wire_mapping,
+)
+from tools.contracts import ToolCall, ToolResult
 from tools.executor import run_tool
+
+
+def project_output_evidence_item(structural_result: object) -> OutputEvidenceItem | None:
+    if type(structural_result) is not MCPStructuralValidationResult:
+        return None
+    if structural_result.status is not MCPStructuralValidationStatus.VALID:
+        return None
+    structured_content = structural_result.envelope.structured_content
+    if not isinstance(structured_content, Mapping):
+        return None
+    return OutputEvidenceItem(structured_content)
+
+
+def project_task_tool_result(
+    envelope: MCPToolResultEnvelope,
+    *,
+    structural_result: MCPStructuralValidationResult | None = None,
+) -> TaskToolResult:
+    if not isinstance(envelope, MCPToolResultEnvelope):
+        raise TypeError("envelope must be MCPToolResultEnvelope")
+    if structural_result is not None:
+        if not isinstance(structural_result, MCPStructuralValidationResult):
+            raise TypeError("structural_result must be MCPStructuralValidationResult")
+        if structural_result.envelope is not envelope:
+            raise ValueError("structural_result must retain the projected envelope")
+    if envelope.status is MCPToolCallStatus.SUCCESS:
+        presences = (envelope.content_presence, envelope.structured_content_presence)
+        if MCPResultPresence.VALUE in presences:
+            status = TaskToolResultStatus.SUCCESS_VALUE
+        elif MCPResultPresence.EMPTY in presences:
+            status = TaskToolResultStatus.SUCCESS_EMPTY
+        else:
+            status = TaskToolResultStatus.SUCCESS_MISSING
+        error = None
+    elif envelope.status is MCPToolCallStatus.TOOL_FAILURE:
+        status = TaskToolResultStatus.TOOL_FAILURE
+        error = "tool_failure"
+    elif envelope.status is MCPToolCallStatus.PROTOCOL_FAILURE:
+        status = TaskToolResultStatus.PROTOCOL_FAILURE
+        message = (envelope.protocol_error or {}).get("message")
+        error = str(message or "protocol_failure")
+    else:
+        status = TaskToolResultStatus.TRANSPORT_FAILURE
+        error = envelope.transport_diagnostic
+    result = dict(project_tool_result_wire_mapping(envelope))
+    structural_validation_status = (
+        TaskStructuralValidationStatus.MISSING
+        if structural_result is None
+        else TaskStructuralValidationStatus.VALID
+        if structural_result.status is MCPStructuralValidationStatus.VALID
+        else TaskStructuralValidationStatus.INVALID
+    )
+    return TaskToolResult(
+        status=status,
+        result=result,
+        error=error,
+        structural_result=structural_result,
+        structural_validation_status=structural_validation_status,
+    )
 
 
 def make_tool_runner() -> ToolRunner:
@@ -45,11 +120,14 @@ def make_tool_runner() -> ToolRunner:
             step_id=task_call.step_id,
             timeout_s=task_call.timeout_s,
         )
-        result = run_tool(tool_call)
-        return TaskToolResult(
-            success=result.success,
-            result=dict(result.result or {}),
-            error=result.error,
+        result: ToolResult = run_tool(tool_call)
+        structural_result = validate_structured_output(
+            task_call.output_schema_mapping(),
+            result.envelope,
+        )
+        return project_task_tool_result(
+            result.envelope,
+            structural_result=structural_result,
         )
     return _run
 

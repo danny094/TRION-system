@@ -8,13 +8,13 @@ from tests.document_embedding_support import (
 from tests.verifier_document_fixture_support import document_context, entry_id_for_phrase
 
 
-def test_live_embedding_search_finds_police_chunk_for_fenstertheater(monkeypatch, tmp_path):
+def test_live_embedding_search_finds_police_chunk_for_synthetic_story(monkeypatch, tmp_path):
     require_embedding_runtime()
     semantic_save_tool, semantic_search_tool = load_embedding_tools(monkeypatch, tmp_path)
-    conversation_id = "embed-fenstertheater"
-    expected_entry = entry_id_for_phrase("Das Fenstertheater.md", "hatte sie schon die Polizei verständigt")
+    conversation_id = "embed-synthetic-neighborhood"
+    expected_entry = entry_id_for_phrase("synthetic_neighborhood_story.md", "hatte sie schon die Polizei verständigt")
 
-    index_document_for_embedding_search("Das Fenstertheater.md", semantic_save_tool, conversation_id)
+    index_document_for_embedding_search("synthetic_neighborhood_story.md", semantic_save_tool, conversation_id)
     result = semantic_search_tool(
         query="Warum ruft die Frau die Polizei?",
         conversation_id=conversation_id,
@@ -38,10 +38,10 @@ def test_live_embedding_search_drives_workspace_resolution_for_ki_risk_question(
     semantic_save_tool, semantic_search_tool = load_embedding_tools(monkeypatch, tmp_path)
     conversation_id = "embed-ki-risiken"
     question = "Welche Risiken generativer KI beschreibt der Text?"
-    expected_entry = entry_id_for_phrase("Künstliche Intelligenz.md", "generative KI-Tools neue Anwen")
-    document = document_context("Künstliche Intelligenz.md")
+    expected_entry = entry_id_for_phrase("synthetic_ai_safety_guide.md", "Generative KI-Tools eröffnen neue Anwen")
+    document = document_context("synthetic_ai_safety_guide.md")
 
-    index_document_for_embedding_search("Künstliche Intelligenz.md", semantic_save_tool, conversation_id)
+    index_document_for_embedding_search("synthetic_ai_safety_guide.md", semantic_save_tool, conversation_id)
     plan = build_plan_from_analysis(
         {
             "intent": question,

@@ -8,6 +8,7 @@ def blocked_replan_result(
     event_sink: TaskLoopEventSink | None,
     reason: str,
     total_steps: int,
+    structural_results=(),
 ) -> TaskLoopResult:
     blocked = snapshot.transition_to(
         TaskLoopState.BLOCKED,
@@ -28,4 +29,5 @@ def blocked_replan_result(
         artifacts=list(blocked.artifacts),
         visible_content="Task loop blocked by plan contract validator.",
         snapshot=blocked,
+        structural_results=structural_results,
     )

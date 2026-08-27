@@ -16,7 +16,7 @@ def run_with_replanning(
     operation_contract_fingerprint: str | None = None, step_receipts: dict | None = None,
     receipt_issuer: Any = None, receipt_validator: Any = None,
     receipt_validator_factory: Any = None, receipt_mode: bool = False,
-    approved_step_id: str = "",
+    approved_step_id: str = "", followup_planner: Any = None,
 ) -> TaskLoopResult:
     active_plan, active_snapshot = plan, snapshot
     active_receipts, active_validator = step_receipts, receipt_validator
@@ -30,7 +30,11 @@ def run_with_replanning(
             step_receipts=active_receipts, receipt_issuer=receipt_issuer,
             receipt_validator=active_validator, receipt_mode=receipt_mode,
             approved_step_id=approved_step_id,
+            receipt_validator_factory=receipt_validator_factory,
+            followup_planner=followup_planner,
         )
+        if type(result.active_plan) is ThinkingPlan:
+            active_plan = result.active_plan
         approved_step_id = ""
         if result.state != TaskLoopState.REPLANNING or not callable(replanner_fn):
             return replace(result, active_plan=active_plan)
@@ -43,7 +47,9 @@ def run_with_replanning(
                 snapshot=result.snapshot,
             )
         except PlanContractViolation as exc:
-            blocked = blocked_replan_result(result.snapshot, event_sink, str(exc), len(active_plan.steps))
+            blocked = blocked_replan_result(
+                result.snapshot, event_sink, str(exc), len(active_plan.steps), result.structural_results,
+            )
             return replace(blocked, active_plan=active_plan)
         emit_replan_trace(event_sink, replanned, result.snapshot, failed)
         if not replanned.needs_task_loop:

@@ -1,0 +1,73 @@
+{
+  "schema_version": 2,
+  "tools": [
+    {
+      "name": "filesystem_list",
+      "description": "List bounded entries below TRION Home or inspect one exact target.",
+      "domain": "files",
+      "operation": "list",
+      "supports_entities": ["file", "directory"],
+      "requires": [],
+      "evidence_types": ["file_context"],
+      "risk": "read_only",
+      "target_scopes": ["assistant_home"],
+      "freshness_support": "live_only",
+      "tool_role": "primary",
+      "output_schema": "mcp_output_schema",
+      "can_answer_directly": true,
+      "examples": ["List files in TRION Home."],
+      "keywords": ["file", "directory", "list", "home"]
+    },
+    {
+      "name": "filesystem_search",
+      "description": "Search bounded root-relative filenames and paths below TRION Home.",
+      "domain": "files",
+      "operation": "search",
+      "supports_entities": ["file", "directory"],
+      "requires": ["query"],
+      "evidence_types": ["file_context"],
+      "risk": "read_only",
+      "target_scopes": ["assistant_home"],
+      "freshness_support": "live_only",
+      "tool_role": "primary",
+      "output_schema": "mcp_output_schema",
+      "can_answer_directly": true,
+      "examples": ["Search TRION Home for a file."],
+      "keywords": ["file", "directory", "search", "find", "home"]
+    },
+    {
+      "name": "filesystem_metadata",
+      "description": "Return privacy-minimal metadata for one exact TRION Home target.",
+      "domain": "files",
+      "operation": "inspect",
+      "supports_entities": ["file", "directory"],
+      "requires": ["relative_path"],
+      "evidence_types": ["file_context"],
+      "risk": "read_only",
+      "target_scopes": ["assistant_home"],
+      "freshness_support": "live_only",
+      "tool_role": "primary",
+      "output_schema": "mcp_output_schema",
+      "can_answer_directly": true,
+      "examples": ["Inspect metadata for a TRION Home file."],
+      "keywords": ["file", "directory", "metadata", "inspect", "home"]
+    },
+    {
+      "name": "filesystem_read",
+      "description": "Read one bounded UTF-8 file below TRION Home.",
+      "domain": "files",
+      "operation": "read",
+      "supports_entities": ["file"],
+      "requires": ["relative_path"],
+      "evidence_types": ["file_context"],
+      "risk": "read_only",
+      "target_scopes": ["assistant_home"],
+      "freshness_support": "live_only",
+      "tool_role": "primary",
+      "output_schema": "mcp_output_schema",
+      "can_answer_directly": true,
+      "examples": ["Read a text file from TRION Home."],
+      "keywords": ["file", "read", "text", "content", "home"]
+    }
+  ]
+}

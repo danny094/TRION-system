@@ -5,6 +5,7 @@ import pytest
 from core.pipeline.common import public_task_artifacts, public_task_loop_snapshot
 from core.pipeline.plan_contract_validator import authorized_contract_for_receipt, issue_initial_step_receipt, issue_followup_step_receipt
 from core.pipeline.task_loop_stage import build_step_receipt_issuer
+from core.routing_frame.contracts import OperationTransition
 from core.task_loop.contracts import StepExecutionResult, StepExecutionStatus, StepOperationExecution, TaskLoopSnapshot, TaskLoopState
 from core.task_loop.step_operation_receipt import StepOperationReceipt
 from core.thinking.contracts import PlanStep
@@ -14,7 +15,11 @@ from tests.operation_contract_context import canonical_contract_context
 
 
 def _context():
-    return canonical_contract_context(target="TARGET_SENTINEL", scope_lock="SCOPE_SENTINEL")
+    return canonical_contract_context(
+        target="TARGET_SENTINEL",
+        scope_lock="SCOPE_SENTINEL",
+        transition_requirements=(OperationTransition("list", "logs", ("runtime_logs",)),),
+    )
 
 
 def _snapshot():

@@ -5,10 +5,9 @@ Gegenpruefung). Bewusst kein Import aus einer anderen Testdatei — eigener
 lokaler _classifier-Helper, eigene Datei ist die einzige Wahrheit fuer diese
 drei Tests.
 
-Aufgabe 5 verlangt, dass TMR "nur in einem sanitisierten Shadow-Trace
-ausgegeben" wird. Diese Tests beweisen sowohl das Ausgeben (Praesenz in
-source_signals) als auch die Stop-Bedingung ("Shadow darf keinen produktiven
-Context-Wert ueberschreiben").
+Die Tests belegen den sanitisierten Trace und die R5-Grenze: Nur vollstaendig
+provenance-gebundene, occurrence-genau kartierte TMR-Paare duerfen produktiv
+projizieren; unvollstaendig belegte TMR bleibt reine Diagnose.
 """
 
 from core.classifier.contracts import Category, ClassifierResult, Route, SafetyLevel
@@ -54,10 +53,8 @@ def test_meaning_shadow_trace_unavailable_does_not_break_frame(monkeypatch):
     assert frame["source_signals"]["meaning_shadow_trace"] == {"status": "unavailable"}
 
 
-def test_meaning_shadow_trace_never_overrides_routing_decision(monkeypatch):
-    """SP1 Stop-Bedingung: Auch wenn TMR widersprechende Werte liefert,
-    bleiben die produktiven Routing-Felder identisch zur Baseline ohne
-    TMR-Einfluss — Shadow ist Diagnose, nie Autoritaet (Doc55 A10)."""
+def test_unproven_meaning_never_overrides_routing_decision(monkeypatch):
+    """Eine TMR ohne Theme-Provenienz darf keine produktive Projektion tragen."""
     baseline = build_routing_frame(
         "Erklaere mir das Konzept der Versionierung.", _classifier()
     )

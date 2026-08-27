@@ -1,6 +1,7 @@
 import asyncio
 
 from core.output.contracts import OutputResult
+from core.pipeline.output_evidence_contracts import OutputEvidenceState
 from core.task_loop.contracts import TaskLoopResult, TaskLoopSnapshot, TaskLoopState
 from core.task_loop.executor import TaskToolCall
 from core.pipeline import runner
@@ -89,6 +90,7 @@ def test_core_task_loop_path_passes_full_context_to_output(monkeypatch):
 
     async def fake_output(output_request, chat_request):
         seen["output_context"] = output_request.context
+        seen["output_evidence"] = output_request.output_evidence
         return OutputResult(content="loop answer")
 
     monkeypatch.setattr(
@@ -112,8 +114,6 @@ def test_core_task_loop_path_passes_full_context_to_output(monkeypatch):
         )
     )
 
-    task_loop_context = seen["output_context"]["task_loop"]
-
     assert response.content == "loop answer"
     assert response.validation_passed is True
     assert seen["plan_id"] == "task-plan-1"
@@ -121,13 +121,9 @@ def test_core_task_loop_path_passes_full_context_to_output(monkeypatch):
     assert seen["objective"] == "Deploy the python container"
     assert seen["budgets"] == {"max_steps": 12, "max_retries_per_step": 3, "max_replans": 4}
     assert seen["tool_error"] == "tool_runner_missing:deploy_container"
-    assert task_loop_context["state"] == "completed"
-    assert task_loop_context["visible_content"] == "Task loop completed."
-    assert task_loop_context["completion_status"] == "complete"
-    assert task_loop_context["artifacts"] == [{"id": "artifact-1"}]
-    assert "objective" not in task_loop_context["snapshot"]
-    assert "completed_steps" not in task_loop_context["snapshot"]
-    assert task_loop_context["snapshot"]["artifacts"] == [{"artifact_type": "artifact"}]
+    assert seen["output_evidence"].state is OutputEvidenceState.COMPLETE_WITHOUT_VALIDATED_EVIDENCE
+    assert seen["output_evidence"].items == ()
+    assert "task_loop" not in seen["output_context"]
 
 
 def test_core_task_loop_path_passes_replanner_into_task_loop(monkeypatch):

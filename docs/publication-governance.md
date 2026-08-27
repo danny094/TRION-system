@@ -46,6 +46,13 @@ No earlier judgment implies a later one.
 - Never use a force push to replace public `main` as a synchronization shortcut.
 - Import product code through a reviewed public candidate with an explicit
   allowlist and provenance.
+- Keep the private export branch and public `main` on the exact same candidate
+  commit so future comparisons have a shared Git ancestor. The private product
+  branch is not that shared branch and must never be pushed to the public
+  repository.
+
+The branch topology, allowlist, exclusions, and verification sequence are
+defined in [Public Snapshot Synchronization](public-sync.md).
 
 ## Documentation consistency
 

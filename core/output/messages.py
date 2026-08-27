@@ -13,6 +13,7 @@ def build_output_messages(
     system_prompt = build_output_system_prompt(
         thinking_plan=output_request.thinking_plan,
         context=output_request.context if isinstance(output_request.context, dict) else {},
+        renderable_evidence=output_request.renderable_evidence,
     )
 
     messages: List[Dict[str, str]] = []

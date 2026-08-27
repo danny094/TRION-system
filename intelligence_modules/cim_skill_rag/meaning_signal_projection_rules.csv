@@ -1,4 +1,9 @@
 predicate,theme,routing_intent_kind_hint,routing_domain_hint,routing_evidence_need_hint
-runtime_state,container,information,container,runtime_inventory
-lifecycle_action,container,action,container,runtime_status
-log_state,container,information,container,runtime_logs
+runtime_state,container,current_state_question,container_runtime,live_runtime
+lifecycle_action,container,action_request,container_runtime,live_runtime
+log_state,container,current_state_question,container_runtime,live_runtime
+memory_recall,memory,current_state_question,memory,memory_context
+memory_search,memory,capability_test,memory,memory_context
+capability_test,memory,capability_test,memory,memory_context
+*,memory,inherit,memory,inherit
+presence,files,current_state_question,files,file_context

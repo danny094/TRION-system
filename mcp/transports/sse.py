@@ -5,8 +5,21 @@ Für Streaming/Realtime MCPs.
 """
 
 import requests
-import json
+from collections.abc import Mapping
 from typing import Dict, Any, List, Generator
+from mcp.protocol_contracts import (
+    MCPToolsListProtocolResult,
+    MCPToolsListProtocolStatus as ListStatus,
+    MCPTransportProtocolFailureKind as FailureKind,
+    MCPTransportRequestOutcome,
+    MCPTransportRequestStatus as RequestStatus,
+)
+from mcp.protocol_negotiation_contracts import (
+    MCPProtocolNegotiationResult,
+    MCPProtocolNegotiationStatus as NegotiationStatus,
+)
+from mcp.tool_result_contracts import MCPToolResultEnvelope, project_tool_result_envelope
+from mcp.transports import sse_request, sse_response, sse_tools_list
 from utils.logger import log_info, log_error, log_debug
 
 
@@ -17,16 +30,20 @@ class SSETransport:
         self.url = url
         self.api_key = api_key
         self.timeout = timeout
+        self._protocol_negotiation_result: MCPProtocolNegotiationResult | None = None
+
+    def _ensure_protocol_negotiated(self) -> MCPProtocolNegotiationResult:
+        if self._protocol_negotiation_result is None:
+            self._protocol_negotiation_result = sse_request.initialize_sse_protocol(self)
+        return self._protocol_negotiation_result
     
     def _get_headers(self) -> Dict[str, str]:
         """Baut HTTP Headers."""
-        headers = {
-            "Content-Type": "application/json",
-            "Accept": "text/event-stream",
-        }
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
-        return headers
+        return sse_request.build_sse_headers(
+            self.api_key,
+            accept_event_stream=True,
+            protocol_negotiation_result=self._protocol_negotiation_result,
+        )
     
     def _extract_mcp_content(self, result: Any) -> Any:
         """
@@ -35,81 +52,34 @@ class SSETransport:
         FastMCP Format: {"content": [{"type": "text", "text": "JSON_STRING"}]}
         Diese Funktion extrahiert und parst den JSON-String.
         """
-        if not isinstance(result, dict):
-            return result
-        
-        content = result.get("content", [])
-        if not content or not isinstance(content, list):
-            return result
-        
-        # Extrahiere ersten Text-Block
-        for item in content:
-            if isinstance(item, dict) and item.get("type") == "text":
-                text = item.get("text", "")
-                # Versuche JSON zu parsen
-                try:
-                    parsed = json.loads(text)
-                    log_debug(f"[SSE] Extracted MCP content: {list(parsed.keys()) if isinstance(parsed, dict) else type(parsed)}")
-                    return parsed
-                except json.JSONDecodeError:
-                    # Kein JSON, gebe Text zurück
-                    return text
-        
-        return result
+        return sse_response.decode_sse_tool_result_envelope(result)
 
     
-    def list_tools(self) -> List[Dict[str, Any]]:
-        """Holt Tool-Liste vom MCP."""
+    def list_tools_protocol_result(self):
         try:
-            payload = {
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "tools/list",
-                "params": {}
-            }
-            
-            log_debug(f"[SSE] tools/list → {self.url}")
-            
-            # Für list_tools nutzen wir normales HTTP
-            resp = requests.post(
-                self.url,
-                json=payload,
-                headers={"Content-Type": "application/json"},
-                timeout=self.timeout
-            )
-            resp.raise_for_status()
-            
-            data = resp.json()
-            
-            if "result" in data:
-                result = data["result"]
-                if isinstance(result, dict) and "tools" in result:
-                    return result["tools"]
-                elif isinstance(result, list):
-                    return result
-            
-            return []
-            
-        except Exception as e:
-            log_error(f"[SSE] tools/list failed: {e}")
-            return []
-    
-    def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Any:
+            negotiation = self._ensure_protocol_negotiated()
+        except Exception as exc:
+            log_error(f"[SSE] Protocol initialization failed: {exc}")
+            return MCPToolsListProtocolResult(ListStatus.TRANSPORT_FAILURE)
+        if negotiation.status is not NegotiationStatus.NEGOTIATED:
+            return MCPToolsListProtocolResult(ListStatus.PROTOCOL_FAILURE)
+        return sse_tools_list.list_tools_protocol_result(self)
+
+    def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> MCPToolResultEnvelope:
         """Ruft ein Tool auf (sammelt alle SSE Events)."""
         try:
-            payload = {
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "tools/call",
-                "params": {
-                    "name": tool_name,
-                    "arguments": arguments
-                }
-            }
+            negotiation = self._ensure_protocol_negotiated()
+            if negotiation.status is not NegotiationStatus.NEGOTIATED:
+                outcome = MCPTransportRequestOutcome(
+                    RequestStatus.PROTOCOL_FAILURE,
+                    protocol_failure_kind=FailureKind.MALFORMED_RESPONSE,
+                )
+                return project_tool_result_envelope(outcome)
+            payload = sse_request.build_sse_tool_call_payload(tool_name, arguments)
             
             log_debug(f"[SSE] tools/call {tool_name} → {self.url}")
             
-            result_data = None
+            outcome = None
             
             with requests.post(
                 self.url,
@@ -125,37 +95,58 @@ class SSETransport:
                         line = line.decode("utf-8")
                         
                         if line.startswith("data: "):
-                            data_str = line[6:]  # Remove "data: " prefix
-                            try:
-                                data = json.loads(data_str)
-                                
-                                # Letztes Event mit result speichern
-                                if "result" in data:
-                                    result_data = data["result"]
-                                elif "error" in data:
-                                    return {"error": data["error"]}
-                                    
-                            except json.JSONDecodeError:
+                            data = sse_response.decode_sse_event(line)
+                            if data is None:
                                 continue
+                            if not isinstance(data, Mapping):
+                                outcome = MCPTransportRequestOutcome(
+                                    RequestStatus.PROTOCOL_FAILURE,
+                                    protocol_failure_kind=FailureKind.MALFORMED_RESPONSE,
+                                )
+                                break
+                            if "error" in data:
+                                if isinstance(data["error"], Mapping):
+                                    outcome = MCPTransportRequestOutcome(
+                                        RequestStatus.PROTOCOL_FAILURE,
+                                        protocol_failure_kind=FailureKind.JSON_RPC_ERROR,
+                                        protocol_error=data["error"],
+                                    )
+                                else:
+                                    outcome = MCPTransportRequestOutcome(
+                                        RequestStatus.PROTOCOL_FAILURE,
+                                        protocol_failure_kind=FailureKind.MALFORMED_RESPONSE,
+                                    )
+                                break
+                            if "result" in data:
+                                candidate = sse_response.decode_sse_tool_result_envelope(data["result"])
+                                if candidate.status is RequestStatus.PROTOCOL_FAILURE:
+                                    outcome = candidate
+                                    break
+                                if outcome is None:
+                                    outcome = candidate
+            if outcome is None:
+                outcome = MCPTransportRequestOutcome(
+                    RequestStatus.PROTOCOL_FAILURE,
+                    protocol_failure_kind=FailureKind.MALFORMED_RESPONSE,
+                )
+            return project_tool_result_envelope(outcome)
             
-            return self._extract_mcp_content(result_data or {})
-            
-        except Exception as e:
-            log_error(f"[SSE] call_tool failed: {e}")
-            return {"error": str(e)}
+        except Exception as exc:
+            diagnostic = str(exc) or "SSE transport failure"
+            log_error(f"[SSE] call_tool failed: {exc}")
+            return project_tool_result_envelope(MCPTransportRequestOutcome(
+                RequestStatus.TRANSPORT_FAILURE,
+                transport_diagnostic=diagnostic,
+            ))
     
     def call_tool_stream(self, tool_name: str, arguments: Dict[str, Any]) -> Generator[Dict, None, None]:
         """Ruft ein Tool auf und streamt Events."""
         try:
-            payload = {
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "tools/call",
-                "params": {
-                    "name": tool_name,
-                    "arguments": arguments
-                }
-            }
+            negotiation = self._ensure_protocol_negotiated()
+            if negotiation.status is not NegotiationStatus.NEGOTIATED:
+                yield {"error": "MCP protocol negotiation failed"}
+                return
+            payload = sse_request.build_sse_tool_call_payload(tool_name, arguments)
             
             log_debug(f"[SSE] tools/call (stream) {tool_name} → {self.url}")
             
@@ -173,21 +164,13 @@ class SSETransport:
                         line = line.decode("utf-8")
                         
                         if line.startswith("data: "):
-                            data_str = line[6:]
-                            try:
-                                data = json.loads(data_str)
+                            data = sse_response.decode_sse_event(line)
+                            if data is not None:
                                 yield data
-                            except json.JSONDecodeError:
-                                continue
                                 
         except Exception as e:
             log_error(f"[SSE] call_tool_stream failed: {e}")
             yield {"error": str(e)}
     
-    def health_check(self) -> bool:
-        """Prüft ob MCP erreichbar ist."""
-        try:
-            tools = self.list_tools()
-            return True
-        except:
-            return False
+    def shutdown(self):
+        return None

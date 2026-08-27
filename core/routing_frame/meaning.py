@@ -5,8 +5,9 @@ deterministisch, regelbasiert, kein LLM-Call (Doc 55 A2), keine Operation
 und kein Toolname (Doc 55 A1). Quellen sind ausschliesslich die hot-reload-
 faehigen Regeltabellen aus intelligence_modules/cim_skill_rag/.
 
-Nicht autoritativ: das Ergebnis ist Shadow-Trace (Doc 55 A10 / P11-Plan SP1
-Stop-Bedingung) und wird von Routing/Toolwahl nicht gelesen.
+P11-SP8-R5 projiziert ausschliesslich occurrence-genau kartierte
+Predicate-/Theme-Paare produktiv in Routing-Signale. Alle nicht kartierten
+TMR-Felder bleiben reine, sanitierte Trace-Daten ohne Toolwahl-Autoritaet.
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ from core.routing_frame.meaning_signals import (
     default_temporal,
     pick_primary,
 )
+from core.routing_frame.meaning_targets import target_candidates_from_text
 from intelligence_modules.cim_skill_rag.meaning_concept_loader import (
     load_meaning_concept_tokens,
 )
@@ -92,9 +94,7 @@ def build_meaning_representation(user_text: str) -> MeaningRepresentation:
     scope_matches = collect_matches(
         lowered, [r for r in role_rows if r.get("role") == "scope"], "value"
     )
-    target_matches = collect_matches(
-        lowered, [r for r in role_rows if r.get("role") == "target_alias"], "value"
-    )
+    target_candidates, target_matches, target_source = target_candidates_from_text(text, role_rows)
     detail_matches = collect_matches(lowered, detail_rows, "detail")
     polarity_matches = collect_matches(
         lowered, [r for r in modifier_rows if r.get("modifier_kind") == "polarity"], "modifier_value"
@@ -123,8 +123,12 @@ def build_meaning_representation(user_text: str) -> MeaningRepresentation:
     )
     temporal, temporal_prov = default_temporal(temporal_explicit, temporal_explicit_prov)
 
-    scope_candidates = dedupe_preserve_order([v for v, _ in scope_matches])
-    target_candidates = dedupe_preserve_order([v for v, _ in target_matches])
+    scope_candidates = dedupe_preserve_order([
+        "home" if value == "home_if_files" else value
+        for value, _span in scope_matches
+        if value != "home_if_files"
+        or (target_candidates and (predicate == "presence" or theme == "files"))
+    ])
     requested_details = dedupe_preserve_order([v for v, _ in detail_matches])
     roles = _roles_from_role_rows(role_rows, lowered)
     composite_followup = composite_followup_from_matches(predicate_matches)
@@ -139,7 +143,7 @@ def build_meaning_representation(user_text: str) -> MeaningRepresentation:
         span=scope_matches[0][1] if scope_matches else "",
     )
     target_prov = FieldProvenance(
-        source="rule:meaning_role_tokens",
+        source=target_source,
         confidence=0.85 if target_candidates else 0.0,
         span=target_matches[0][1] if target_matches else "",
     )

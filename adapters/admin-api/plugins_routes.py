@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, Response
 
 from mcp.installer_common import InstallationError, MAX_SIZE
-from mcp.config import get_all_mcps
+from mcp.catalog_lifecycle import current_catalog_snapshot
 from plugins.common import load_plugin_manifest, resolve_plugin_asset
 from plugins.bridge import call_permitted_tool, proxy_request
 from plugins.install import cleanup_failed_install, install_plugin_bundle
@@ -34,7 +34,9 @@ async def install_plugin(request: Request, file: Any = None) -> dict[str, Any]:
         content = await upload.read()
         if len(content) > MAX_SIZE:
             raise HTTPException(400, "File too large (max 50MB)")
-        manifest = install_plugin_bundle(upload.filename, content, set(get_all_mcps().keys()))
+        snapshot = current_catalog_snapshot()
+        installed_mcps = set(snapshot.desired_mcps) if snapshot is not None else set()
+        manifest = install_plugin_bundle(upload.filename, content, installed_mcps)
         return {"success": True, "plugin": {**manifest, "missing_mcp": []}}
     except InstallationError as exc:
         cleanup_failed_install(locals().get("manifest", {}).get("id"), None)

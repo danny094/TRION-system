@@ -1,16 +1,6 @@
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any, Mapping
-
-
-def derive_time_followup_text(user_text: str, facts: dict[str, Any]) -> str:
-    offset = parse_time_followup_offset_seconds(user_text)
-    base = parse_time_facts(facts)
-    if offset is None or base is None:
-        return ""
-    target = base + timedelta(seconds=offset)
-    prefix = describe_offset(user_text, offset)
-    return f"{prefix} ist es {target.strftime('%H:%M:%S')} UTC."
 
 
 def has_derivable_time_followup(user_text: str, orchestrator_context: Mapping[str, Any] | None) -> bool:
@@ -65,19 +55,6 @@ def parse_time_facts(facts: dict[str, Any]) -> datetime | None:
         except Exception:
             return None
     return None
-
-
-def describe_offset(user_text: str, offset_seconds: int) -> str:
-    text = _normalize(user_text)
-    if offset_seconds == 3600 and ("in einer stunde" in text or "in 1 stunde" in text or "in 1 std" in text):
-        return "In einer Stunde"
-    if offset_seconds % 3600 == 0:
-        hours = offset_seconds // 3600
-        return f"In {hours} Stunden"
-    if offset_seconds == 60 and ("in einer minute" in text or "in 1 minute" in text):
-        return "In einer Minute"
-    minutes = offset_seconds // 60
-    return f"In {minutes} Minuten"
 
 
 def _normalize(value: str) -> str:

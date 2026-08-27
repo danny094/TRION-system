@@ -69,6 +69,7 @@ def build_orchestrator_stage(
                     "capability_evidence_types": list(tool.capability_evidence_types or []),
                     "capability_target_scopes": list(tool.capability_target_scopes or []),
                     "capability_output_schema": str(tool.capability_output_schema or ""),
+                    **({"output_schema": tool.output_schema} if tool.capability_output_schema == "mcp_output_schema" else {}),
                     "tool_role": tool.tool_role,
                     "capability_risk": tool.capability_risk,
                 }
@@ -87,6 +88,7 @@ def build_orchestrator_stage(
                     "capability_evidence_types": list(tool.capability_evidence_types or []),
                     "capability_target_scopes": list(tool.capability_target_scopes or []),
                     "capability_output_schema": str(tool.capability_output_schema or ""),
+                    **({"output_schema": tool.output_schema} if tool.capability_output_schema == "mcp_output_schema" else {}),
                     "tool_role": tool.tool_role,
                     "capability_risk": tool.capability_risk,
                 }

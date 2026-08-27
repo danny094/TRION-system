@@ -48,6 +48,15 @@ memory/
 
 ## Registrierte MCP-Tools
 
+`memory/memory_mcp/tool_intents.json` ist die Authoring Source fuer direkte
+Contract-Eligibility; operative Wahrheit bleibt der Registry-Mirror. Die fuenf
+Workspace-Tools sind dort unter `domain=files` und `project_docs` beschrieben.
+Nur `workspace_get`/`workspace_list` deklarieren `file_context`; mutierende
+Workspace-Tools deklarieren keine Evidence. `memory_context` ist auf die
+belegte Memory-Read/Search-Positivmenge begrenzt. Live registrierte Admin-,
+Secret-, Skill- und Maintenance-Funktionen ohne Authoring-Eintrag bleiben fuer
+direkte Eligibility fail-closed.
+
 ### Memory
 
 | Tool | Beschreibung |

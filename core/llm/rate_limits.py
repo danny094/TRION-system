@@ -5,7 +5,7 @@ import threading
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable
 
-from core.llm.providers import normalize_provider
+from core.llm.provider_registry import normalize_provider, provider_secret_names
 
 
 _RATE_LIMIT_LOCK = threading.Lock()
@@ -32,7 +32,7 @@ def _pick_header(headers: Dict[str, str], keys: Iterable[str]) -> str:
 
 def capture_rate_limit_headers(provider: str, headers_obj: Any, status_code: int = 0) -> None:
     provider_norm = normalize_provider(provider)
-    if provider_norm not in {"openai", "anthropic", "ollama_cloud", "openrouter", "minimax"}:
+    if not provider_secret_names(provider_norm):
         return
 
     lower_headers: Dict[str, str] = {}

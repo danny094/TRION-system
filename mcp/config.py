@@ -10,6 +10,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Dict, Any
 
+from mcp.catalog_contracts import MCPDesiredState
 from mcp.desired_state import compose_mcp_desired_state, load_registry_source
 
 _CONFIG_PATH = Path(os.getenv("MCP_REGISTRY_PATH", "/app/mcp_registry.json"))
@@ -74,11 +75,14 @@ def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any
     return {**base, **override}
 
 
-def _load_registry() -> Dict[str, Any]:
+def get_mcp_desired_state() -> MCPDesiredState:
     defaults = _default_mcps()
     source = load_registry_source(_CONFIG_PATH, core_ids=set(defaults))
-    desired = compose_mcp_desired_state(defaults, source)
+    return compose_mcp_desired_state(defaults, source)
 
+
+def _load_registry() -> Dict[str, Any]:
+    desired = get_mcp_desired_state()
     def mutable(value: Any) -> Any:
         if isinstance(value, Mapping):
             return {key: mutable(item) for key, item in value.items()}
@@ -90,27 +94,7 @@ def _load_registry() -> Dict[str, Any]:
         mutable(desired.core_mcps),
         mutable(desired.custom_mcps),
     )
-    _restore_memory_tool_intents(registry)
     return registry
-
-
-def _restore_memory_tool_intents(registry: Dict[str, Any]) -> None:
-    """memory-mcp durchlaeuft nie Install/Update (kein Bundle, kein Receipt) -
-    sein tool_intents-Mirror kommt ausschliesslich aus dem geshippten
-    Bootstrap (`_default_mcps()`), nie aus einer hand-editierbaren
-    mcp_registry.json. Die reine Custom-Registry darf den Core-Namen nicht
-    enthalten; diese Wiederherstellung haelt zusaetzlich den bestehenden
-    P11.0-SP3-Vertrag ('Mirror-Daten
-    sind nicht manuell editierbar', vorher rot in
-    tests/test_mcp_registry_memory_bootstrap.py)."""
-    entry = registry.get("memory-mcp")
-    if not isinstance(entry, dict):
-        return
-    bootstrap = _default_mcps()["memory-mcp"]
-    if "tool_intents" in bootstrap:
-        entry["tool_intents"] = bootstrap["tool_intents"]
-    else:
-        entry.pop("tool_intents", None)
 
 
 def get_all_mcps() -> Dict[str, Any]:

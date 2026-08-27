@@ -13,6 +13,7 @@ from mcp.installer_common import (
     reload_hub_registry,
     resolve_icon_path,
 )
+from mcp.installer_confirmation import ABSENT, require_registry_postcondition
 from mcp.installer_manage_config import (
     apply_config_and_registry_update as _apply_config_and_registry_update,
     preserve_runtime_context as _preserve_runtime_context,
@@ -48,7 +49,8 @@ async def delete_mcp(name: str):
     try:
         owned_paths = owned_paths_from_receipt(name, target)
         remove_registry_entry(name)
-        reload_hub_registry(get_hub())
+        confirmation = reload_hub_registry(get_hub())
+        require_registry_postcondition(confirmation, name, ABSENT)
         for path in [target, *owned_paths]:
             if path.exists():
                 shutil.rmtree(path)
@@ -74,7 +76,8 @@ async def toggle_mcp(name: str):
     _preserve_tool_intents(name, normalized)
     try:
         _apply_config_and_registry_update(name, config, normalized)
-        reload_hub_registry(get_hub())
+        confirmation = reload_hub_registry(get_hub())
+        require_registry_postcondition(confirmation, name, normalized)
     except HTTPException:
         raise
     except ValueError as exc:
@@ -121,7 +124,8 @@ async def update_mcp_config_payload(name: str, request: Request):
         _preserve_runtime_context(name, normalized)
         _preserve_tool_intents(name, normalized)
         _apply_config_and_registry_update(name, config, normalized)
-        reload_hub_registry(get_hub())
+        confirmation = reload_hub_registry(get_hub())
+        require_registry_postcondition(confirmation, name, normalized)
     except HTTPException:
         raise
     except ValueError as exc:
@@ -148,11 +152,16 @@ def _known_mcp_names() -> set[str]:
 
 
 def _tools_for_mcp(hub: Any, name: str) -> list[Dict[str, Any]]:
+    from mcp.catalog_lifecycle import current_catalog_snapshot
+
+    snapshot = current_catalog_snapshot()
+    if snapshot is None:
+        return []
     tools = []
-    for tool_name, mcp_name in hub._tools_cache.items():
-        if mcp_name != name:
+    for tool_name, route in snapshot.routes_by_tool.items():
+        if route["mcp_name"] != name:
             continue
-        tool_def = hub._tool_definitions.get(tool_name, {})
+        tool_def = route["tool_definition"]
         tools.append(
             {
                 "name": tool_name,

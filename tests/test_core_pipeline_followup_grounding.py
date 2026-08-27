@@ -4,6 +4,7 @@ from core.models import CoreChatRequest, Message, MessageRole
 from core.output.contracts import OutputResult
 from core.output.grounding_state import clear_grounding_state
 from core.pipeline import runner
+from core.pipeline.plan_contract_validator import PlanContractDecision
 from core.task_loop.contracts import TaskLoopResult, TaskLoopSnapshot, TaskLoopState
 from core.task_loop.executor import TaskToolCall
 from tests._core_pipeline_request_helpers import core_pipeline_request
@@ -13,13 +14,19 @@ def test_core_followup_time_derivation_skips_second_task_loop(monkeypatch):
     clear_grounding_state()
     task_loop_calls = []
     seen = {}
+    monkeypatch.setattr(runner, "validate_plan_contract", lambda *_args, **_kwargs: PlanContractDecision(True))
 
     def fake_orchestrator(user_text, classifier_result, raw_tools=None, context_sources=None, conversation_id="", **kwargs):
         from core.orchestrator.contracts import OrchestratorPackage, ToolDescriptor
 
+        descriptor = ToolDescriptor(
+            name="time_now",
+            description="Return current UTC time and date.",
+            output_schema={"type": "object"},
+        )
         return OrchestratorPackage(
-            available_tools=[ToolDescriptor(name="time_now", description="Return current UTC time and date.")],
-            selected_tools=[ToolDescriptor(name="time_now", description="Return current UTC time and date.")],
+            available_tools=[descriptor],
+            selected_tools=[descriptor],
             context={},
             classifier_result=classifier_result,
         )
@@ -92,5 +99,5 @@ def test_core_followup_time_derivation_skips_second_task_loop(monkeypatch):
     assert response_2.content == "ok"
     assert len(task_loop_calls) == 1
     assert task_loop_calls[0]["objective"] == "Wie viel Uhr ist es gerade?"
-    assert seen["last_context"]["grounding_state"]["grounded_results"][0]["tool_name"] == "time_now"
+    assert "grounding_state" not in seen["last_context"]
     clear_grounding_state()

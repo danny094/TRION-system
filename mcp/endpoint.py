@@ -10,35 +10,14 @@ Und sieht alle Tools von allen MCPs als eine Liste.
 """
 
 from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse, StreamingResponse
-import json
-from typing import Dict, Any
+from fastapi.responses import JSONResponse
 
+from mcp import endpoint_protocol
 from mcp.hub import get_hub
+from mcp.protocol_negotiation_contracts import MCPProtocolNegotiationStatus as NegotiationStatus
 from utils.logger import log_info, log_error, log_debug
 
 router = APIRouter()
-
-
-def _normalize_tool_result(result: Any) -> Any:
-    """
-    Normalize hub tool results into JSON-serializable payloads.
-
-    Fast-Lane tools return ToolResult objects (dataclass-like); MCP endpoint
-    must convert them before returning JSON-RPC responses.
-    """
-    if hasattr(result, "to_dict") and callable(getattr(result, "to_dict")):
-        try:
-            return result.to_dict()
-        except Exception:
-            pass
-    if isinstance(result, dict):
-        return result
-    if isinstance(result, (str, int, float, bool)) or result is None:
-        return result
-    if isinstance(result, list):
-        return result
-    return {"result": str(result)}
 
 
 @router.post("/mcp")
@@ -59,31 +38,27 @@ async def mcp_handler(request: Request):
         
         log_debug(f"[MCP-Endpoint] Method: {method}")
         
-        hub = get_hub()
-        
         # ─────────────────────────────────────────────────────────────
         # INITIALIZE
         # ─────────────────────────────────────────────────────────────
         if method == "initialize":
-            return JSONResponse({
-                "jsonrpc": "2.0",
-                "id": request_id,
-                "result": {
-                    "protocolVersion": "2024-11-05",
-                    "serverInfo": {
-                        "name": "trion-mcp-hub",
-                        "version": "1.0.0"
-                    },
-                    "capabilities": {
-                        "tools": {"listChanged": True}
-                    }
-                }
-            })
+            return JSONResponse(endpoint_protocol.project_initialize_result(request_id))
+
+        negotiation = endpoint_protocol.validate_followup_protocol_version(
+            request.headers.get("MCP-Protocol-Version")
+        )
+        if negotiation.status is not NegotiationStatus.NEGOTIATED:
+            return JSONResponse(
+                endpoint_protocol.project_protocol_version_error(request_id),
+                status_code=400,
+            )
+
+        hub = get_hub()
         
         # ─────────────────────────────────────────────────────────────
         # TOOLS/LIST - Aggregierte Liste aller MCPs
         # ─────────────────────────────────────────────────────────────
-        elif method == "tools/list":
+        if method == "tools/list":
             tools = hub.list_tools()
             
             log_info(f"[MCP-Endpoint] tools/list → {len(tools)} tools")
@@ -116,42 +91,9 @@ async def mcp_handler(request: Request):
             log_info(f"[MCP-Endpoint] tools/call → {tool_name}")
             
             result = hub.call_tool(tool_name, arguments)
-            normalized = _normalize_tool_result(result)
-            
-            # Check for error
-            if (
-                isinstance(normalized, dict)
-                and normalized.get("error") not in (None, "")
-            ):
-                return JSONResponse({
-                    "jsonrpc": "2.0",
-                    "id": request_id,
-                    "error": {
-                        "code": -32000,
-                        "message": normalized["error"]
-                    }
-                })
-
-            # ToolResult error parity (fast-lane): {"success": false, "error": "..."}
-            if (
-                isinstance(normalized, dict)
-                and normalized.get("success") is False
-                and normalized.get("error")
-            ):
-                return JSONResponse({
-                    "jsonrpc": "2.0",
-                    "id": request_id,
-                    "error": {
-                        "code": -32000,
-                        "message": str(normalized.get("error"))
-                    }
-                })
-            
-            return JSONResponse({
-                "jsonrpc": "2.0",
-                "id": request_id,
-                "result": normalized
-            })
+            return JSONResponse(
+                endpoint_protocol.project_tools_call_response(request_id, result)
+            )
         
         # ─────────────────────────────────────────────────────────────
         # UNKNOWN METHOD

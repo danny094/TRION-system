@@ -8,6 +8,7 @@ from core.llm_provider_client import complete_chat, complete_prompt
 from core.models import CoreChatRequest, Message, MessageRole
 from core.output.contracts import OutputRequest
 from core.output.stream import complete_output
+from core.pipeline.output_evidence_contracts import OutputEvidenceHandoff, OutputEvidenceState
 from core.thinking.contracts import PlanStep, RiskLevel, ThinkingPlan
 from core.verifier.contracts import Verdict
 from core.verifier.input_prepare import build_verifier_input
@@ -99,7 +100,11 @@ def test_ollama_cloud_complete_output_live():
         conversation_id="ollama-cloud-output-live",
         raw_request={"provider": "ollama_cloud"},
     )
-    output_request = OutputRequest(user_text="Antworte nur mit: output-ok", thinking_plan=_plan())
+    output_request = OutputRequest(
+        user_text="Antworte nur mit: output-ok",
+        thinking_plan=_plan(),
+        output_evidence=OutputEvidenceHandoff(OutputEvidenceState.NO_TASK_LOOP),
+    )
 
     result = asyncio.run(complete_output(output_request, request))
 

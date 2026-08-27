@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 from fastapi import HTTPException
+from fastapi.encoders import jsonable_encoder
 
 from mcp.client import call_tool
+from mcp.tool_result_contracts import (
+    MCPResultPresence,
+    MCPToolCallStatus,
+    MCPToolResultEnvelope,
+)
 
 
 _DEFAULT_TIMEOUT_S = 5.0
@@ -15,18 +22,27 @@ _ERROR_STATUS = {
 }
 
 
-def _unwrap_tool_result(tool_name: str, payload: Any) -> dict[str, Any]:
-    if isinstance(payload, dict) and payload.get("error") and "result" not in payload:
-        raise HTTPException(status_code=503, detail=str(payload.get("error")))
-    result = payload.get("result") if isinstance(payload, dict) and "result" in payload else payload
-    if not isinstance(result, dict):
+def _unwrap_tool_result(tool_name: str, result: Any) -> dict[str, Any]:
+    if not isinstance(result, MCPToolResultEnvelope):
         raise HTTPException(status_code=502, detail=f"invalid_{tool_name}_result")
-    if result.get("ok") is False and isinstance(result.get("error"), dict):
-        error = result.get("error") or {}
+    if result.status is not MCPToolCallStatus.SUCCESS:
+        error = None
+        if (
+            result.status is MCPToolCallStatus.TOOL_FAILURE
+            and result.structured_content_presence is MCPResultPresence.VALUE
+        ):
+            error = result.structured_content.get("error")
+        error = error if isinstance(error, Mapping) else {}
         code = str(error.get("code") or "").strip() or "commander_error"
         message = str(error.get("message") or code).strip() or code
-        raise HTTPException(status_code=_ERROR_STATUS.get(code, 502), detail=message)
-    return result
+        status_code = 503 if result.status is MCPToolCallStatus.TRANSPORT_FAILURE else _ERROR_STATUS.get(code, 502)
+        raise HTTPException(status_code=status_code, detail=message)
+    if result.structured_content_presence is MCPResultPresence.MISSING:
+        raise HTTPException(status_code=502, detail=f"invalid_{tool_name}_result")
+    payload = jsonable_encoder(result.structured_content)
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=502, detail=f"invalid_{tool_name}_result")
+    return payload
 
 
 def call_commander_blueprint_tool(
@@ -35,10 +51,8 @@ def call_commander_blueprint_tool(
     *,
     timeout: float = _DEFAULT_TIMEOUT_S,
 ) -> dict[str, Any]:
-    payload = call_tool(tool_name, arguments or {}, timeout=timeout)
-    if payload is None:
-        raise HTTPException(status_code=503, detail=f"{tool_name}_unavailable")
-    return _unwrap_tool_result(tool_name, payload)
+    result = call_tool(tool_name, arguments or {}, timeout=timeout)
+    return _unwrap_tool_result(tool_name, result)
 
 
 def list_blueprints_via_mcp(*, timeout: float = _DEFAULT_TIMEOUT_S) -> list[dict[str, Any]]:

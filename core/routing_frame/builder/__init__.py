@@ -26,6 +26,9 @@ from core.routing_frame.builder.contract_fingerprint import (
     compute_operation_contract_fingerprint,
 )
 from core.routing_frame.meaning_shadow_trace import sanitize_meaning_for_shadow_trace
+from intelligence_modules.cim_skill_rag.meaning_signal_projection_loader import (
+    project_meaning_signals,
+)
 
 __all__ = ["build_routing_frame"]
 
@@ -48,8 +51,9 @@ def build_routing_frame(
     selected_count = count_items(selected_tool_details)
 
     # Phase 2: Normalisierung → RoutingFrame
-    dom = domain(lowered, raw.live_claim)
-    intent = intent_kind(
+    projection = project_meaning_signals(raw.meaning)
+    dom = projection.get("domain") or domain(raw.live_claim)
+    fallback_intent = intent_kind(
         lowered,
         classifier_result,
         live_claim=raw.live_claim,
@@ -57,7 +61,9 @@ def build_routing_frame(
         has_loop_markers=raw.loop_markers,
         domain=dom,
     )
-    ev_need = evidence_need(raw.live_claim, domain=dom, intent_kind=intent)
+    intent = projection.get("intent_kind") or fallback_intent
+    fallback_evidence = evidence_need(raw.live_claim, domain=dom, intent_kind=intent)
+    ev_need = projection.get("evidence_need") or fallback_evidence
     exec_mode = execution_mode(
         classifier_result,
         selected_count=selected_count,

@@ -7,10 +7,10 @@ from core.verifier.llm_check import run_llm_check
 from tests.verifier_document_fixture_support import document_context, entry_id_for_phrase
 
 
-def test_tax_document_structure_plan_reads_real_toc_chunk_first():
+def test_tax_document_structure_plan_reads_synthetic_toc_chunk_first():
     question = "Welche Kapitel enthaelt das Inhaltsverzeichnis?"
-    document = document_context("WAS STEUERN SIND UND.md")
-    expected_entry = entry_id_for_phrase("WAS STEUERN SIND UND.md", "Inhaltsverzeichnis")
+    document = document_context("synthetic_tax_guide.md")
+    expected_entry = entry_id_for_phrase("synthetic_tax_guide.md", "Inhaltsverzeichnis")
     plan = build_plan_from_analysis(
         {
             "intent": question,
@@ -30,8 +30,8 @@ def test_tax_document_structure_plan_reads_real_toc_chunk_first():
 
 def test_story_semantic_plan_resolves_police_chunk_from_search_hits():
     question = "Warum ruft die Frau die Polizei?"
-    document = document_context("Das Fenstertheater.md")
-    expected_entry = entry_id_for_phrase("Das Fenstertheater.md", "hatte sie schon die Polizei verständigt")
+    document = document_context("synthetic_neighborhood_story.md")
+    expected_entry = entry_id_for_phrase("synthetic_neighborhood_story.md", "hatte sie schon die Polizei verständigt")
     plan = build_plan_from_analysis(
         {
             "intent": question,
@@ -62,8 +62,8 @@ def test_story_semantic_plan_resolves_police_chunk_from_search_hits():
 
 def test_ai_semantic_plan_resolves_risk_chunk_from_search_hits():
     question = "Welche Risiken generativer KI beschreibt der Text?"
-    document = document_context("Künstliche Intelligenz.md")
-    expected_entry = entry_id_for_phrase("Künstliche Intelligenz.md", "generative KI-Tools neue Anwen")
+    document = document_context("synthetic_ai_safety_guide.md")
+    expected_entry = entry_id_for_phrase("synthetic_ai_safety_guide.md", "Generative KI-Tools eröffnen neue Anwen")
     plan = build_plan_from_analysis(
         {
             "intent": question,
@@ -92,10 +92,10 @@ def test_ai_semantic_plan_resolves_risk_chunk_from_search_hits():
     assert resolved.arguments["entry_id"] == expected_entry
 
 
-def test_story_exact_question_reads_real_house_loss_chunk_and_hits_rollout_gate(monkeypatch):
+def test_story_exact_question_reads_synthetic_house_loss_chunk_and_hits_rollout_gate(monkeypatch):
     question = "An welcher Stelle wird klar, dass das Haus nicht mehr existiert?"
-    document = document_context("Zeitenwende.md")
-    expected_entry = entry_id_for_phrase("Zeitenwende.md", "Toter nach Gasexplosion")
+    document = document_context("synthetic_crisis_story.md")
+    expected_entry = entry_id_for_phrase("synthetic_crisis_story.md", "Das Haus am Birkenweg 14 existiert nicht mehr")
     seen = {}
     plan = build_plan_from_analysis(
         {

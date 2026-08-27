@@ -4,16 +4,17 @@
 dialogue act, loop markers, domain) onto a coarse intent label used by
 gates, capability specs, and the thinking layer.
 
-`domain` reads keyword tokens and the live-claim kind to identify the
-subject area of the request (memory / container_runtime / files / hardware /
-time / tools / general).
+`domain` maps typed live-claim kinds. Memory-Domain kommt ausschliesslich aus
+der vorgelagerten TMR-Projektion.
 
-Alle Tokens (LOOP_MARKERS, MEMORY_TOKENS, META_TOKENS, capability_test) kommen
-aus intelligence_modules — keine hardcodierten Konstanten im Core.
+Loop- und Meta-Tokens kommen aus intelligence_modules; Memory-/Capability-
+Rohtexttokens wurden durch die TMR-Projektion ersetzt.
 
 `detect_loop_signals` liest loop_marker- und persistent-Phrasen aus
 intelligence_modules/cim_skill_rag/execution_mode_signals_v2.csv (D1-Vollfix).
-`intent_kind` und `domain` lesen aus intent_classification_tokens.csv (D1-Vollfix).
+`intent_kind` liest Meta-Tokens aus intent_classification_tokens.csv. Memory-
+Domain und Recall/Search-Intent kommen ausschliesslich aus der vorgelagerten
+TMR-Projektion im Routing-Frame-Builder (P11 SP8 R5).
 (PIANO 1.0, 2026-06-12)
 """
 
@@ -27,9 +28,9 @@ from core.classifier.live_claims import LiveClaimKind
 # (PIANO 1.0 D1-Vollfix, 2026-06-12 — ersetzt hardcodierte LOOP_MARKERS)
 from intelligence_modules.cim_skill_rag.execution_mode_signal_loader import load_execution_mode_signals
 
-# Intent-Klassifizierungs-Tokens (meta_token, memory_domain_token, capability_test_token):
+# Intent-Klassifizierungs-Tokens (meta_token):
 # intelligence_modules/cim_skill_rag/intent_classification_tokens.csv
-# (PIANO 1.0 D1-Vollfix, 2026-06-12 — ersetzt hardcodierte META_TOKENS, MEMORY_TOKENS, inline-Tupel)
+# (PIANO 1.0 D1-Vollfix; P11 R5 behaelt hier nur META_TOKENS)
 from intelligence_modules.cim_skill_rag.intent_classification_loader import load_intent_classification_tokens
 
 
@@ -60,7 +61,6 @@ def intent_kind(
 ) -> str:
     tokens = load_intent_classification_tokens()
     meta_tokens = tokens.get("meta_token", ())
-    capability_test_tokens = tokens.get("capability_test_token", ())
     if any(token in lowered for token in meta_tokens):
         return "meta_analysis"
     if dialogue_act == "feedback":
@@ -71,8 +71,6 @@ def intent_kind(
         return "task_loop_request"
     if live_claim == LiveClaimKind.SKILL_INVENTORY:
         return "capability_question"
-    if domain == "memory" and any(token in lowered for token in capability_test_tokens):
-        return "capability_test"
     if live_claim in {LiveClaimKind.TIME, LiveClaimKind.HARDWARE, LiveClaimKind.FILE_CONTENT, LiveClaimKind.CONTAINER_RUNTIME}:
         return "current_state_question"
     if classifier_result.category in {Category.TOOL, Category.PLANNING}:
@@ -80,10 +78,7 @@ def intent_kind(
     return "conceptual_question"
 
 
-def domain(lowered: str, live_claim: LiveClaimKind) -> str:
-    memory_tokens = load_intent_classification_tokens().get("memory_domain_token", ())
-    if any(token in lowered for token in memory_tokens):
-        return "memory"
+def domain(live_claim: LiveClaimKind) -> str:
     if live_claim == LiveClaimKind.CONTAINER_RUNTIME:
         return "container_runtime"
     if live_claim == LiveClaimKind.FILE_CONTENT:

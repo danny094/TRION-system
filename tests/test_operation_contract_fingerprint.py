@@ -20,7 +20,9 @@ from core.routing_frame.builder.contract_fingerprint import (
     compute_operation_contract_fingerprint,
 )
 from core.routing_frame.builder.operation_contract import build_operation_contract
-from core.routing_frame.contracts import FieldProvenance, OperationContract
+from dataclasses import replace
+
+from core.routing_frame.contracts import FieldProvenance, OperationContract, OperationTransition
 from core.routing_frame.meaning import build_meaning_representation
 
 
@@ -69,11 +71,13 @@ def test_fingerprint_identical_regardless_of_provenance_noise():
         domain=base.domain,
         primary_operation=base.primary_operation,
         target=base.target,
+        targets=base.targets,
         detail_fields=base.detail_fields,
         mutating_action=base.mutating_action,
         required_evidence=base.required_evidence,
         allowed_operations=base.allowed_operations,
         allowed_transitions=base.allowed_transitions,
+        transition_requirements=base.transition_requirements,
         scope_lock=base.scope_lock,
         provenance={"predicate": FieldProvenance(source="thinking_replay", confidence=0.99)},
     )
@@ -97,9 +101,34 @@ def test_fingerprint_differs_when_allowed_transition_differs():
     assert plain.primary_operation == composite.primary_operation == "list"
     assert plain.allowed_transitions == ()
     assert composite.allowed_transitions == ("list->logs",)
+    assert composite.transition_requirements == (
+        OperationTransition("list", "logs", ("runtime_logs",)),
+    )
     assert compute_operation_contract_fingerprint(plain) != compute_operation_contract_fingerprint(
         composite
     )
+
+
+def test_fingerprint_binds_transition_evidence_requirement():
+    contract = _contract_for("Welche Container laufen und zeige mir die Logs.")
+    changed = replace(
+        contract,
+        transition_requirements=(OperationTransition("list", "logs", ("runtime_status",)),),
+    )
+    assert compute_operation_contract_fingerprint(contract) != compute_operation_contract_fingerprint(changed)
+
+
+def test_fingerprint_binds_complete_target_sequence():
+    frame = build_routing_frame(
+        'Führe 3 Memory-Suchen aus: "Python", "Projekt", "Name".',
+        _classifier(),
+    )
+    contract = OperationContract.from_dict(frame["operation_contract"])
+
+    assert contract is not None
+    assert contract.targets == ("Python", "Projekt", "Name")
+    changed = replace(contract, targets=("Python", "Projekt", "Andere"))
+    assert compute_operation_contract_fingerprint(contract) != compute_operation_contract_fingerprint(changed)
 
 
 # ---------------------------------------------------------------------------

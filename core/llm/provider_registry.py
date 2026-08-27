@@ -24,12 +24,7 @@ class ProviderSpec:
 
 
 PROVIDER_SPECS: Dict[str, ProviderSpec] = {
-    "ollama": ProviderSpec(
-        id="ollama",
-        label="Ollama",
-        api_style="ollama_local",
-        order=0,
-    ),
+    "ollama": ProviderSpec(id="ollama", label="Ollama", api_style="ollama_local", order=0),
     "ollama_cloud": ProviderSpec(
         id="ollama_cloud",
         label="Ollama Cloud",
@@ -71,28 +66,29 @@ PROVIDER_SPECS: Dict[str, ProviderSpec] = {
         secret_names=("OPENROUTER_API_KEY", "OPENROUTER_KEY"),
         default_base_url="https://openrouter.ai/api/v1",
         base_url_env_keys=("OPENROUTER_API_BASE",),
-        preset_models=(
-            "openai/gpt-4o-mini",
-            "anthropic/claude-3.5-haiku",
-            "google/gemini-2.5-flash",
-        ),
+        preset_models=("openai/gpt-4o-mini", "anthropic/claude-3.5-haiku", "google/gemini-2.5-flash"),
         preset_models_env_key="OPENROUTER_MODEL_PRESETS",
+    ),
+    "deepseek": ProviderSpec(
+        id="deepseek",
+        label="DeepSeek",
+        api_style="openai",
+        order=5,
+        secret_names=("DEEPSEEK_API_KEY", "DEEPSEEK_KEY", "DEEPSEEK"),
+        default_base_url="https://api.deepseek.com",
+        base_url_env_keys=("DEEPSEEK_API_BASE",),
+        preset_models=("deepseek-v4-flash", "deepseek-v4-pro"),
+        preset_models_env_key="DEEPSEEK_MODEL_PRESETS",
     ),
     "minimax": ProviderSpec(
         id="minimax",
         label="MiniMax",
         api_style="minimax",
-        order=5,
+        order=6,
         secret_names=("MINIMAX_API_KEY", "MINIMAX_KEY"),
         default_base_url="https://api.minimax.io/v1",
         base_url_env_keys=("MINIMAX_API_BASE",),
-        preset_models=(
-            "MiniMax-M2.7",
-            "MiniMax-M2.7-highspeed",
-            "MiniMax-M2.5",
-            "MiniMax-M2.5-highspeed",
-            "MiniMax-M2.1",
-        ),
+        preset_models=("MiniMax-M2.7", "MiniMax-M2.7-highspeed", "MiniMax-M2.5", "MiniMax-M2.5-highspeed", "MiniMax-M2.1"),
         preset_models_env_key="MINIMAX_MODEL_PRESETS",
     ),
 }

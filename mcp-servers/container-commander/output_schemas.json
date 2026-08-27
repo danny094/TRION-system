@@ -1,0 +1,2209 @@
+{
+  "container_list": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "containers": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "container_id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "image": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "created_at": {
+              "type": "string"
+            },
+            "managed_by_trion": {
+              "type": "boolean"
+            },
+            "actions_allowed": {
+              "type": "boolean"
+            },
+            "protected": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "container_id",
+            "name",
+            "image",
+            "status",
+            "created_at",
+            "managed_by_trion",
+            "actions_allowed",
+            "protected"
+          ],
+          "additionalProperties": true
+        }
+      }
+    },
+    "required": [
+      "containers"
+    ],
+    "additionalProperties": true
+  },
+  "container_inspect": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "container": {
+        "type": "object",
+        "properties": {
+          "container_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "managed_by_trion": {
+            "type": "boolean"
+          },
+          "actions_allowed": {
+            "type": "boolean"
+          },
+          "protected": {
+            "type": "boolean"
+          },
+          "blueprint_id": {
+            "type": "string"
+          },
+          "labels": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "ports": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "host_port": {
+                  "type": "string"
+                },
+                "container_port": {
+                  "type": "string"
+                },
+                "protocol": {
+                  "type": "string"
+                }
+              },
+              "required": [],
+              "additionalProperties": true
+            }
+          },
+          "mounts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "runtime_state": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "home_scope": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "container_id",
+          "name",
+          "image",
+          "status",
+          "created_at",
+          "managed_by_trion",
+          "actions_allowed",
+          "protected",
+          "blueprint_id",
+          "labels",
+          "ports",
+          "mounts",
+          "runtime_state",
+          "home_scope"
+        ],
+        "additionalProperties": true
+      }
+    },
+    "required": [
+      "container"
+    ],
+    "additionalProperties": true
+  },
+  "container_logs": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "container_id": {
+        "type": "string"
+      },
+      "logs": {
+        "type": "string"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "tail": {
+        "type": "integer"
+      },
+      "since": {
+        "type": "string"
+      },
+      "limit_chars": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "container_id",
+      "logs",
+      "tail",
+      "limit_chars"
+    ],
+    "additionalProperties": true
+  },
+  "container_stats": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "container_id": {
+        "type": "string"
+      },
+      "cpu_percent": {
+        "type": "number"
+      },
+      "memory_mb": {
+        "type": "number"
+      },
+      "memory_limit_mb": {
+        "type": "number"
+      },
+      "network_rx_bytes": {
+        "type": "integer"
+      },
+      "network_tx_bytes": {
+        "type": "integer"
+      },
+      "ip_address": {
+        "type": "string"
+      },
+      "ports": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "host_port": {
+              "type": "string"
+            },
+            "container_port": {
+              "type": "string"
+            },
+            "protocol": {
+              "type": "string"
+            }
+          },
+          "required": [],
+          "additionalProperties": true
+        }
+      },
+      "efficiency": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "type": "number"
+          },
+          "level": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "score",
+          "level"
+        ],
+        "additionalProperties": true
+      },
+      "deploy_warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "container_id",
+      "cpu_percent",
+      "memory_mb",
+      "memory_limit_mb",
+      "network_rx_bytes",
+      "network_tx_bytes",
+      "ip_address",
+      "ports",
+      "efficiency",
+      "deploy_warnings"
+    ],
+    "additionalProperties": true
+  },
+  "runtime_quota": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "max_containers": {
+        "type": "integer"
+      },
+      "max_total_memory_mb": {
+        "type": "integer"
+      },
+      "max_total_cpu": {
+        "type": "number"
+      },
+      "containers_used": {
+        "type": "integer"
+      },
+      "memory_used_mb": {
+        "type": "integer"
+      },
+      "cpu_used": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "max_containers",
+      "max_total_memory_mb",
+      "max_total_cpu",
+      "containers_used",
+      "memory_used_mb",
+      "cpu_used"
+    ],
+    "additionalProperties": true
+  },
+  "container_exec": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "exit_code": {
+        "type": "integer"
+      },
+      "output": {
+        "type": "string"
+      },
+      "container_id": {
+        "type": "string"
+      },
+      "timed_out": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "exit_code",
+      "output",
+      "container_id"
+    ],
+    "additionalProperties": true
+  },
+  "container_exec_detailed": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "exit_code": {
+        "type": "integer"
+      },
+      "stdout": {
+        "type": "string"
+      },
+      "stderr": {
+        "type": "string"
+      },
+      "truncated": {
+        "type": "boolean"
+      },
+      "timed_out": {
+        "type": "boolean"
+      },
+      "container_id": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "exit_code",
+      "stdout",
+      "stderr",
+      "truncated",
+      "timed_out",
+      "container_id"
+    ],
+    "additionalProperties": true
+  },
+  "runtime_cleanup_all": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "cleaned": {
+        "type": "boolean"
+      },
+      "removed": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "errors": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "container_id": {
+              "type": "string"
+            },
+            "error": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "container_id",
+            "error"
+          ],
+          "additionalProperties": true
+        }
+      }
+    },
+    "required": [
+      "cleaned",
+      "removed",
+      "errors"
+    ],
+    "additionalProperties": true
+  },
+  "remove_stopped_container": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "removed": {
+        "type": "boolean"
+      },
+      "container_id": {
+        "type": "string"
+      },
+      "blueprint_id": {
+        "type": "string"
+      },
+      "reason": {
+        "type": "string"
+      },
+      "error": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "removed",
+      "container_id"
+    ],
+    "additionalProperties": true
+  },
+  "blueprint_list": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "blueprints": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "blueprint_id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "blueprint_id",
+            "name",
+            "description",
+            "version"
+          ],
+          "additionalProperties": true
+        }
+      }
+    },
+    "required": [
+      "blueprints"
+    ],
+    "additionalProperties": true
+  },
+  "blueprint_get": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "blueprint": {
+        "type": "object",
+        "properties": {
+          "blueprint_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "definition": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "blueprint_id",
+          "name",
+          "description",
+          "version",
+          "definition"
+        ],
+        "additionalProperties": true
+      }
+    },
+    "required": [
+      "blueprint"
+    ],
+    "additionalProperties": true
+  },
+  "blueprint_create": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "created": {
+        "type": "boolean"
+      },
+      "blueprint": {
+        "type": "object",
+        "properties": {
+          "blueprint_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "definition": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "blueprint_id",
+          "name",
+          "definition"
+        ],
+        "additionalProperties": true
+      },
+      "trust": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "image_ref": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "level",
+          "source",
+          "image_ref"
+        ],
+        "additionalProperties": true
+      }
+    },
+    "required": [
+      "created",
+      "blueprint",
+      "trust"
+    ],
+    "additionalProperties": true
+  },
+  "blueprint_update": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "updated": {
+        "type": "boolean"
+      },
+      "blueprint": {
+        "type": "object",
+        "properties": {
+          "blueprint_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "definition": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "blueprint_id",
+          "name",
+          "definition"
+        ],
+        "additionalProperties": true
+      },
+      "trust": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "image_ref": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "level",
+          "source",
+          "image_ref"
+        ],
+        "additionalProperties": true
+      }
+    },
+    "required": [
+      "updated",
+      "blueprint",
+      "trust"
+    ],
+    "additionalProperties": true
+  },
+  "blueprint_delete": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "deleted": {
+        "type": "boolean"
+      },
+      "blueprint_id": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "deleted",
+      "blueprint_id"
+    ],
+    "additionalProperties": true
+  },
+  "blueprint_import_yaml": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "created": {
+        "type": "boolean"
+      },
+      "blueprint": {
+        "type": "object",
+        "properties": {
+          "blueprint_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "definition": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "blueprint_id",
+          "name",
+          "definition"
+        ],
+        "additionalProperties": true
+      },
+      "trust": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "image_ref": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "level",
+          "source",
+          "image_ref"
+        ],
+        "additionalProperties": true
+      },
+      "error": {
+        "type": "string"
+      }
+    },
+    "required": [],
+    "additionalProperties": true,
+    "anyOf": [
+      {
+        "required": [
+          "created",
+          "blueprint",
+          "trust"
+        ]
+      },
+      {
+        "required": [
+          "error"
+        ]
+      }
+    ]
+  },
+  "blueprint_export_yaml": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "blueprint_id": {
+        "type": "string"
+      },
+      "yaml": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "blueprint_id",
+      "yaml"
+    ],
+    "additionalProperties": true
+  },
+  "network_list": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "networks": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "internal": {
+              "type": "boolean"
+            },
+            "driver": {
+              "type": "string"
+            },
+            "container_count": {
+              "type": "integer"
+            },
+            "containers": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "name",
+            "id",
+            "type",
+            "internal",
+            "driver",
+            "container_count",
+            "containers"
+          ],
+          "additionalProperties": true
+        }
+      }
+    },
+    "required": [
+      "networks"
+    ],
+    "additionalProperties": true
+  },
+  "network_info": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "container_id": {
+        "type": "string"
+      },
+      "networks": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "ip": {
+              "type": "string"
+            },
+            "gateway": {
+              "type": "string"
+            },
+            "mac": {
+              "type": "string"
+            }
+          },
+          "required": [],
+          "additionalProperties": true
+        }
+      }
+    },
+    "required": [
+      "container_id",
+      "networks"
+    ],
+    "additionalProperties": true
+  },
+  "network_cleanup": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "removed": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "removed"
+    ],
+    "additionalProperties": true
+  },
+  "proxy_start": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "started": {
+        "type": "boolean"
+      },
+      "enabled": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "started",
+      "enabled"
+    ],
+    "additionalProperties": true
+  },
+  "proxy_stop": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "stopped": {
+        "type": "boolean"
+      },
+      "enabled": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "stopped",
+      "enabled"
+    ],
+    "additionalProperties": true
+  },
+  "proxy_whitelist_get": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "blueprint_id": {
+        "type": "string"
+      },
+      "domains": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "enabled": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "blueprint_id",
+      "domains",
+      "enabled"
+    ],
+    "additionalProperties": true
+  },
+  "proxy_whitelist_set": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "updated": {
+        "type": "boolean"
+      },
+      "blueprint_id": {
+        "type": "string"
+      },
+      "domains": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "updated",
+      "blueprint_id",
+      "domains"
+    ],
+    "additionalProperties": true
+  },
+  "dashboard_overview": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "generated_at": {
+        "type": "string"
+      },
+      "health": {
+        "type": "object",
+        "properties": {
+          "runtime": {
+            "type": "string"
+          },
+          "blueprint_store": {
+            "type": "string"
+          },
+          "proxy_policy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "runtime",
+          "blueprint_store",
+          "proxy_policy"
+        ],
+        "additionalProperties": true
+      },
+      "resources": {
+        "type": "object",
+        "properties": {
+          "containers": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "running": {
+                "type": "integer"
+              },
+              "stopped": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "total",
+              "running",
+              "stopped"
+            ],
+            "additionalProperties": true
+          },
+          "blueprints": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "total"
+            ],
+            "additionalProperties": true
+          },
+          "networks": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "total"
+            ],
+            "additionalProperties": true
+          },
+          "volumes": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "total"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "containers",
+          "blueprints",
+          "networks",
+          "volumes"
+        ],
+        "additionalProperties": true
+      },
+      "alerts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "level": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "level",
+            "message"
+          ],
+          "additionalProperties": true
+        }
+      },
+      "events": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "required": [
+      "generated_at",
+      "health",
+      "resources",
+      "alerts",
+      "events"
+    ],
+    "additionalProperties": true
+  },
+  "host_companion_check": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "checked": {
+        "type": "boolean"
+      },
+      "blueprint_id": {
+        "type": "string"
+      },
+      "configured": {
+        "type": "boolean"
+      },
+      "status": {
+        "type": "string"
+      },
+      "host_companion": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "package_manifest_present": {
+        "type": "boolean"
+      },
+      "package_type": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "checked",
+      "blueprint_id",
+      "configured",
+      "status",
+      "host_companion",
+      "package_manifest_present",
+      "package_type"
+    ],
+    "additionalProperties": true
+  },
+  "host_companion_repair": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "repaired": {
+        "type": "boolean"
+      },
+      "skipped": {
+        "type": "boolean"
+      },
+      "reason": {
+        "type": "string"
+      },
+      "blueprint_id": {
+        "type": "string"
+      },
+      "host_companion": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "package_manifest_present": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "repaired",
+      "skipped",
+      "reason",
+      "blueprint_id"
+    ],
+    "additionalProperties": true
+  },
+  "host_companion_uninstall": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "uninstalled": {
+        "type": "boolean"
+      },
+      "skipped": {
+        "type": "boolean"
+      },
+      "reason": {
+        "type": "string"
+      },
+      "removed_paths": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "blueprint_id": {
+        "type": "string"
+      },
+      "host_companion": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "package_manifest_present": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "uninstalled",
+      "skipped",
+      "reason",
+      "removed_paths",
+      "blueprint_id"
+    ],
+    "additionalProperties": true
+  },
+  "package_manifest_get": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "blueprint_id": {
+        "type": "string"
+      },
+      "manifest": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "required": [
+      "blueprint_id",
+      "manifest"
+    ],
+    "additionalProperties": true
+  },
+  "marketplace_bundle_list": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "bundles": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "filename": {
+              "type": "string"
+            },
+            "size_mb": {
+              "type": "number"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "array",
+              "items": {}
+            },
+            "exported_at": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "filename",
+            "size_mb",
+            "id",
+            "name",
+            "version",
+            "tags",
+            "exported_at"
+          ],
+          "additionalProperties": true
+        }
+      },
+      "count": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "bundles",
+      "count"
+    ],
+    "additionalProperties": true
+  },
+  "marketplace_starter_list": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "starters": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "icon": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "network": {
+              "type": "string"
+            },
+            "dockerfile": {
+              "type": "string"
+            },
+            "resources": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "description",
+            "icon",
+            "tags",
+            "network",
+            "dockerfile",
+            "resources"
+          ],
+          "additionalProperties": true
+        }
+      },
+      "count": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "starters",
+      "count"
+    ],
+    "additionalProperties": true
+  },
+  "marketplace_catalog_list": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "source": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "schema_version": {
+        "type": "string"
+      },
+      "trion_compat": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "synced_at": {
+        "type": "string"
+      },
+      "categories": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "integer"
+        }
+      },
+      "blueprints": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "icon": {
+              "type": "string"
+            },
+            "difficulty": {
+              "type": "string"
+            },
+            "network": {
+              "type": "string"
+            },
+            "requires_secrets": {
+              "type": "boolean"
+            },
+            "requires_runtime": {
+              "type": "string"
+            },
+            "requires_approval": {
+              "type": "boolean"
+            },
+            "requires_gpu": {
+              "type": "boolean"
+            },
+            "trusted_level": {
+              "type": "string"
+            },
+            "author": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "yaml_url": {
+              "type": "string"
+            },
+            "bundle_url": {
+              "type": "string"
+            },
+            "package_type": {
+              "type": "string"
+            },
+            "has_host_companion": {
+              "type": "boolean"
+            },
+            "supports_trion_addons": {
+              "type": "boolean"
+            },
+            "downloads": {
+              "type": "integer"
+            },
+            "stars": {
+              "type": "integer"
+            },
+            "health_profile": {
+              "type": "object",
+              "properties": {
+                "ready_timeout_seconds": {
+                  "type": "integer"
+                },
+                "interval_seconds": {
+                  "type": "integer"
+                },
+                "timeout_seconds": {
+                  "type": "integer"
+                },
+                "retries": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "ready_timeout_seconds",
+                "interval_seconds",
+                "timeout_seconds",
+                "retries"
+              ],
+              "additionalProperties": true
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "category",
+            "tags",
+            "network",
+            "requires_secrets",
+            "requires_runtime",
+            "requires_approval",
+            "requires_gpu",
+            "trusted_level",
+            "version",
+            "yaml_url",
+            "downloads",
+            "stars",
+            "health_profile"
+          ],
+          "additionalProperties": true
+        }
+      },
+      "count": {
+        "type": "integer"
+      },
+      "category": {
+        "type": "string"
+      },
+      "trusted_only": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "source",
+      "schema_version",
+      "trion_compat",
+      "synced_at",
+      "categories",
+      "blueprints",
+      "count",
+      "category",
+      "trusted_only"
+    ],
+    "additionalProperties": true
+  },
+  "marketplace_catalog_sync": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "synced": {
+        "type": "boolean"
+      },
+      "count": {
+        "type": "integer"
+      },
+      "categories": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "integer"
+        }
+      },
+      "synced_at": {
+        "type": "string"
+      },
+      "source": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "schema_version": {
+        "type": "string"
+      },
+      "trion_compat": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "required": [
+      "synced",
+      "count",
+      "categories",
+      "synced_at",
+      "source",
+      "schema_version",
+      "trion_compat"
+    ],
+    "additionalProperties": true
+  },
+  "marketplace_starter_install": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "installed": {
+        "type": "boolean"
+      },
+      "exists": {
+        "type": "boolean"
+      },
+      "blueprint": {
+        "type": "object",
+        "properties": {
+          "blueprint_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "definition": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "blueprint_id",
+          "name",
+          "definition"
+        ],
+        "additionalProperties": true
+      },
+      "error": {
+        "type": "string"
+      }
+    },
+    "required": [],
+    "additionalProperties": true,
+    "anyOf": [
+      {
+        "required": [
+          "installed",
+          "blueprint"
+        ]
+      },
+      {
+        "required": [
+          "exists",
+          "blueprint"
+        ]
+      },
+      {
+        "required": [
+          "error"
+        ]
+      }
+    ]
+  },
+  "marketplace_catalog_install": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "installed": {
+        "type": "boolean"
+      },
+      "exists": {
+        "type": "boolean"
+      },
+      "imported": {
+        "type": "boolean"
+      },
+      "blueprint": {
+        "type": "object",
+        "properties": {
+          "blueprint_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "definition": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "blueprint_id",
+          "name",
+          "definition"
+        ],
+        "additionalProperties": true
+      },
+      "trust": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "image_ref": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "level",
+          "source",
+          "image_ref"
+        ],
+        "additionalProperties": true
+      },
+      "source": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "icon": {
+            "type": "string"
+          },
+          "difficulty": {
+            "type": "string"
+          },
+          "network": {
+            "type": "string"
+          },
+          "requires_secrets": {
+            "type": "boolean"
+          },
+          "requires_runtime": {
+            "type": "string"
+          },
+          "requires_approval": {
+            "type": "boolean"
+          },
+          "requires_gpu": {
+            "type": "boolean"
+          },
+          "trusted_level": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "yaml_url": {
+            "type": "string"
+          },
+          "bundle_url": {
+            "type": "string"
+          },
+          "package_type": {
+            "type": "string"
+          },
+          "has_host_companion": {
+            "type": "boolean"
+          },
+          "supports_trion_addons": {
+            "type": "boolean"
+          },
+          "downloads": {
+            "type": "integer"
+          },
+          "stars": {
+            "type": "integer"
+          },
+          "health_profile": {
+            "type": "object",
+            "properties": {
+              "ready_timeout_seconds": {
+                "type": "integer"
+              },
+              "interval_seconds": {
+                "type": "integer"
+              },
+              "timeout_seconds": {
+                "type": "integer"
+              },
+              "retries": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "ready_timeout_seconds",
+              "interval_seconds",
+              "timeout_seconds",
+              "retries"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "category",
+          "tags",
+          "network",
+          "requires_secrets",
+          "requires_runtime",
+          "requires_approval",
+          "requires_gpu",
+          "trusted_level",
+          "version",
+          "yaml_url",
+          "downloads",
+          "stars",
+          "health_profile"
+        ],
+        "additionalProperties": true
+      },
+      "filename": {
+        "type": "string"
+      },
+      "error": {
+        "type": "string"
+      }
+    },
+    "required": [],
+    "additionalProperties": true,
+    "anyOf": [
+      {
+        "required": [
+          "installed",
+          "blueprint"
+        ]
+      },
+      {
+        "required": [
+          "exists",
+          "blueprint"
+        ]
+      },
+      {
+        "required": [
+          "imported"
+        ]
+      },
+      {
+        "required": [
+          "error"
+        ]
+      }
+    ]
+  },
+  "marketplace_bundle_export": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "exported": {
+        "type": "boolean"
+      },
+      "filename": {
+        "type": "string"
+      },
+      "blueprint_id": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "exported",
+      "blueprint_id"
+    ],
+    "additionalProperties": true
+  },
+  "marketplace_bundle_import": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "imported": {
+        "type": "boolean"
+      },
+      "created": {
+        "type": "boolean"
+      },
+      "updated": {
+        "type": "boolean"
+      },
+      "filename": {
+        "type": "string"
+      },
+      "blueprint": {
+        "type": "object",
+        "properties": {
+          "blueprint_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "definition": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "blueprint_id",
+          "name",
+          "definition"
+        ],
+        "additionalProperties": true
+      },
+      "trust": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "image_ref": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "level",
+          "source",
+          "image_ref"
+        ],
+        "additionalProperties": true
+      },
+      "error": {
+        "type": "string"
+      }
+    },
+    "required": [],
+    "additionalProperties": true,
+    "anyOf": [
+      {
+        "required": [
+          "imported"
+        ]
+      },
+      {
+        "required": [
+          "error"
+        ]
+      }
+    ]
+  },
+  "volume_list": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "volumes": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "blueprint_id": {
+              "type": "string"
+            },
+            "created_at": {
+              "type": "string"
+            },
+            "driver": {
+              "type": "string"
+            },
+            "mountpoint": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "blueprint_id",
+            "created_at",
+            "driver",
+            "mountpoint"
+          ],
+          "additionalProperties": true
+        }
+      }
+    },
+    "required": [
+      "volumes"
+    ],
+    "additionalProperties": true
+  },
+  "volume_get": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "volume": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "blueprint_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "driver": {
+            "type": "string"
+          },
+          "mountpoint": {
+            "type": "string"
+          },
+          "snapshots": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "filename": {
+                  "type": "string"
+                },
+                "size_mb": {
+                  "type": "number"
+                },
+                "created_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "filename",
+                "size_mb",
+                "created_at"
+              ],
+              "additionalProperties": true
+            }
+          }
+        },
+        "required": [
+          "name",
+          "blueprint_id",
+          "created_at",
+          "driver",
+          "mountpoint",
+          "snapshots"
+        ],
+        "additionalProperties": true
+      }
+    },
+    "required": [
+      "volume"
+    ],
+    "additionalProperties": true
+  },
+  "volume_remove": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "removed": {
+        "type": "boolean"
+      },
+      "volume": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "removed",
+      "volume"
+    ],
+    "additionalProperties": true
+  },
+  "volume_cleanup": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "orphaned": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "dry_run": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "orphaned",
+      "dry_run"
+    ],
+    "additionalProperties": true
+  },
+  "snapshot_list": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "snapshots": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "filename": {
+              "type": "string"
+            },
+            "size_mb": {
+              "type": "number"
+            },
+            "created_at": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "filename",
+            "size_mb",
+            "created_at"
+          ],
+          "additionalProperties": true
+        }
+      }
+    },
+    "required": [
+      "snapshots"
+    ],
+    "additionalProperties": true
+  },
+  "snapshot_delete": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "deleted": {
+        "type": "boolean"
+      },
+      "filename": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "deleted",
+      "filename"
+    ],
+    "additionalProperties": true
+  },
+  "snapshot_create": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "created": {
+        "type": "boolean"
+      },
+      "filename": {
+        "type": "string"
+      },
+      "volume": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "created",
+      "filename",
+      "volume"
+    ],
+    "additionalProperties": true
+  },
+  "snapshot_restore": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "restored": {
+        "type": "boolean"
+      },
+      "volume": {
+        "type": "string"
+      },
+      "filename": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "restored",
+      "volume",
+      "filename"
+    ],
+    "additionalProperties": true
+  },
+  "start_stopped_container": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "ok": {
+        "type": "boolean"
+      },
+      "action": {
+        "type": "string"
+      },
+      "container": {
+        "type": "object",
+        "properties": {
+          "container_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "managed_by_trion": {
+            "type": "boolean"
+          },
+          "actions_allowed": {
+            "type": "boolean"
+          },
+          "protected": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "container_id",
+          "name",
+          "image",
+          "status"
+        ],
+        "additionalProperties": true
+      }
+    },
+    "required": [
+      "ok",
+      "action",
+      "container"
+    ],
+    "additionalProperties": true
+  },
+  "stop_container": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "ok": {
+        "type": "boolean"
+      },
+      "action": {
+        "type": "string"
+      },
+      "container": {
+        "type": "object",
+        "properties": {
+          "container_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "managed_by_trion": {
+            "type": "boolean"
+          },
+          "actions_allowed": {
+            "type": "boolean"
+          },
+          "protected": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "container_id",
+          "name",
+          "image",
+          "status"
+        ],
+        "additionalProperties": true
+      }
+    },
+    "required": [
+      "ok",
+      "action",
+      "container"
+    ],
+    "additionalProperties": true
+  }
+}

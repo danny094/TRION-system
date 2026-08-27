@@ -7,6 +7,7 @@
       "domain": "time",
       "operation": "read",
       "risk": "read_only",
+      "evidence_types": ["live_runtime"],
       "target_scopes": ["time_reference"],
       "tool_role": "supporting",
       "examples": [

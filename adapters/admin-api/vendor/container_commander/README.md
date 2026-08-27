@@ -1,12 +1,12 @@
-# Container Commander — Vendor Compat Tree
+# Container Commander — Historical Vendor Marker
 
-Dieser Baum ist **kein eigenständiger MCP-Server** und **keine führende
-Produktlogik** mehr.
+Dieser Pfad ist **kein eigenständiger MCP-Server**, **keine führende
+Produktlogik** und **keine Kompatibilitätslaufzeit**.
 
-Aktueller Zweck:
-- repo-kompatible Importpfade für ältere Namespaces
-- dünne Re-Exports auf lokale Admin-API-Truth-Sources
-- gelegentliche Namespace-Bindings oder MCP-Registrierung ohne eigene Fachlogik
+Aktueller Bestand:
+- ausschließlich dieses historische README
+- keine Python-Dateien, Re-Exports, Namespace-Bindings oder Registrierungen
+- keine Runtime-, Build- oder Importkopplung
 
 Wichtige Invarianten:
 - der produktive Code unter `adapters/admin-api/` importiert nicht direkt aus
@@ -19,6 +19,6 @@ Der führende Migrations- und Zustandsnachweis liegt in:
 - den Guardrails unter `tests/test_vendor_commander_*`
 
 Kurz gesagt:
-- **compat-only**
+- **historical-only**
 - **logicless**
 - **runtime-unwired**

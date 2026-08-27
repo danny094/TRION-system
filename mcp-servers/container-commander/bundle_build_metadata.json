@@ -1,0 +1,33 @@
+{
+  "bundle_id": "container-commander",
+  "display_name": "Container Commander",
+  "server_info": {
+    "name": "container-commander",
+    "version": "2.1.0"
+  },
+  "description": "Container lifecycle management for TRION — Blueprints, Resources, Security and Logs.",
+  "transport": "stdio",
+  "entry_command": ".venv/bin/python server.py",
+  "ui": {
+    "icon": "assets/icon.svg",
+    "launchpad": {
+      "enabled": false,
+      "label": "Container Commander"
+    },
+    "settings": {
+      "enabled": false,
+      "mode": "config"
+    }
+  },
+  "install": {
+    "healthcheck": {
+      "enabled": false
+    },
+    "runtime": {
+      "kind": "venv"
+    }
+  },
+  "requirements": [
+    "docker>=7.0.0,<8.0.0"
+  ]
+}

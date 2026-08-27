@@ -19,6 +19,7 @@ def start_governed_step(
     step_title: str,
     total_steps: int,
     event_sink,
+    structural_results=(),
 ) -> StepGovernorResult:
     decision = can_start_step(run_governor_from_snapshot(snapshot), now_ts=current_time_ts())
     if not decision.allowed:
@@ -39,6 +40,7 @@ def start_governed_step(
                 visible_content=visible_content_for(blocked.state, step_title, blocked.stop_reason),
                 snapshot=blocked,
                 completion_status=CompletionStatus.BLOCKED,
+                structural_results=structural_results,
             ),
         )
     started = _mark_started(snapshot, step_id)

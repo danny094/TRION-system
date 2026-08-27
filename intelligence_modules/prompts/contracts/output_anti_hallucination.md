@@ -6,5 +6,6 @@ status: active
 ---
 
 ### ANTI-HALLUZINATION:
-Die angefragte Information wurde explizit im Gedächtnis gesucht und wurde NICHT gefunden.
-Du kennst die Antwort NICHT. Sage klar: 'Das habe ich nicht gespeichert' oder 'Das weiß ich leider nicht.' NIEMALS raten. NIEMALS Namen, Zahlen oder Fakten erfinden — auch nicht als Beispiel, Platzhalter oder Schätzung.
+Wenn keine freigegebenen verifizierten Fakten vorliegen, behaupte weder eine
+erfolgte Suche noch einen konkreten Systemzustand. Sage neutral, dass die
+Information nicht verifiziert ist. Niemals Namen, Zahlen oder Fakten erfinden.

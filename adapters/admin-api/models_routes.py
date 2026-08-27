@@ -8,7 +8,7 @@ import httpx
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from core.llm.provider_registry import provider_ids, provider_order_map, provider_preset_models, provider_preset_models_env_key
+from core.llm.provider_registry import provider_base, provider_ids, provider_order_map, provider_preset_models, provider_preset_models_env_key
 from utils.logger import log_error
 
 router = APIRouter()
@@ -55,7 +55,7 @@ async def _fetch_tags(endpoint: str, headers: dict = None) -> List[Dict]:
         return []
 
 
-async def _fetch_openrouter_models(endpoint: str, headers: dict = None) -> List[Dict]:
+async def _fetch_openai_compatible_models(endpoint: str, headers: dict = None) -> List[Dict]:
     base = str(endpoint or "").strip().rstrip("/")
     if not base:
         return []
@@ -118,7 +118,7 @@ async def models_catalog():
 
     openrouter_key = await _resolve_cloud_api_key("openrouter")
     openrouter_headers = {"Authorization": f"Bearer {openrouter_key}"} if openrouter_key else {}
-    for m in await _fetch_openrouter_models(openrouter_base(), openrouter_headers):
+    for m in await _fetch_openai_compatible_models(openrouter_base(), openrouter_headers):
         if not isinstance(m, dict):
             continue
         model_id = str(m.get("id", "") or m.get("name", "")).strip()
@@ -129,9 +129,17 @@ async def models_catalog():
         category = "recommended" if model_id in _OPENROUTER_RECOMMENDED else "all"
         add(model_id, "openrouter", "cloud", category=category)
 
+    deepseek_key = await _resolve_cloud_api_key("deepseek")
+    deepseek_headers = {"Authorization": f"Bearer {deepseek_key}"} if deepseek_key else {}
+    if deepseek_key:
+        for m in await _fetch_openai_compatible_models(provider_base("deepseek"), deepseek_headers):
+            if not isinstance(m, dict):
+                continue
+            add(str(m.get("id", "") or m.get("name", "")), "deepseek", "cloud")
+
     minimax_key = await _resolve_cloud_api_key("minimax")
     minimax_headers = {"Authorization": f"Bearer {minimax_key}"} if minimax_key else {}
-    for m in await _fetch_openrouter_models(minimax_base(), minimax_headers):
+    for m in await _fetch_openai_compatible_models(minimax_base(), minimax_headers):
         if not isinstance(m, dict):
             continue
         add(str(m.get("id", "") or m.get("name", "")), "minimax", "cloud")

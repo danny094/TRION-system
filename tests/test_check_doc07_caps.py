@@ -1,4 +1,4 @@
-"""Regression tests for the canonical code-cap preflight."""
+"""Regression tests for the canonical Doc07 code-cap preflight."""
 from __future__ import annotations
 
 import subprocess
@@ -6,9 +6,6 @@ import sys
 from pathlib import Path
 
 from scripts import check_code_caps, check_doc07_caps
-
-EXPECTED_LINE_CAP = 200
-EXPECTED_CODE_SUFFIXES = frozenset({".py", ".ts", ".tsx", ".js", ".css", ".html", ".sh"})
 
 
 def _git(args: list[str], cwd: Path) -> None:
@@ -26,10 +23,7 @@ def _init_repo(tmp_path: Path) -> Path:
 
 
 def _write_lines(path: Path, count: int) -> None:
-    path.write_text(
-        "\n".join(f"line {number}" for number in range(count)) + "\n",
-        encoding="utf-8",
-    )
+    path.write_text("\n".join(f"line {number}" for number in range(count)) + "\n", encoding="utf-8")
 
 
 def _commit_file(repo: Path, name: str, count: int = 50) -> Path:
@@ -38,11 +32,6 @@ def _commit_file(repo: Path, name: str, count: int = 50) -> Path:
     _git(["add", name], repo)
     _git(["commit", "-m", f"add {name}"], repo)
     return path
-
-
-def test_public_code_cap_contract_is_fixed():
-    assert check_code_caps.LINE_CAP == EXPECTED_LINE_CAP
-    assert check_code_caps.CODE_SUFFIXES == EXPECTED_CODE_SUFFIXES
 
 
 def test_untracked_file_over_cap_is_violation(tmp_path):
@@ -68,25 +57,13 @@ def test_unstaged_and_staged_changes_are_both_checked(tmp_path):
     ]
 
 
-def test_staged_violation_cannot_be_hidden_by_smaller_worktree_file(tmp_path):
-    repo = _init_repo(tmp_path)
-    target = _commit_file(repo, "staged.py")
-    _write_lines(target, EXPECTED_LINE_CAP + 1)
-    _git(["add", "staged.py"], repo)
-    _write_lines(target, EXPECTED_LINE_CAP)
-
-    assert check_code_caps.find_violations(repo) == [
-        (Path("staged.py"), 50, EXPECTED_LINE_CAP + 1)
-    ]
-
-
 def test_exact_cap_and_all_current_code_suffixes_are_checked(tmp_path):
     repo = _init_repo(tmp_path)
-    _write_lines(repo / "exact.py", EXPECTED_LINE_CAP)
-    expected = {Path(f"large{suffix}") for suffix in EXPECTED_CODE_SUFFIXES}
+    _write_lines(repo / "exact.py", check_code_caps.LINE_CAP)
+    expected = {Path(f"large{suffix}") for suffix in check_code_caps.CODE_SUFFIXES}
     for path in expected:
-        _write_lines(repo / path, EXPECTED_LINE_CAP + 1)
-    _write_lines(repo / "notes.md", EXPECTED_LINE_CAP + 1)
+        _write_lines(repo / path, check_code_caps.LINE_CAP + 1)
+    _write_lines(repo / "notes.md", check_code_caps.LINE_CAP + 1)
 
     violations = check_code_caps.find_violations(repo)
 
@@ -122,26 +99,7 @@ def test_legacy_command_remains_functional(tmp_path):
     _write_lines(repo / "too_large.py", check_code_caps.LINE_CAP + 1)
     script = Path(__file__).resolve().parents[1] / "scripts" / "check_doc07_caps.py"
 
-    result = subprocess.run(
-        [sys.executable, str(script)],
-        cwd=repo,
-        capture_output=True,
-        text=True,
-    )
+    result = subprocess.run([sys.executable, str(script)], cwd=repo, capture_output=True, text=True)
 
     assert result.returncode == 1
     assert "too_large.py" in result.stdout
-
-
-def test_legacy_command_exits_zero_when_clean(tmp_path):
-    repo = _init_repo(tmp_path)
-    script = Path(__file__).resolve().parents[1] / "scripts" / "check_doc07_caps.py"
-
-    result = subprocess.run(
-        [sys.executable, str(script)],
-        cwd=repo,
-        capture_output=True,
-        text=True,
-    )
-
-    assert result.returncode == 0

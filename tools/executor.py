@@ -1,16 +1,11 @@
 from time import monotonic
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict
 
 from mcp.client import call_tool
+from mcp.tool_result_contracts import MCPToolCallStatus, MCPToolResultEnvelope
 from tools.contracts import ToolCall, ToolResult
 
-CallToolFn = Callable[[str, Dict[str, Any], float], Optional[Dict[str, Any]]]
-
-
-def _as_result_dict(value: Any) -> Dict[str, Any]:
-    if isinstance(value, dict):
-        return value
-    return {"value": value}
+CallToolFn = Callable[[str, Dict[str, Any], float], MCPToolResultEnvelope]
 
 
 def run_tool(tool_call: ToolCall, call_tool_fn: CallToolFn = call_tool) -> ToolResult:
@@ -21,8 +16,10 @@ def run_tool(tool_call: ToolCall, call_tool_fn: CallToolFn = call_tool) -> ToolR
         return ToolResult(
             tool_name=tool_name,
             step_id=tool_call.step_id,
-            success=False,
-            error="missing_tool_name",
+            envelope=MCPToolResultEnvelope(
+                MCPToolCallStatus.PROTOCOL_FAILURE,
+                protocol_error={"code": -32602, "message": "missing_tool_name"},
+            ),
             duration_s=monotonic() - started,
         )
 
@@ -36,28 +33,21 @@ def run_tool(tool_call: ToolCall, call_tool_fn: CallToolFn = call_tool) -> ToolR
         return ToolResult(
             tool_name=tool_name,
             step_id=tool_call.step_id,
-            success=False,
-            error=str(exc),
+            envelope=MCPToolResultEnvelope(
+                MCPToolCallStatus.TRANSPORT_FAILURE,
+                transport_diagnostic=str(exc) or "tool execution transport failure",
+            ),
             duration_s=monotonic() - started,
         )
 
-    payload = _as_result_dict(raw or {})
-    error = payload.get("error")
-    if error:
-        return ToolResult(
-            tool_name=tool_name,
-            step_id=tool_call.step_id,
-            success=False,
-            result=payload,
-            error=str(error),
-            duration_s=monotonic() - started,
+    if not isinstance(raw, MCPToolResultEnvelope):
+        raw = MCPToolResultEnvelope(
+            MCPToolCallStatus.PROTOCOL_FAILURE,
+            protocol_error={"code": -32603, "message": "non-canonical tool result"},
         )
-
-    result = payload.get("result", payload)
     return ToolResult(
         tool_name=tool_name,
         step_id=tool_call.step_id,
-        success=True,
-        result=_as_result_dict(result),
+        envelope=raw,
         duration_s=monotonic() - started,
     )

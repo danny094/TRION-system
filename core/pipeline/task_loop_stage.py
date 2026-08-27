@@ -1,4 +1,3 @@
-import functools
 import inspect
 from dataclasses import dataclass
 from typing import Any, Callable, Dict
@@ -6,6 +5,10 @@ from typing import Any, Callable, Dict
 from core.task_loop.contracts import CompletionStatus, TaskLoopState
 from core.task_loop.executable_now import details_by_name
 from core.pipeline.common import public_task_loop_snapshot
+from core.pipeline.composite_followup import build_composite_followup_planner
+from core.pipeline.output_evidence_contracts import (
+    OutputEvidenceHandoff, OutputEvidenceItem, OutputEvidenceState,
+)
 from core.pipeline.plan_contract_validator import (
     bind_validated_replanner,
     issue_followup_step_receipt,
@@ -14,7 +17,11 @@ from core.pipeline.plan_contract_validator import (
 )
 from core.pipeline.operation_contract_context import ReceiptConfigurationState, receipt_configuration_state
 from core.pipeline.receipt_validation import (
-    build_step_receipt_validator, build_step_receipt_validator_factory,
+    attest_completed_execution, build_step_receipt_validator, build_step_receipt_validator_factory,
+)
+from core.pipeline.task_loop_bindings import (
+    bind_replan_context as _bind_replan_context,
+    build_step_receipt_issuer,
 )
 from core.thinking.contracts import ThinkingPlan
 
@@ -22,35 +29,11 @@ TaskLoopFn = Callable[..., Any]
 ToolRunner = Callable[[Any], Any]
 
 
-def build_step_receipt_issuer(context: Any) -> Callable[[Any, Any], Any]:
-    def _issue(step: Any, predecessor: Any) -> Any:
-        step_id = str(getattr(step, "step_id", "") or "")
-        return (
-            issue_initial_step_receipt(step_id, context=context)
-            if predecessor is None
-            else issue_followup_step_receipt(step_id, predecessor, context=context)
-        )
-    return _issue
-
-
-def _bind_replan_context(fn: Any, available_tools: Any, orchestrator_context: Any) -> Any:
-    """Return fn wrapped to inject available_tools and orchestrator_context on every call."""
-    if available_tools is None and orchestrator_context is None:
-        return fn
-
-    @functools.wraps(fn)
-    def _wrapped(*args: Any, **kwargs: Any) -> Any:
-        kwargs.setdefault("available_tools", available_tools)
-        kwargs.setdefault("orchestrator_context", orchestrator_context)
-        return fn(*args, **kwargs)
-
-    return _wrapped
-
-
 @dataclass(frozen=True)
 class TaskLoopStageResult:
     context: Dict[str, Any]
     result: Any = None
+    output_evidence: OutputEvidenceHandoff = OutputEvidenceHandoff(OutputEvidenceState.NO_TASK_LOOP)
 
 
 def build_task_loop_stage(
@@ -74,6 +57,8 @@ def build_task_loop_stage(
     available_tools: Any = None,
     receipt_tool_descriptors: Any = None,
     orchestrator_context: Any = None,
+    project_output_evidence_item: Callable[[object], OutputEvidenceItem | None] | None = None,
+    attest_completed_execution_fn: Callable = attest_completed_execution,
 ) -> TaskLoopStageResult:
     if not plan.needs_task_loop:
         return TaskLoopStageResult(context={}, result=None)
@@ -82,16 +67,18 @@ def build_task_loop_stage(
         available_tools,
         context=orchestrator_context,
     )
-    available_evidence_types: frozenset = frozenset(
-        et
-        for tool in (available_tools or [])
-        for et in (getattr(tool, "capability_evidence_types", None) or [])
-    )
-    tool_details = details_by_name(available_tools)
     operation_contract_fingerprint = operation_contract_fingerprint_from_context(orchestrator_context)
     configuration = receipt_configuration_state(orchestrator_context)
     receipt_mode = configuration is not ReceiptConfigurationState.LEGACY_VALID
     active = configuration is ReceiptConfigurationState.RECEIPT_MODE_ACTIVE
+    descriptor_source = receipt_tool_descriptors if receipt_tool_descriptors is not None else available_tools
+    evidence_source = descriptor_source if active else available_tools
+    available_evidence_types: frozenset = frozenset(
+        evidence
+        for tool in (evidence_source or [])
+        for evidence in (getattr(tool, "capability_evidence_types", None) or [])
+    )
+    tool_details = details_by_name(descriptor_source if active else available_tools)
     initial_receipt = issue_initial_step_receipt(plan.steps[0].step_id, context=orchestrator_context) if active and plan.steps else None
     signature = inspect.signature(task_loop_fn)
     task_loop_kwargs = {
@@ -129,17 +116,48 @@ def build_task_loop_stage(
     if "step_receipts" in signature.parameters and active:
         task_loop_kwargs["step_receipts"] = {initial_receipt.step_id: initial_receipt} if initial_receipt else {}
     if "receipt_issuer" in signature.parameters and active:
-        task_loop_kwargs["receipt_issuer"] = build_step_receipt_issuer(orchestrator_context)
+        task_loop_kwargs["receipt_issuer"] = build_step_receipt_issuer(
+            orchestrator_context, issue_initial_step_receipt, issue_followup_step_receipt,
+        )
+    receipt_validator = None
     if "receipt_validator" in signature.parameters and active:
-        descriptor_source = receipt_tool_descriptors if receipt_tool_descriptors is not None else available_tools
-        task_loop_kwargs["receipt_validator"] = build_step_receipt_validator(
+        receipt_validator = build_step_receipt_validator(
             orchestrator_context, descriptor_source, plan,
         )
+        task_loop_kwargs["receipt_validator"] = receipt_validator
         if "receipt_validator_factory" in signature.parameters:
             task_loop_kwargs["receipt_validator_factory"] = build_step_receipt_validator_factory(
                 orchestrator_context, descriptor_source,
             )
+    followup_planner = build_composite_followup_planner(
+        orchestrator_context, descriptor_source, project_output_evidence_item,
+    ) if active else None
+    if "followup_planner" in signature.parameters and followup_planner is not None:
+        task_loop_kwargs["followup_planner"] = followup_planner
     task_loop_result = task_loop_fn(plan, **task_loop_kwargs)
+    complete = _completion_status_value(task_loop_result) == CompletionStatus.COMPLETE.value
+    output_evidence = OutputEvidenceHandoff(OutputEvidenceState.TASK_LOOP_INCOMPLETE)
+    if complete:
+        attestation_plan = task_loop_result.active_plan if type(task_loop_result.active_plan) is ThinkingPlan else plan
+        attestation_validator = (
+            build_step_receipt_validator(orchestrator_context, descriptor_source, attestation_plan)
+            if attestation_plan is not plan and active else receipt_validator
+        )
+        attestation = attest_completed_execution_fn(attestation_plan, task_loop_result, attestation_validator)
+        projected = tuple(
+            project_output_evidence_item(value)
+            for value in task_loop_result.structural_results
+        ) if callable(project_output_evidence_item) else ()
+        valid = (
+            attestation is not None
+            and len(projected) == len(attestation.completed_step_ids)
+            and all(type(item) is OutputEvidenceItem for item in projected)
+        )
+        output_evidence = OutputEvidenceHandoff(
+            OutputEvidenceState.COMPLETE_WITH_VALIDATED_EVIDENCE if valid
+            else OutputEvidenceState.COMPLETE_WITHOUT_VALIDATED_EVIDENCE,
+            projected if valid else (),
+        )
     return TaskLoopStageResult(
         context={
             "task_loop": {
@@ -152,6 +170,7 @@ def build_task_loop_stage(
             }
         },
         result=task_loop_result,
+        output_evidence=output_evidence,
     )
 
 

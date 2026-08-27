@@ -20,6 +20,11 @@ const PROVIDER_KEY_NAMES = [
     aliases: ['OPENROUTER_KEY'],
   },
   {
+    provider: 'DeepSeek',
+    recommended: 'DEEPSEEK_API_KEY',
+    aliases: ['DEEPSEEK_KEY', 'DEEPSEEK'],
+  },
+  {
     provider: 'MiniMax',
     recommended: 'MINIMAX_API_KEY',
     aliases: ['MINIMAX_KEY'],

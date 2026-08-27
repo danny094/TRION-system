@@ -1,6 +1,6 @@
 import { fetchApi } from '@/lib/api/client'
 
-export type ProviderId = 'ollama' | 'ollama_cloud' | 'openai' | 'anthropic' | 'openrouter' | 'minimax'
+export type ProviderId = 'ollama' | 'ollama_cloud' | 'openai' | 'anthropic' | 'openrouter' | 'deepseek' | 'minimax'
 export type ModelRole = 'THINKING' | 'CONTROL' | 'OUTPUT'
 
 export interface ModelCatalogEntry {

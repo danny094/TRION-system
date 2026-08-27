@@ -24,11 +24,15 @@ def compute_operation_contract_fingerprint(contract: OperationContract) -> str:
         contract.domain,
         contract.primary_operation,
         contract.target,
+        tuple(contract.targets),
         tuple(contract.detail_fields),
         contract.mutating_action,
         tuple(contract.required_evidence),
         tuple(contract.allowed_operations),
-        tuple(contract.allowed_transitions),
+        tuple(
+            (item.source_operation, item.target_operation, tuple(item.required_evidence))
+            for item in contract.transition_requirements
+        ),
         contract.scope_lock,
     )
     return hashlib.sha256(repr(canonical).encode("utf-8")).hexdigest()

@@ -26,6 +26,7 @@ class ToolDescriptor:
     # mcp.installer_tool_intents._output_schema_reference()). Vorher am
     # Mirror-Gate validiert, aber nie auf ToolDescriptor projiziert.
     capability_output_schema: str = ""
+    output_schema: Dict[str, Any] = field(default_factory=dict)
     tool_role: str = "primary"
     can_answer_directly: bool = True
     # P11.0 SP4: aus dem per-Tool `tool_intent_meta` des Registry Mirrors

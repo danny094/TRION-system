@@ -2,7 +2,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from mcp.config import get_all_mcps
+from mcp.catalog_lifecycle import current_catalog_snapshot
 from plugins.common import (
     load_plugin_manifest,
     load_plugin_meta,
@@ -17,7 +17,8 @@ def list_plugins() -> list[dict[str, Any]]:
     if not root.exists():
         return []
     items: list[dict[str, Any]] = []
-    installed_mcps = set(get_all_mcps().keys())
+    snapshot = current_catalog_snapshot()
+    installed_mcps = set(snapshot.desired_mcps) if snapshot is not None else set()
     for path in sorted(root.iterdir()):
         if not path.is_dir() or not (path / "plugin.json").exists():
             continue

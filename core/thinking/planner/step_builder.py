@@ -7,6 +7,7 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from core.input_processor.contracts import DocumentContext
+from core.routing_frame.contracts import OperationContract
 from core.thinking.contracts import PlanStep, RiskLevel
 from core.thinking.document_steps import build_document_steps
 from core.thinking.planner.frame_reader import (
@@ -69,6 +70,34 @@ def _step_criteria(raw_plan: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     return result
 
 
+def _authoritative_criteria(
+    tool_name: str,
+    frame: Dict[str, Any],
+    tool_detail: Dict[str, Any],
+    fallback: Dict[str, Any],
+) -> Dict[str, Any]:
+    contract = OperationContract.from_dict(frame.get("operation_contract"))
+    if contract is None:
+        return fallback
+    required = list(contract.required_evidence)
+    declared: set[str] = set()
+    if str(tool_detail.get("name") or "").strip() == tool_name:
+        declared = {
+            str(item).strip()
+            for item in list(tool_detail.get("capability_evidence_types") or [])
+            if str(item).strip()
+        }
+    if required and not all(item in declared for item in required):
+        return {
+            "done_when": "",
+            "required_evidence": required,
+        }
+    return {
+        "done_when": f"artifact_type:{required[0]}" if required else "",
+        "required_evidence": required,
+    }
+
+
 def tool_steps(
     raw_plan: Dict[str, Any],
     user_text: str,
@@ -84,7 +113,7 @@ def tool_steps(
     if loop and len(suggested_tools) == 1 and count > 1:
         tool = suggested_tools[0]
         detail = selected_tool_detail(tool, orchestrator_context)
-        crit = criteria.get(tool, {})
+        crit = _authoritative_criteria(tool, frame, detail, criteria.get(tool, {}))
         return [
             PlanStep(
                 step_id=f"tool_{index}",
@@ -104,22 +133,26 @@ def tool_steps(
             )
             for index in range(1, count + 1)
         ]
-    return [
-        PlanStep(
-            step_id=f"tool_{index}",
-            title=f"Use {tool}",
-            goal=goal or f"Use {tool}",
-            tool=tool,
-            tool_arguments=resolve_step_tool_arguments(
-                tool,
-                user_text,
-                selected_tool_detail(tool, orchestrator_context),
-                orchestrator_context,
-                step_index=index - 1,
-            ),
-            risk=risk,
-            done_when=criteria.get(tool, {}).get("done_when", ""),
-            required_evidence=criteria.get(tool, {}).get("required_evidence", []),
+    steps: list[PlanStep] = []
+    for index, tool in enumerate(suggested_tools, start=1):
+        detail = selected_tool_detail(tool, orchestrator_context)
+        crit = _authoritative_criteria(tool, frame, detail, criteria.get(tool, {}))
+        steps.append(
+            PlanStep(
+                step_id=f"tool_{index}",
+                title=f"Use {tool}",
+                goal=goal or f"Use {tool}",
+                tool=tool,
+                tool_arguments=resolve_step_tool_arguments(
+                    tool,
+                    user_text,
+                    detail,
+                    orchestrator_context,
+                    step_index=index - 1,
+                ),
+                risk=risk,
+                done_when=crit.get("done_when", ""),
+                required_evidence=crit.get("required_evidence", []),
+            )
         )
-        for index, tool in enumerate(suggested_tools, start=1)
-    ]
+    return steps

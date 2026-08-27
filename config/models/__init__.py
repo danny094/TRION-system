@@ -5,7 +5,7 @@ LLM-Modelle, Provider & Embedding-Konfiguration.
 
 Module:
   llm           → Modell-Namen für Thinking / Control / Output
-  providers     → Provider-Auflösung (ollama / openai / anthropic)
+  providers     → Provider-Auflösung (ollama / ollama_cloud / openai / anthropic / openrouter / deepseek / minimax)
   embedding     → Embedding-Modell, Runtime-Policy, GPU/CPU-Routing
   tool_selector → Tool-Selector Modell & Schwellenwerte
 

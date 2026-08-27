@@ -14,9 +14,11 @@ Dedup-Treffern addiert.
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Mapping
 from typing import Any, Dict, List
 
 from mcp.client import call_tool
+from mcp.tool_result_contracts import MCPToolCallStatus, MCPToolResultEnvelope
 
 _CHANNEL_SCORE: Dict[str, float] = {
     "fts": 3.0,
@@ -63,18 +65,13 @@ def _merge_item(
         seen[key] = entry
 
 
-def _list_from(resp: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Extrahiert Treffer-Liste aus call_tool-Response."""
-    result = resp.get("result")
-    if isinstance(result, list):
-        return result
-    if isinstance(result, dict):
-        return (
-            result.get("structuredContent", {}).get("results")
-            or result.get("results")
-            or []
-        )
-    return []
+def _list_from(result: MCPToolResultEnvelope) -> List[Dict[str, Any]]:
+    """Extrahiert Treffer aus einem erfolgreichen kanonischen Envelope."""
+    structured = result.structured_content
+    candidates = structured.get("results") if structured is not None else None
+    if not isinstance(candidates, (list, tuple)):
+        candidates = result.content or ()
+    return [dict(item) for item in candidates if isinstance(item, Mapping)]
 
 
 def retrieve_memory(
@@ -113,12 +110,12 @@ def retrieve_memory(
     seen: Dict[str, Dict[str, Any]] = {}
 
     def _query(tool: str, args: Dict[str, Any], channel: str) -> None:
-        r = call_tool(tool, args, timeout=timeout_s) or {}
-        if r.get("error"):
+        result = call_tool(tool, args, timeout=timeout_s)
+        if result.status is not MCPToolCallStatus.SUCCESS:
             channels_failed.append(channel)
             return
         channels_queried.append(channel)
-        hits = _list_from(r)
+        hits = _list_from(result)
         if hits:
             channels_with_hits.append(channel)
         for hit in hits:

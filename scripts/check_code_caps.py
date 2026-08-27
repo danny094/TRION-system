@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Check the mandatory 200-line cap for changed code files.
+"""Check the mandatory Doc07 200-line cap for changed code files.
 
-This mechanical preflight reads Git metadata and the working tree. It is not
-an audit, release decision, or substitute for tests and human review.
+This mechanical builder preflight reads Git metadata and the working tree. It
+is not an audit, test, lifecycle, or human DECIDE substitute.
 """
 from __future__ import annotations
 
@@ -15,32 +15,15 @@ CODE_SUFFIXES = frozenset({".py", ".ts", ".tsx", ".js", ".css", ".html", ".sh"})
 
 
 def git_paths(args: list[str], root: Path) -> set[Path]:
-    result = subprocess.run(
-        ["git", *args],
-        cwd=root,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    result = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=True)
     return {Path(line) for line in result.stdout.splitlines() if line.strip()}
 
 
-def staged_code_paths(root: Path) -> set[Path]:
-    return {
-        path
-        for path in git_paths(["diff", "--cached", "--name-only"], root)
-        if path.suffix in CODE_SUFFIXES
-    }
-
-
-def working_tree_code_paths(root: Path) -> set[Path]:
-    paths = git_paths(["diff", "--name-only"], root)
-    paths |= git_paths(["ls-files", "--others", "--exclude-standard"], root)
-    return {path for path in paths if path.suffix in CODE_SUFFIXES}
-
-
 def changed_code_paths(root: Path) -> list[Path]:
-    return sorted(staged_code_paths(root) | working_tree_code_paths(root))
+    paths = git_paths(["diff", "--name-only"], root)
+    paths |= git_paths(["diff", "--cached", "--name-only"], root)
+    paths |= git_paths(["ls-files", "--others", "--exclude-standard"], root)
+    return sorted(path for path in paths if path.suffix in CODE_SUFFIXES)
 
 
 def line_count(path: Path) -> int:
@@ -52,37 +35,14 @@ def line_count(path: Path) -> int:
 
 
 def before_line_count(path: Path, root: Path) -> int:
-    result = subprocess.run(
-        ["git", "show", f"HEAD:{path}"],
-        cwd=root,
-        capture_output=True,
-        text=True,
-    )
-    return len(result.stdout.splitlines()) if result.returncode == 0 else 0
-
-
-def staged_line_count(path: Path, root: Path) -> int:
-    result = subprocess.run(
-        ["git", "show", f":{path}"],
-        cwd=root,
-        capture_output=True,
-        text=True,
-        errors="replace",
-    )
+    result = subprocess.run(["git", "show", f"HEAD:{path}"], cwd=root, capture_output=True, text=True)
     return len(result.stdout.splitlines()) if result.returncode == 0 else 0
 
 
 def find_violations(root: Path) -> list[tuple[Path, int, int]]:
     violations = []
-    staged_paths = staged_code_paths(root)
-    working_tree_paths = working_tree_code_paths(root)
-    for path in sorted(staged_paths | working_tree_paths):
-        candidate_counts = []
-        if path in staged_paths:
-            candidate_counts.append(staged_line_count(path, root))
-        if path in working_tree_paths:
-            candidate_counts.append(line_count(root / path))
-        after = max(candidate_counts, default=0)
+    for path in changed_code_paths(root):
+        after = line_count(root / path)
         if after > LINE_CAP:
             violations.append((path, before_line_count(path, root), after))
     return violations

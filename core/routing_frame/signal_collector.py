@@ -19,11 +19,11 @@ from core.routing_frame.contracts import MeaningRepresentation, RawSignals
 
 
 def _build_meaning_signal_safely(text: str) -> "MeaningRepresentation | None":
-    """TMR ist Shadow-Trace, keine Autoritaet (Doc55 A10). Ein Fehler im
-    TMR-Aufbau (z.B. MeaningRuleSchemaError durch eine defekte Regel-CSV in
-    intelligence_modules/cim_skill_rag/) darf den produktiven Aufbau von
-    RawSignals nicht blockieren — meaning bleibt dann None statt die
-    gesamte Pipeline zu brechen.
+    """Build the typed TMR input for projection and sanitized tracing.
+
+    Ein Fehler im TMR-Aufbau darf den produktiven Aufbau von RawSignals nicht
+    blockieren: meaning bleibt dann None, sodass Projektion und Trace
+    fail-closed bleiben.
     """
     try:
         from core.routing_frame.meaning import build_meaning_representation
@@ -47,11 +47,9 @@ def collect_raw_signals(
         context: Optionaler Kontext (home_context, self_context).
 
     Returns:
-        RawSignals mit allen 8 Feldern befüllt (inkl. `meaning`,
-        P11 SP1 Shadow-Trace — siehe Doc55 A10; build_routing_frame()
-        spiegelt dieses Feld sanitisiert nach
-        source_signals["meaning_shadow_trace"], liest es aber bei keiner
-        Entscheidungs-Ableitung).
+        RawSignals mit allen 8 Feldern befüllt. `meaning` wird genau einmal
+        durch den R5-Projektionsowner gelesen und weiterhin sanitisiert nach
+        source_signals["meaning_shadow_trace"] gespiegelt.
 
     Hinweis: builder.helpers und builder.intent werden lazy importiert,
     um einen Circular-Import mit builder/__init__.py zu vermeiden.

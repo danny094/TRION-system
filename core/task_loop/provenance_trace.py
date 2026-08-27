@@ -1,4 +1,4 @@
-"""Sanitized TaskLoop evidence and transition provenance.
+"""Sanitized TaskLoop transition provenance.
 
 Observe-only projection for chat trace events. It reads existing snapshots,
 plans and controlled failure categories, but never tool arguments, targets,
@@ -6,7 +6,6 @@ artifact contents, user text or output text.
 """
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import Any
 
 from core.task_loop.contracts import TaskLoopSnapshot, TaskLoopState
@@ -25,33 +24,8 @@ def task_loop_provenance_event(
         "type": "task_loop_provenance",
         "stage": "task_loop",
         "phase": _clean(phase) or "state",
-        **_evidence_projection(getattr(snapshot, "artifacts", [])),
         **_transition_projection(snapshot),
         **_replan_projection(snapshot, plan, failure, validator_decision),
-    }
-
-
-def _evidence_projection(artifacts: Any) -> dict[str, Any]:
-    validated_types: list[str] = []
-    tool_result_count = 0
-    artifact_count = 0
-    for item in list(artifacts or []):
-        if not isinstance(item, Mapping):
-            continue
-        artifact_count += 1
-        artifact_type = _clean(item.get("artifact_type"))
-        if artifact_type == "tool_result":
-            tool_result_count += 1
-            continue
-        metadata = item.get("metadata") if isinstance(item.get("metadata"), Mapping) else item
-        if metadata.get("validated_evidence") is True and artifact_type:
-            validated_types.append(artifact_type)
-    return {
-        "evidence_present": bool(validated_types),
-        "validated_evidence_count": len(validated_types),
-        "validated_evidence_types": sorted(set(validated_types)),
-        "generic_tool_result_count": tool_result_count,
-        "artifact_count": artifact_count,
     }
 
 

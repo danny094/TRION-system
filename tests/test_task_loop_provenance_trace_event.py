@@ -42,7 +42,7 @@ def _plan() -> ThinkingPlan:
     )
 
 
-def test_evidence_projection_omits_raw_values_and_excludes_tool_result():
+def test_provenance_event_omits_legacy_evidence_projection_and_raw_values():
     event = task_loop_provenance_event(
         _snapshot(
             artifacts=[
@@ -63,11 +63,11 @@ def test_evidence_projection_omits_raw_values_and_excludes_tool_result():
     )
     serialized = json.dumps(event, ensure_ascii=False)
 
-    assert event["evidence_present"] is True
-    assert event["validated_evidence_count"] == 1
-    assert event["validated_evidence_types"] == ["runtime_logs"]
-    assert event["generic_tool_result_count"] == 1
-    assert "tool_result" not in event["validated_evidence_types"]
+    assert "evidence_present" not in event
+    assert "validated_evidence_count" not in event
+    assert "validated_evidence_types" not in event
+    assert "generic_tool_result_count" not in event
+    assert "artifact_count" not in event
     assert "USER_TEXT_SENTINEL" not in serialized
     assert "raw-target-sentinel" not in serialized
     assert "ARG_SENTINEL" not in serialized
@@ -78,9 +78,9 @@ def test_evidence_projection_omits_raw_values_and_excludes_tool_result():
 def test_missing_context_fails_closed_without_fallback_truth():
     event = task_loop_provenance_event(_snapshot())
 
-    assert event["evidence_present"] is False
-    assert event["validated_evidence_count"] == 0
-    assert event["validated_evidence_types"] == []
+    assert "evidence_present" not in event
+    assert "validated_evidence_count" not in event
+    assert "validated_evidence_types" not in event
     assert event["transition_present"] is False
     assert event["replan_proposed"] is False
     assert event["validator_decision"] == ""

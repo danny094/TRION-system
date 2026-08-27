@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Dict
+
+from mcp.tool_result_contracts import MCPToolResultEnvelope
 
 
 @dataclass(frozen=True)
@@ -14,7 +16,5 @@ class ToolCall:
 class ToolResult:
     tool_name: str
     step_id: str
-    success: bool
-    result: Dict[str, Any] = field(default_factory=dict)
-    error: Optional[str] = None
+    envelope: MCPToolResultEnvelope
     duration_s: float = 0.0

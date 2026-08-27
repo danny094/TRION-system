@@ -4,6 +4,7 @@ import shlex
 from typing import Any
 
 from blueprint_store import get_blueprint
+from container_reference import ContainerReferenceError, resolve_container_reference
 from contracts import error_result
 
 MAX_EXEC_OUTPUT = 8000
@@ -19,18 +20,6 @@ def _client():
 
 def _is_not_found(error: Exception) -> bool:
     return error.__class__.__name__ == "NotFound"
-
-
-def _resolve_container(container_ref: str):
-    client = _client()
-    try:
-        return client.containers.get(container_ref)
-    except Exception as exc:
-        if _is_not_found(exc):
-            for item in client.containers.list(all=True):
-                if str(getattr(item, "name", "") or "").strip() == str(container_ref or "").strip():
-                    return item
-        raise
 
 
 def _allowed_exec(blueprint_id: str) -> list[str]:
@@ -104,11 +93,15 @@ def _exec_run_with_workdir_fallback(container: Any, timed_command: str):
     return container.exec_run(timed_command, demux=True, workdir="/")
 
 
-def exec_in_container(container_ref: str, command: str, timeout: int = 30) -> dict[str, Any]:
+def exec_in_container(container_id: str = "", command: str = "", timeout: int = 30, container_name: str = "") -> dict[str, Any]:
     try:
-        container = _resolve_container(container_ref)
+        container = resolve_container_reference(_client(), container_id=container_id, container_name=container_name)
         if str(getattr(container, "status", "") or "").strip().lower() != "running":
-            return {"exit_code": -1, "output": f"Container is not running (status: {container.status})", "container_id": container_ref}
+            return {
+                "exit_code": -1,
+                "output": f"Container is not running (status: {container.status})",
+                "container_id": str(getattr(container, "id", "") or container_id or container_name),
+            }
         blocked = _check_exec_policy(container, command)
         if blocked:
             return blocked
@@ -122,18 +115,26 @@ def exec_in_container(container_ref: str, command: str, timeout: int = 30) -> di
             exit_code = EXEC_TIMEOUT_EXIT_CODE
             stderr = f"{stderr}\nCommand timed out after {max(1, int(timeout or 30))}s" if stderr else f"Command timed out after {max(1, int(timeout or 30))}s"
         output = (stdout + ("\n" + stderr if stderr else "")).strip()
-        return {"exit_code": exit_code, "output": output, "container_id": str(getattr(container, "id", "") or container_ref), "timed_out": timed_out}
+        return {"exit_code": exit_code, "output": output, "container_id": str(getattr(container, "id", "") or container_id or container_name), "timed_out": timed_out}
+    except ContainerReferenceError as exc:
+        return error_result("INVALID_CONTAINER_REFERENCE", str(exc))
     except Exception as exc:
         if _is_not_found(exc):
-            return {"exit_code": -1, "output": "Container not found", "container_id": container_ref}
+            return {"exit_code": -1, "output": "Container not found", "container_id": container_id or container_name}
         return error_result("RUNTIME_UNAVAILABLE", str(exc), retryable=True)
 
 
-def exec_in_container_detailed(container_ref: str, command: str, timeout: int = 30) -> dict[str, Any]:
+def exec_in_container_detailed(container_id: str = "", command: str = "", timeout: int = 30, container_name: str = "") -> dict[str, Any]:
     try:
-        container = _resolve_container(container_ref)
+        container = resolve_container_reference(_client(), container_id=container_id, container_name=container_name)
         if str(getattr(container, "status", "") or "").strip().lower() != "running":
-            return {"exit_code": -1, "stdout": "", "stderr": f"Container is not running (status: {container.status})", "truncated": False, "container_id": container_ref}
+            return {
+                "exit_code": -1,
+                "stdout": "",
+                "stderr": f"Container is not running (status: {container.status})",
+                "truncated": False,
+                "container_id": str(getattr(container, "id", "") or container_id or container_name),
+            }
         blocked = _check_exec_policy(container, command)
         if blocked:
             return blocked
@@ -153,9 +154,11 @@ def exec_in_container_detailed(container_ref: str, command: str, timeout: int = 
             "stderr": stderr[:MAX_EXEC_OUTPUT].strip(),
             "truncated": truncated,
             "timed_out": timed_out,
-            "container_id": str(getattr(container, "id", "") or container_ref),
+            "container_id": str(getattr(container, "id", "") or container_id or container_name),
         }
+    except ContainerReferenceError as exc:
+        return error_result("INVALID_CONTAINER_REFERENCE", str(exc))
     except Exception as exc:
         if _is_not_found(exc):
-            return {"exit_code": -1, "stdout": "", "stderr": "Container not found", "truncated": False, "container_id": container_ref}
+            return {"exit_code": -1, "stdout": "", "stderr": "Container not found", "truncated": False, "container_id": container_id or container_name}
         return error_result("RUNTIME_UNAVAILABLE", str(exc), retryable=True)

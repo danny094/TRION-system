@@ -20,12 +20,15 @@ def resolve_step_tool_arguments(
 ) -> Dict[str, Any]:
     detail = tool_detail if isinstance(tool_detail, Mapping) else {}
     required_args = {str(item).strip().lower() for item in detail.get("capability_required_args") or [] if str(item).strip()}
-    operation = str(detail.get("capability_operation") or "").strip().lower()
+    contract = _operation_contract(orchestrator_context)
+    operation = str(contract.get("primary_operation") or "").strip().lower()
+    target = _target_for_step(contract, step_index)
     arguments: Dict[str, Any] = {}
-    if "query" in required_args or operation == "search" or "search" in str(tool_name or "").strip().lower():
-        query = _extract_query_value(user_text, step_index)
-        if query:
-            arguments["query"] = query
+    if target and operation == "search" and "query" in required_args:
+        arguments["query"] = target
+    if target and str(contract.get("domain") or "").strip().lower() == "files":
+        if operation in {"list", "read", "inspect"}:
+            arguments["relative_path"] = target
     if "container_id_or_name" in required_args:
         home = _get_home_context(orchestrator_context)
         # Shortcut (Doc 36 Regel 3): wenn home_context verifiziert und Text auf Home verweist,
@@ -53,6 +56,35 @@ def _get_home_context(orchestrator_context: Any) -> Any:
     return inner.get("home_context") if isinstance(inner, Mapping) else None
 
 
+def _operation_contract(orchestrator_context: Any) -> Mapping[str, Any]:
+    if not isinstance(orchestrator_context, Mapping):
+        return {}
+    direct = orchestrator_context.get("routing_frame")
+    if isinstance(direct, Mapping) and isinstance(direct.get("operation_contract"), Mapping):
+        return direct["operation_contract"]
+    inner = orchestrator_context.get("context")
+    if isinstance(inner, Mapping):
+        frame = inner.get("routing_frame")
+        if isinstance(frame, Mapping) and isinstance(frame.get("operation_contract"), Mapping):
+            return frame["operation_contract"]
+    return {}
+
+
+def _target_for_step(contract: Mapping[str, Any], step_index: int) -> str:
+    values = contract.get("targets")
+    if not isinstance(values, (list, tuple)):
+        return ""
+    targets = tuple(str(value).strip() for value in values)
+    if any(not value for value in targets):
+        return ""
+    projected = str(contract.get("target") or "").strip()
+    if projected != (targets[0] if targets else ""):
+        return ""
+    if len(targets) <= 1:
+        return targets[0] if targets else ""
+    return targets[step_index] if 0 <= step_index < len(targets) else ""
+
+
 def _is_home_reference(text: str) -> bool:
     normalized = _normalize(text)
     return any(tok in normalized for tok in _HOME_TOKENS)
@@ -64,14 +96,6 @@ def _extract_container_name(text: str) -> str:
         return "trion-home"
     match = re.search(r"\bcontainer\s+([a-z0-9][a-z0-9._-]*)\b", normalized)
     return str(match.group(1) if match else "").strip()
-
-
-def _extract_query_value(text: str, step_index: int) -> str:
-    quoted = [match.strip() for match in re.findall(r'"([^"]+)"', str(text or "")) if match.strip()]
-    if quoted:
-        bounded = min(max(step_index, 0), len(quoted) - 1)
-        return quoted[bounded]
-    return ""
 
 
 def _normalize(value: str) -> str:

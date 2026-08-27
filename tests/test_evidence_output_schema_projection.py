@@ -14,27 +14,32 @@ def _step() -> PlanStep:
 
 
 def test_details_by_name_preserves_descriptor_output_schema():
+    output_schema = {"type": "object", "properties": {"status": {"type": "string"}}}
     details = details_by_name(
         [
             ToolDescriptor(
                 name="inspect_container",
                 capability_evidence_types=["runtime_status"],
                 capability_output_schema="mcp_output_schema",
+                output_schema=output_schema,
             )
         ]
     )
 
     assert details["inspect_container"]["capability_output_schema"] == "mcp_output_schema"
+    assert details["inspect_container"]["output_schema"] == output_schema
 
 
 def test_details_by_name_defaults_descriptor_output_schema_to_empty_string():
     details = details_by_name([ToolDescriptor(name="inspect_container")])
 
     assert details["inspect_container"]["capability_output_schema"] == ""
+    assert details["inspect_container"]["output_schema"] == {}
 
 
 def test_executor_passes_output_schema_detail_to_evidence_adapter(monkeypatch):
     seen = {}
+    output_schema = {"type": "object", "properties": {"status": {"type": "string"}}}
 
     def fake_evidence_adapter(**kwargs):
         seen["tool_detail"] = kwargs["tool_detail"]
@@ -54,6 +59,7 @@ def test_executor_passes_output_schema_detail_to_evidence_adapter(monkeypatch):
                     name="inspect_container",
                     capability_evidence_types=["runtime_status"],
                     capability_output_schema="mcp_output_schema",
+                    output_schema=output_schema,
                 )
             ]
         ),
@@ -61,4 +67,5 @@ def test_executor_passes_output_schema_detail_to_evidence_adapter(monkeypatch):
 
     assert result.error is None
     assert seen["tool_detail"]["capability_output_schema"] == "mcp_output_schema"
+    assert seen["tool_detail"]["output_schema"] == output_schema
     assert [item["artifact_type"] for item in result.artifacts] == ["tool_result"]

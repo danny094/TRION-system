@@ -4,6 +4,7 @@ from core.classifier.contracts import Category, ClassifierResult, Route, SafetyL
 from core.models import CoreChatRequest, Message, MessageRole
 from core.output.contracts import OutputRequest
 from core.output.output import generate_output
+from core.pipeline.output_evidence_contracts import OutputEvidenceHandoff, OutputEvidenceState
 from core.thinking.analyzer import analyze_request
 from core.thinking.planner import build_plan_from_analysis
 from core.thinking.replanner import build_replan
@@ -27,6 +28,14 @@ def _chat_request(text: str) -> CoreChatRequest:
         messages=[Message(role=MessageRole.USER, content=text)],
         conversation_id="truth-reasoning",
     )
+
+
+async def _unverified_output(*args, **kwargs):
+    return type(
+        "Result",
+        (),
+        {"content": "Ungeprüfte Ergebnisbehauptung.", "truncated": False, "postcheck_applied": False},
+    )()
 
 
 def test_analyzer_detects_time_projection_and_derivation():
@@ -89,7 +98,7 @@ def test_replan_prefers_only_missing_additional_tool_after_grounded_time():
     assert replanned.additional_evidence_need is None
 
 
-def test_generate_output_projects_time_to_utc_iso_from_grounded_result():
+def test_generate_output_does_not_project_utc_iso_from_raw_grounded_result():
     plan = build_plan_from_analysis(
         {
             "intent": "Zeit als UTC ISO",
@@ -105,6 +114,7 @@ def test_generate_output_projects_time_to_utc_iso_from_grounded_result():
             OutputRequest(
                 user_text="Wie viel Uhr ist es gerade? Und gib die Antwort danach nur als UTC ISO aus.",
                 thinking_plan=plan,
+                output_evidence=OutputEvidenceHandoff(OutputEvidenceState.NO_TASK_LOOP),
                 context={
                     "grounded_tool_results": [
                         {"tool_name": "time_now", "step_id": "tool_1", "facts": {"utc_iso": "2026-05-24T18:41:23Z"}}
@@ -112,13 +122,14 @@ def test_generate_output_projects_time_to_utc_iso_from_grounded_result():
                 },
             ),
             _chat_request("Wie viel Uhr ist es gerade? Und gib die Antwort danach nur als UTC ISO aus."),
+            complete_output_fn=_unverified_output,
         )
     )
 
-    assert result.content == "2026-05-24T18:41:23Z"
+    assert result.content == "Unbekannt. Es liegen keine verifizierten Tool-Fakten vor."
 
 
-def test_generate_output_refuses_partial_answer_when_additional_evidence_is_missing():
+def test_generate_output_fails_closed_when_additional_evidence_is_missing():
     plan = build_plan_from_analysis(
         {
             "intent": "Pruefe Uhrzeit und Datei",
@@ -138,6 +149,7 @@ def test_generate_output_refuses_partial_answer_when_additional_evidence_is_miss
             OutputRequest(
                 user_text="Prüfe zuerst die aktuelle Uhrzeit. Lies danach /trion-home/status.txt.",
                 thinking_plan=plan,
+                output_evidence=OutputEvidenceHandoff(OutputEvidenceState.NO_TASK_LOOP),
                 context={
                     "grounded_tool_results": [
                         {"tool_name": "time_now", "step_id": "tool_1", "facts": {"utc_iso": "2026-05-24T18:41:23Z"}}
@@ -145,8 +157,8 @@ def test_generate_output_refuses_partial_answer_when_additional_evidence_is_miss
                 },
             ),
             _chat_request("Prüfe zuerst die aktuelle Uhrzeit. Lies danach /trion-home/status.txt."),
+            complete_output_fn=_unverified_output,
         )
     )
 
-    assert "kein verfügbares Tool" in result.content
-    assert "/trion-home/status.txt" in result.content
+    assert result.content == "Unbekannt. Es liegen keine verifizierten Tool-Fakten vor."

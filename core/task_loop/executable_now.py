@@ -1,3 +1,4 @@
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
@@ -57,6 +58,7 @@ def _detail_mapping(item: Any) -> Mapping[str, Any]:
         "capability_required_args": getattr(item, "capability_required_args", []),
         "capability_evidence_types": getattr(item, "capability_evidence_types", []),
         "capability_output_schema": str(getattr(item, "capability_output_schema", "") or ""),
+        "output_schema": deepcopy(getattr(item, "output_schema", {}) or {}),
     }
 
 

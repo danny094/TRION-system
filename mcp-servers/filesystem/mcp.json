@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "id": "filesystem",
+  "display_name": "TRION Home Filesystem",
+  "version": "1.0.0",
+  "description": "Read-only bounded access to files in TRION Home.",
+  "transport": "stdio",
+  "entry": {
+    "type": "stdio",
+    "command": ".venv/bin/python server.py"
+  },
+  "install": {
+    "runtime": {
+      "kind": "venv"
+    }
+  }
+}

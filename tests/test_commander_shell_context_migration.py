@@ -4,6 +4,11 @@ import sys
 import types
 from pathlib import Path
 
+from mcp.tool_result_contracts import (
+    MCPResultPresence,
+    MCPToolCallStatus,
+    MCPToolResultEnvelope,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 ADMIN_API_DIR = ROOT / "adapters" / "admin-api"
@@ -37,8 +42,10 @@ def test_shell_context_builds_mission_state_and_persists_events(monkeypatch):
         def call_tool(self, tool_name, args):
             calls.append((tool_name, args))
             if tool_name == "workspace_event_list":
-                return {
-                    "events": [
+                return MCPToolResultEnvelope(
+                    MCPToolCallStatus.SUCCESS,
+                    structured_content_presence=MCPResultPresence.VALUE,
+                    structured_content={"events": [
                         {
                             "event_type": "trion_shell_checkpoint",
                             "event_data": {
@@ -55,9 +62,9 @@ def test_shell_context_builds_mission_state_and_persists_events(monkeypatch):
                                 "raw_summary": "Restarted supervisor and confirmed recovery.",
                             },
                         },
-                    ]
-                }
-            return {"ok": True}
+                    ]},
+                )
+            return MCPToolResultEnvelope(MCPToolCallStatus.SUCCESS)
 
     fake_hub_module = types.ModuleType("mcp.hub")
     fake_hub_module.get_hub = lambda: _FakeHub()

@@ -10,12 +10,18 @@ from core.task_loop.contracts import StepExecutionResult, StepExecutionStatus, T
 from core.task_loop.executor import TaskToolResult
 from core.task_loop.step_operation_receipt import StepOperationReceipt
 from core.task_loop.task_loop import start_task_loop
+from core.routing_frame.contracts import OperationTransition
 from core.thinking.contracts import PlanStep, RiskLevel, ThinkingPlan
 from tests.operation_contract_context import canonical_contract_context
 
 
 def _context():
-    return canonical_contract_context(allowed_transitions=("list->logs", "list->inspect"))
+    return canonical_contract_context(
+        transition_requirements=(
+            OperationTransition("list", "logs", ("runtime_logs",)),
+            OperationTransition("list", "inspect", ("runtime_metadata",)),
+        ),
+    )
 
 
 def _tool(name, operation):

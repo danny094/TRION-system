@@ -7,10 +7,12 @@ from tests._orchestrator_classifier_helpers import make_classifier_result
 
 @pytest.mark.parametrize("detail_key", ["available_tool_details", "selected_tool_details"])
 def test_tool_details_include_capability_output_schema(detail_key):
+    output_schema = {"type": "object", "properties": {"status": {"type": "string"}}}
     tool = ToolDescriptor(
         name="container_inspect",
         source="container-commander",
         capability_output_schema="mcp_output_schema",
+        output_schema=output_schema,
     )
 
     def _orchestrator(*_args, **_kwargs):
@@ -31,6 +33,7 @@ def test_tool_details_include_capability_output_schema(detail_key):
 
     details = stage.thinking_context[detail_key]
     assert details[0]["capability_output_schema"] == "mcp_output_schema"
+    assert details[0]["output_schema"] == output_schema
 
 
 @pytest.mark.parametrize("detail_key", ["available_tool_details", "selected_tool_details"])
@@ -55,3 +58,4 @@ def test_tool_details_default_capability_output_schema_is_stable(detail_key):
 
     details = stage.thinking_context[detail_key]
     assert details[0]["capability_output_schema"] == ""
+    assert "output_schema" not in details[0]

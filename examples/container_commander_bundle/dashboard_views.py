@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 from datetime import datetime, timezone
 
+from bundle_blueprint_store import list_blueprints
+from bundle_network import list_networks
+from bundle_runtime_views import list_containers
+from bundle_volumes import list_volumes
+from proxy_views import get_whitelist
+
 
 def _now():
     return datetime.now(timezone.utc).isoformat()
@@ -13,12 +19,10 @@ def _runtime_error(result):
 
 
 def get_dashboard_overview():
-    import server as commander_bundle
-
-    containers_result = commander_bundle.list_containers()
-    blueprints_result = commander_bundle.list_blueprints()
-    networks_result = commander_bundle.list_networks()
-    volumes_result = commander_bundle.list_volumes()
+    containers_result = list_containers()
+    blueprints_result = list_blueprints()
+    networks_result = list_networks()
+    volumes_result = list_volumes()
 
     containers = containers_result.get("containers") if isinstance(containers_result.get("containers"), list) else []
     blueprints = blueprints_result.get("blueprints") if isinstance(blueprints_result.get("blueprints"), list) else []
@@ -40,7 +44,7 @@ def get_dashboard_overview():
             "blueprint_store_unavailable:" + str((blueprints_result.get("error") or {}).get("message") or "unknown")
         )
 
-    proxy_state = commander_bundle.get_whitelist("_dashboard_proxy_state")
+    proxy_state = get_whitelist("_dashboard_proxy_state")
     proxy_enabled = bool(proxy_state.get("enabled")) if isinstance(proxy_state, dict) else False
 
     return {

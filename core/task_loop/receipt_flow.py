@@ -43,7 +43,7 @@ def latest_execution(snapshot: TaskLoopSnapshot) -> StepOperationExecution | Non
     return snapshot.step_operation_executions[-1] if snapshot.step_operation_executions else None
 
 
-def receipt_blocked(snapshot, step, total_steps, event_sink):
+def receipt_blocked(snapshot, step, total_steps, event_sink, structural_results=()):
     blocked = snapshot.transition_to(TaskLoopState.BLOCKED, pending_step=step.step_id,
                                      stop_reason=StopReason.CAPABILITY_GAP,
                                      waiting_reason="step_operation_receipt_missing",
@@ -51,4 +51,4 @@ def receipt_blocked(snapshot, step, total_steps, event_sink):
     emit_task_loop_state(event_sink, blocked, step_id=step.step_id, step_title=step.title, total_steps=total_steps)
     return TaskLoopResult(blocked.state, blocked.stop_reason, list(blocked.artifacts),
                           visible_content_for(blocked.state, step.title, blocked.stop_reason), blocked,
-                          completion_status_for(blocked.state)), None
+                          completion_status_for(blocked.state), structural_results=structural_results), None

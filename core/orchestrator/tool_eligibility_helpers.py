@@ -134,6 +134,8 @@ def target_scope_from_contract(*, domain: str, intent_kind: str, contract: dict)
     if domain == "tools":
         return "tool_capability"
     if domain == "files":
+        if str(contract.get("scope_lock") or "").strip().lower() == "home":
+            return "assistant_home"
         return "project_docs"
     if domain == "time":
         return "time_reference"

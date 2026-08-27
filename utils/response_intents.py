@@ -90,50 +90,6 @@ def detect_additional_evidence_need(
     return {}
 
 
-def additional_evidence_unresolved(plan: Any, grounded_results: list[dict[str, Any]]) -> bool:
-    need = getattr(plan, "additional_evidence_need", None)
-    if need is None:
-        return False
-    candidate_tools = list(getattr(need, "candidate_tools", []) or [])
-    if not candidate_tools:
-        return True
-    grounded_tools = {
-        str(item.get("tool_name") or "").strip()
-        for item in grounded_results
-        if isinstance(item, Mapping)
-    }
-    return not any(tool in grounded_tools for tool in candidate_tools)
-
-
-def additional_evidence_message(plan: Any) -> str:
-    need = getattr(plan, "additional_evidence_need", None)
-    if need is None:
-        return ""
-    reason = str(getattr(need, "reason", "") or "").strip()
-    if reason:
-        return f"Unbekannt. Es fehlen noch verifizierte Tool-Fakten. {reason}"
-    return "Unbekannt. Es fehlen noch verifizierte Tool-Fakten."
-
-
-def missing_capability_message(plan: Any, user_text: str, grounded_results: list[dict[str, Any]] | None = None) -> str:
-    need = getattr(plan, "additional_evidence_need", None)
-    kind = str(getattr(need, "kind", "") or "").strip()
-    path = _requested_path(user_text)
-    grounded_tools = {
-        str(item.get("tool_name") or "").strip()
-        for item in grounded_results or []
-        if isinstance(item, Mapping)
-    }
-    if kind == "file_read":
-        prefix = "Ich kann die aktuelle Uhrzeit prüfen, aber " if "time_now" in grounded_tools else ""
-        if path:
-            return f"{prefix}ich habe hier aktuell kein verfügbares Tool, um {path} zu lesen."
-        return f"{prefix}ich habe hier aktuell kein verfügbares Tool, um die angefragte Datei zu lesen."
-    if kind == "time_current":
-        return "Ich habe hier aktuell kein verfügbares Tool, um die aktuelle Uhrzeit verifiziert abzurufen."
-    return "Ich kann diese Anfrage gerade nicht vollständig ausführen, weil mir dafür im aktuellen Lauf ein passendes Tool fehlt."
-
-
 def completed_tool_names(artifacts: list[dict[str, Any]] | None) -> list[str]:
     names: list[str] = []
     for artifact in artifacts or []:
@@ -188,11 +144,6 @@ def _tool_haystack(tool: Any) -> str:
         ]
         return _normalize(" ".join(str(value or "").replace("_", " ") for value in values))
     return _normalize(str(tool or "").replace("_", " "))
-
-
-def _requested_path(user_text: str) -> str:
-    match = re.search(r"(/\S+)", str(user_text or ""))
-    return str(match.group(1) or "").rstrip(".,)") if match else ""
 
 
 def _normalize(value: str) -> str:

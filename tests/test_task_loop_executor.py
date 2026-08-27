@@ -1,5 +1,10 @@
 from core.task_loop.contracts import StepExecutionStatus
-from core.task_loop.executor import TaskToolResult, build_tool_call, execute_step
+from core.task_loop.executor import (
+    TaskToolResult,
+    TaskToolResultStatus,
+    build_tool_call,
+    execute_step,
+)
 from core.thinking.contracts import PlanStep
 
 
@@ -28,6 +33,41 @@ def test_build_tool_call_falls_back_to_default_timeout():
     call = build_tool_call(_step(timeout_s=None), default_timeout_s=45.0)
 
     assert call.timeout_s == 45.0
+
+
+def test_task_tool_result_distinguishes_success_presence():
+    missing = TaskToolResult(status=TaskToolResultStatus.SUCCESS_MISSING)
+    empty = TaskToolResult(status=TaskToolResultStatus.SUCCESS_EMPTY, result={})
+    value = TaskToolResult(status=TaskToolResultStatus.SUCCESS_VALUE, result={"ok": True})
+
+    assert (missing.status, empty.status, value.status) == (
+        TaskToolResultStatus.SUCCESS_MISSING,
+        TaskToolResultStatus.SUCCESS_EMPTY,
+        TaskToolResultStatus.SUCCESS_VALUE,
+    )
+    assert missing.result == {}
+    assert empty.result == {}
+    assert value.result == {"ok": True}
+
+
+def test_task_tool_result_success_is_derived_from_status():
+    success = TaskToolResult(status=TaskToolResultStatus.SUCCESS_MISSING)
+    failure = TaskToolResult(status=TaskToolResultStatus.PROTOCOL_FAILURE, error="bad response")
+
+    assert success.success is True
+    assert failure.success is False
+
+
+def test_task_tool_result_legacy_success_projection_is_write_only():
+    missing = TaskToolResult(success=True)
+    empty = TaskToolResult(success=True, result={})
+    value = TaskToolResult(success=True, result={"ok": True})
+    failure = TaskToolResult(success=False, error="legacy failure")
+
+    assert missing.status is TaskToolResultStatus.SUCCESS_MISSING
+    assert empty.status is TaskToolResultStatus.SUCCESS_EMPTY
+    assert value.status is TaskToolResultStatus.SUCCESS_VALUE
+    assert failure.status is TaskToolResultStatus.TOOL_FAILURE
 
 
 def test_execute_step_returns_success_and_artifacts():
@@ -99,7 +139,10 @@ def test_execute_step_maps_tool_failure():
 
 def test_execute_step_maps_mcp_timeout_error():
     def runner(call):
-        return TaskToolResult(success=False, error="mcp_timeout:deploy_container:30s")
+        return TaskToolResult(
+            status=TaskToolResultStatus.TRANSPORT_FAILURE,
+            error="mcp_timeout:deploy_container:30s",
+        )
 
     result = execute_step(_step(), runner)
 

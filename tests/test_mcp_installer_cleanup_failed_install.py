@@ -27,6 +27,13 @@ Deckt ab:
 """
 
 
+def _absent_confirmation():
+    from mcp.catalog_contracts import CatalogRevocationOutcome, MCPDesiredState, MCPRegistryReloadConfirmation, MCPToolCatalogSnapshot
+
+    snapshot = MCPToolCatalogSnapshot.from_parts(MCPDesiredState({}, {}), {}, {}, {}, {}, {})
+    return MCPRegistryReloadConfirmation(snapshot, CatalogRevocationOutcome(0))
+
+
 def test_cleanup_failed_install_removes_registry_then_reloads_hub_before_deleting_bundle(
     monkeypatch, tmp_path
 ):
@@ -50,7 +57,7 @@ def test_cleanup_failed_install_removes_registry_then_reloads_hub_before_deletin
     monkeypatch.setattr(
         install_routes,
         "reload_hub_registry",
-        lambda hub: order.append(("reload_hub_registry", target_dir.exists())),
+        lambda hub: order.append(("reload_hub_registry", target_dir.exists())) or _absent_confirmation(),
     )
     monkeypatch.setattr(install_routes, "get_hub", lambda: object())
 
@@ -83,7 +90,7 @@ def test_cleanup_failed_install_logs_instead_of_raising_when_rmtree_fails(monkey
     target_dir.mkdir()
 
     monkeypatch.setattr(install_routes, "remove_registry_entry", lambda name: None)
-    monkeypatch.setattr(install_routes, "reload_hub_registry", lambda hub: None)
+    monkeypatch.setattr(install_routes, "reload_hub_registry", lambda hub: _absent_confirmation())
     monkeypatch.setattr(install_routes, "get_hub", lambda: object())
 
     def boom(path):

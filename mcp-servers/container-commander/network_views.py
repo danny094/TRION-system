@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from contracts import error_result
+from container_reference import ContainerReferenceError, resolve_container_reference
 
 
 def _client():
@@ -37,12 +38,12 @@ def list_networks() -> dict[str, Any]:
         return error_result("RUNTIME_UNAVAILABLE", str(exc), retryable=True)
 
 
-def get_network_info(container_id: str) -> dict[str, Any]:
+def get_network_info(container_id: str = "", container_name: str = "") -> dict[str, Any]:
     try:
-        container = _client().containers.get(container_id)
+        container = resolve_container_reference(_client(), container_id=container_id, container_name=container_name)
         networks = dict(((container.attrs or {}).get("NetworkSettings") or {}).get("Networks") or {})
         return {
-            "container_id": container_id,
+            "container_id": str(getattr(container, "id", "") or container_id or container_name),
             "networks": {
                 name: {
                     "ip": str((config or {}).get("IPAddress") or ""),
@@ -52,9 +53,12 @@ def get_network_info(container_id: str) -> dict[str, Any]:
                 for name, config in networks.items()
             },
         }
+    except ContainerReferenceError as exc:
+        return error_result("INVALID_CONTAINER_REFERENCE", str(exc))
     except Exception as exc:
         if _is_not_found(exc):
-            return error_result("CONTAINER_NOT_FOUND", f"Container '{container_id}' not found")
+            container_ref = container_id or container_name
+            return error_result("CONTAINER_NOT_FOUND", f"Container '{container_ref}' not found")
         return error_result("RUNTIME_UNAVAILABLE", str(exc), retryable=True)
 
 

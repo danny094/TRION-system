@@ -83,7 +83,13 @@ def _install_complete_v2_mcp(monkeypatch, tmp_path, mcp_name="container-commande
 def _fake_hub(mcp_name):
     class _Hub:
         def list_tools(self):
-            return [{"name": "container_inspect", "description": "Inspect a container (live)."}]
+            return [
+                {
+                    "name": "container_inspect",
+                    "description": "Inspect a container (live).",
+                    "outputSchema": {"type": "object", "properties": {"status": {"type": "string"}}},
+                }
+            ]
 
         def get_mcp_for_tool(self, name):
             return mcp_name if name == "container_inspect" else None
@@ -116,6 +122,10 @@ def test_complete_v2_tool_survives_real_bundle_to_descriptor_chain(monkeypatch, 
     assert descriptor.capability_freshness_support == original["freshness_support"]
     assert descriptor.tool_role == original["tool_role"]
     assert descriptor.capability_output_schema == original["output_schema"]
+    assert descriptor.output_schema == {
+        "type": "object",
+        "properties": {"status": {"type": "string"}},
+    }
 
     # Gegenbeweis zu P11_CAPABILITY_FIELDS: jedes der 9 Pflichtfelder hat im
     # Bundle einen nicht-leeren Wert UND ist auf dem ToolDescriptor sichtbar

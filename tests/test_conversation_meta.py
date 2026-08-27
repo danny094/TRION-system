@@ -47,7 +47,7 @@ def test_build_conversation_meta_reads_nested_payload():
                 "do_not_remember": True,
                 "scopes": [{"namespace": "project", "key": "trion", "siloed": True}],
             },
-            "runtime_scope": {"repo": "danny094/TRION", "container_id": "abc123"},
+            "runtime_scope": {"repo": "example/TRION", "container_id": "abc123"},
         },
         "ignored",
     )
@@ -58,7 +58,7 @@ def test_build_conversation_meta_reads_nested_payload():
     assert meta.memory.do_not_remember is True
     assert meta.memory.scopes[0].namespace == "project"
     assert meta.memory.scopes[0].key == "trion"
-    assert meta.runtime_scope.repo == "danny094/TRION"
+    assert meta.runtime_scope.repo == "example/TRION"
 
 
 def test_effective_policy_disables_global_read_and_ltm_write_when_requested():

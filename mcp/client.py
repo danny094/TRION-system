@@ -7,35 +7,29 @@ Verantwortlich für:
 """
 
 import json
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
+from collections.abc import Mapping
 from typing import Any, Dict, List, Optional
-import os
 
-from utils.logger import log_debug, log_error, log_info, log_warning
-
-_MAX_WORKERS = max(4, min(64, int(os.getenv("MCP_CLIENT_MAX_WORKERS", "16"))))
-_EXECUTOR = ThreadPoolExecutor(max_workers=_MAX_WORKERS, thread_name_prefix="mcp-client")
+from mcp import client_handoff
+from mcp.tool_result_contracts import MCPToolCallStatus, MCPToolResultEnvelope
+from utils.logger import log_debug, log_info, log_warning
 
 
 # ── Core ───────────────────────────────────────────────────────────
 
-def call_tool(name: str, arguments: Dict[str, Any], timeout: float = 5.0) -> Optional[Dict[str, Any]]:
+def call_tool(
+    name: str,
+    arguments: Dict[str, Any],
+    timeout: float = 5.0,
+) -> MCPToolResultEnvelope:
     """Ruft ein Tool über den Hub auf."""
-    try:
-        from mcp.hub import get_hub
-        future = _EXECUTOR.submit(get_hub().call_tool, name, arguments)
-        result = future.result(timeout=max(0.2, float(timeout)))
-        if result and not isinstance(result, dict):
-            return {"result": result}
-        if result and "error" not in result:
-            return {"result": result}
-        return result
-    except FuturesTimeout:
-        log_error(f"[MCPClient] Timeout: tool={name} timeout={timeout}s")
-        return {"error": f"mcp_timeout:{name}:{timeout}s"}
-    except Exception as e:
-        log_error(f"[MCPClient] call_tool failed: {e}")
-        return {"error": str(e)}
+    return client_handoff.call_tool_result(name, arguments, timeout)
+
+
+def _successful_structured(result: MCPToolResultEnvelope) -> Optional[Mapping[str, Any]]:
+    if result.status is not MCPToolCallStatus.SUCCESS:
+        return None
+    return result.structured_content
 
 
 # ── Memory Helpers ─────────────────────────────────────────────────
@@ -80,24 +74,22 @@ def get_fact(conversation_id: str, key: str, timeout_s: Optional[float] = None) 
         "conversation_id": conversation_id or "global",
         "key": key,
     }, timeout=timeout_s)
-    if not resp:
-        return None
-    result = resp.get("result") or resp
-    if isinstance(result, dict):
-        val = (result.get("value")
-               or result.get("structuredContent", {}).get("value")
-               or result.get("structuredContent", {}).get("result"))
+    result = _successful_structured(resp)
+    if result is not None:
+        val = result.get("value") or result.get("result")
         if val:
             return val
-        for item in result.get("content", []):
-            if item.get("type") == "text":
+    if resp.status is MCPToolCallStatus.SUCCESS:
+        for item in resp.content or ():
+            if isinstance(item, Mapping) and item.get("type") == "text":
                 try:
                     parsed = json.loads(item["text"])
-                    v = parsed.get("result") or parsed.get("structuredContent", {}).get("value")
-                    if v:
-                        return v
-                except Exception:
-                    pass
+                except (KeyError, TypeError, json.JSONDecodeError):
+                    continue
+                if isinstance(parsed, Mapping):
+                    value = parsed.get("result") or parsed.get("value")
+                    if value:
+                        return value
     return None
 
 
@@ -110,9 +102,8 @@ def search_memory(conversation_id: str, query: str, timeout_s: Optional[float] =
         "conversation_id": conversation_id or "global",
         "query": query,
     }, timeout=timeout_s)
-    if not resp:
-        return ""
-    entries = resp.get("result", [])
+    result = _successful_structured(resp)
+    entries = result.get("result", []) if result is not None else []
     if entries and isinstance(entries, list):
         return entries[0].get("content", "")
     return ""
@@ -134,12 +125,9 @@ def semantic_search(
         "limit": limit,
         "min_similarity": 0.5,
     }, timeout=timeout_s)
-    if not resp:
-        return []
-    result = resp.get("result", {})
-    if isinstance(result, dict):
-        return (result.get("structuredContent", {}).get("results")
-                or result.get("results", []))
+    result = _successful_structured(resp)
+    if result is not None:
+        return result.get("results", [])
     return []
 
 
@@ -160,12 +148,9 @@ def graph_search(
         "depth": depth,
         "limit": limit,
     }, timeout=timeout_s)
-    if not resp:
-        return []
-    result = resp.get("result", {})
-    if isinstance(result, dict):
-        return (result.get("structuredContent", {}).get("results")
-                or result.get("results", []))
+    result = _successful_structured(resp)
+    if result is not None:
+        return result.get("results", [])
     return []
 
 
@@ -179,14 +164,8 @@ def get_conversation_meta(conversation_id: str, timeout_s: Optional[float] = Non
         {"conversation_id": conversation_id or "global"},
         timeout=timeout_s,
     )
-    if not resp or resp.get("error"):
-        return None
-    result = resp.get("result") or resp
-    if isinstance(result, dict):
-        structured = result.get("structuredContent")
-        if isinstance(structured, dict):
-            meta = structured.get("meta")
-            return meta if isinstance(meta, dict) else None
+    result = _successful_structured(resp)
+    if result is not None:
         meta = result.get("meta")
-        return meta if isinstance(meta, dict) else None
+        return dict(meta) if isinstance(meta, Mapping) else None
     return None

@@ -15,6 +15,7 @@ from mcp.installer_common import (
     run_post_install_health_check,
 )
 from mcp.installer_manifest import extract_archive
+from mcp.installer_confirmation import ABSENT, require_registry_postcondition
 from mcp.installer_runtime import prepare_runtime
 from mcp.installer_receipt import build_install_receipt, write_install_receipt
 from mcp.installer_registry import remove_registry_entry, upsert_registry_entry
@@ -54,14 +55,10 @@ async def install_mcp(request: Request, file: Any = None):
         write_install_receipt(target_dir, receipt)
 
         hub = get_hub()
-        reload_method = reload_hub_registry(hub)
+        confirmation = reload_hub_registry(hub)
+        require_registry_postcondition(confirmation, mcp_name, config)
         health = await run_post_install_health_check(hub, mcp_name)
-        if health.get("status") == "unhealthy":
-            raise InstallationError(
-                f"Health check failed for MCP '{mcp_name}': {health.get('reason')}",
-                target_dir,
-            )
-        return _success_payload(mcp_name, config, health, reload_method)
+        return _success_payload(mcp_name, config, health)
     except InstallationError as exc:
         _cleanup_failed_install(locals().get("mcp_name"), exc.target_dir)
         status_code = 400 if exc.target_dir is None else 500
@@ -100,7 +97,6 @@ def _success_payload(
     mcp_name: str,
     config: Dict[str, Any],
     health: Dict[str, str],
-    reload_method: str,
 ) -> Dict[str, Any]:
     return {
         "success": True,
@@ -111,7 +107,7 @@ def _success_payload(
             "description": config.get("description", ""),
             "url": config.get("url"),
         },
-        "health": {**health, "reload_method": reload_method},
+        "health": health,
     }
 
 
@@ -148,7 +144,8 @@ def _cleanup_failed_install(mcp_name: str | None, target_dir: Path | None) -> Di
             _logger.exception("Failed to remove registry entry during rollback: %s", mcp_name)
             return status
         try:
-            reload_hub_registry(get_hub())
+            confirmation = reload_hub_registry(get_hub())
+            require_registry_postcondition(confirmation, mcp_name, ABSENT)
             status["hub_reloaded"] = True
         except Exception:
             _logger.exception("Failed to reload hub registry during rollback: %s", mcp_name)

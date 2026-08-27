@@ -29,10 +29,10 @@ def issue_followup_receipt(
         or not _clean(step_id)
     ):
         return None
-    targets = _transition_targets(receipt.operation, contract.get("allowed_transitions"))
-    if len(targets) != 1:
+    transition = _transition_requirement(receipt.operation, contract.get("transition_requirements"))
+    if transition is None:
         return None
-    return StepOperationReceipt(str(step_id), targets[0], fingerprint, scope_preserved=True)
+    return StepOperationReceipt(str(step_id), transition[0], fingerprint, scope_preserved=True)
 
 
 def contract_for_receipt(
@@ -49,33 +49,45 @@ def contract_for_receipt(
     if predecessor is None:
         if receipt.operation != primary or receipt.operation not in _values(contract.get("allowed_operations")):
             return {}
-    elif not _valid_followup(receipt, predecessor, fingerprint, contract.get("allowed_transitions")):
+    elif not _valid_followup(receipt, predecessor, fingerprint, contract.get("transition_requirements")):
         return {}
     projected = dict(contract)
     projected["primary_operation"] = receipt.operation
     projected["allowed_operations"] = [receipt.operation]
+    if predecessor is not None:
+        previous = getattr(predecessor, "receipt", None)
+        transition = _transition_requirement(
+            getattr(previous, "operation", ""), contract.get("transition_requirements"),
+        )
+        if transition is None or transition[0] != receipt.operation:
+            return {}
+        projected["required_evidence"] = list(transition[1])
     return projected
 
 
 def _valid_followup(receipt, predecessor, fingerprint: str, transitions: Any) -> bool:
     previous = getattr(predecessor, "receipt", None)
+    transition = _transition_requirement(getattr(previous, "operation", ""), transitions)
     return (
         getattr(predecessor, "status", None) is StepExecutionStatus.SUCCESS
         and isinstance(previous, StepOperationReceipt)
         and previous.scope_preserved is True
         and previous.operation_contract_fingerprint == fingerprint
-        and len(_transition_targets(previous.operation, transitions)) == 1
-        and _transition_targets(previous.operation, transitions)[0] == receipt.operation
+        and transition is not None
+        and transition[0] == receipt.operation
     )
 
 
-def _transition_targets(operation: str, values: Any) -> tuple[str, ...]:
-    targets = []
-    for value in _values(values):
-        left, separator, right = value.partition("->")
-        if separator and left == operation and right and right not in targets:
-            targets.append(right)
-    return tuple(targets)
+def _transition_requirement(operation: str, values: Any) -> tuple[str, tuple[str, ...]] | None:
+    matches = []
+    for value in values if isinstance(values, (list, tuple)) else ():
+        if not isinstance(value, Mapping) or _clean(value.get("source_operation")) != operation:
+            continue
+        target = _clean(value.get("target_operation"))
+        evidence = _values(value.get("required_evidence"))
+        if target:
+            matches.append((target, evidence))
+    return matches[0] if len(matches) == 1 else None
 
 
 def _values(value: Any) -> tuple[str, ...]:

@@ -37,6 +37,7 @@ def start_task_loop(
     receipt_validator=None,
     receipt_validator_factory=None,
     receipt_mode: bool = False,
+    followup_planner=None,
 ) -> TaskLoopResult:
     snapshot = TaskLoopSnapshot(plan_id=plan.plan_id or "task-loop", conversation_id=conversation_id,
                                 objective=_resolve_objective(plan, objective), state=TaskLoopState.EXECUTING,
@@ -59,6 +60,7 @@ def start_task_loop(
         receipt_validator=receipt_validator,
         receipt_validator_factory=receipt_validator_factory,
         receipt_mode=receipt_mode,
+        followup_planner=followup_planner,
     )
 def continue_task_loop(
     snapshot: TaskLoopSnapshot,
@@ -76,6 +78,7 @@ def continue_task_loop(
     receipt_validator=None,
     receipt_validator_factory=None,
     receipt_mode: bool = False,
+    followup_planner=None,
 ) -> TaskLoopResult:
     if snapshot.state != TaskLoopState.WAITING:
         raise ValueError("continue_task_loop requires a WAITING snapshot")
@@ -102,6 +105,7 @@ def continue_task_loop(
         receipt_validator=receipt_validator,
         receipt_validator_factory=receipt_validator_factory,
         receipt_mode=receipt_mode,
+        followup_planner=followup_planner,
         approved_step_id=snapshot.pending_step if snapshot.stop_reason == StopReason.RISK_GATE_REQUIRED else "",
     )
 def _resume_index(snapshot: TaskLoopSnapshot, total_steps: int) -> int:

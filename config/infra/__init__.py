@@ -31,6 +31,7 @@ from config.infra.paths import (
     WORKSPACE_BASE,
     LOG_LEVEL,
     MASTER_SETTINGS_FILE,
+    get_custom_mcps_dir,
 )
 
 __all__ = [
@@ -46,4 +47,5 @@ __all__ = [
     "WORKSPACE_BASE",
     "LOG_LEVEL",
     "MASTER_SETTINGS_FILE",
+    "get_custom_mcps_dir",
 ]

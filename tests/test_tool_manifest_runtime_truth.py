@@ -108,7 +108,11 @@ def test_descriptor_from_raw_includes_legacy_v1_tool_with_minimal_mirror_entry()
 
 
 def test_descriptor_from_raw_populates_mirror_metadata_from_tool_intent_meta():
-    raw = {"name": "container_inspect", "tool_intent": _v2_tool_intent()}
+    raw = {
+        "name": "container_inspect",
+        "outputSchema": {"type": "object"},
+        "tool_intent": _v2_tool_intent(),
+    }
     descriptor = descriptor_from_raw(raw)
     assert descriptor is not None
     assert descriptor.mirror_schema_version == 2
@@ -124,7 +128,11 @@ def test_descriptor_from_raw_projects_output_schema_from_tool_intent():
     spurlos zwischen Mirror und ToolDescriptor verloren - descriptor_from_raw()
     las das Feld nie aus tool_intent. SP3-D-Fix: muss jetzt projiziert
     werden."""
-    raw = {"name": "container_inspect", "tool_intent": _v2_tool_intent()}
+    raw = {
+        "name": "container_inspect",
+        "outputSchema": {"type": "object"},
+        "tool_intent": _v2_tool_intent(),
+    }
     descriptor = descriptor_from_raw(raw)
     assert descriptor is not None
     assert descriptor.capability_output_schema == "mcp_output_schema"
@@ -132,7 +140,11 @@ def test_descriptor_from_raw_projects_output_schema_from_tool_intent():
 
 def test_list_available_tools_intersects_live_discovery_with_mirror():
     raw_tools = [
-        {"name": "container_inspect", "tool_intent": _v2_tool_intent()},
+        {
+            "name": "container_inspect",
+            "outputSchema": {"type": "object"},
+            "tool_intent": _v2_tool_intent(),
+        },
         {"name": "ghost_tool", "description": "Live, but no mirror entry.", "tool_intent": {}},
     ]
     descriptors = list_available_tools(raw_tools)

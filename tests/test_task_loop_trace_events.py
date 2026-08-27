@@ -40,8 +40,9 @@ def test_task_loop_state_exposes_runtime_budgets():
     assert event["max_tool_calls"] == 5
     assert event["deadline_set"] is True
     provenance = next(item for item in events if item.get("type") == "task_loop_provenance")
-    assert provenance["validated_evidence_types"] == []
-    assert provenance["generic_tool_result_count"] == 1
+    assert "validated_evidence_types" not in provenance
+    assert "generic_tool_result_count" not in provenance
+    assert "artifact_count" not in provenance
     assert "deadline_ts" not in event
     assert "1234.5" not in repr(event)
 

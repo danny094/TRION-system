@@ -111,15 +111,6 @@ def get_grounding_state_ttl_s() -> int:
     return max(30, min(86400, val))
 
 
-def get_grounding_no_evidence_fallback_mode() -> str:
-    """Fallback-Modus wenn Tool-Artefakte vorliegen, aber keine verifizierte Evidence."""
-    raw = str(settings.get(
-        "GROUNDING_NO_EVIDENCE_FALLBACK_MODE",
-        os.getenv("GROUNDING_NO_EVIDENCE_FALLBACK_MODE", "explicit_unknown"),
-    )).strip().lower()
-    return raw if raw in {"off", "explicit_unknown"} else "explicit_unknown"
-
-
 def get_daily_context_followup_enable() -> bool:
     """Leichten Daily-Context-Fallback für temporale Followup-Turns aktivieren."""
     return str(settings.get(

@@ -2,7 +2,7 @@ from core.orchestrator.contracts import ToolDescriptor
 from core.pipeline.task_loop_stage import build_task_loop_stage
 from core.task_loop.contracts import EvidenceArtifact, TaskLoopState
 from core.task_loop.evidence_adapter import validated_evidence_artifacts
-from core.task_loop.executor import TaskToolResult
+from core.task_loop.executor import TaskStructuralValidationStatus, TaskToolResult
 from core.task_loop.task_loop import start_task_loop
 from core.thinking.contracts import PlanStep, RiskLevel, ThinkingPlan
 from tests.operation_contract_context import canonical_contract_context
@@ -37,6 +37,8 @@ def test_evidence_adapter_stamps_operation_contract_fingerprint():
         output={"status": "running"},
         tool_detail=_detail(),
         operation_contract_fingerprint="fp-123",
+        structural_result=object(),
+        structural_validation_status=TaskStructuralValidationStatus.VALID,
     )
 
     assert artifacts[0]["metadata"]["validated_evidence"] is True
@@ -49,6 +51,8 @@ def test_evidence_adapter_does_not_set_fake_fingerprint():
         step_id="s1",
         output={"status": "running"},
         tool_detail=_detail(),
+        structural_result=object(),
+        structural_validation_status=TaskStructuralValidationStatus.VALID,
     )
 
     assert artifacts[0]["metadata"]["validated_evidence"] is True
@@ -57,7 +61,12 @@ def test_evidence_adapter_does_not_set_fake_fingerprint():
 
 def test_task_loop_stage_stamps_evidence_from_routing_frame_fingerprint():
     def runner(_call):
-        return TaskToolResult(success=True, result={"status": "running"})
+        return TaskToolResult(
+            success=True,
+            result={"status": "running"},
+            structural_result=object(),
+            structural_validation_status=TaskStructuralValidationStatus.VALID,
+        )
 
     context = canonical_contract_context(
         primary_operation="inspect", allowed_operations=("inspect",),

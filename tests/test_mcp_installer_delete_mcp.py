@@ -20,6 +20,13 @@ import pytest
 from fastapi import HTTPException
 
 
+def _absent_confirmation():
+    from mcp.catalog_contracts import CatalogRevocationOutcome, MCPDesiredState, MCPRegistryReloadConfirmation, MCPToolCatalogSnapshot
+
+    snapshot = MCPToolCatalogSnapshot.from_parts(MCPDesiredState({}, {}), {}, {}, {}, {}, {})
+    return MCPRegistryReloadConfirmation(snapshot, CatalogRevocationOutcome(0))
+
+
 def test_delete_mcp_removes_registry_then_reloads_hub_before_deleting_bundle(monkeypatch, tmp_path):
     # SP3 Lifecycle-Invariante (Uninstall-Reihenfolge): Mirror entfernen ->
     # Hub reload -> Bundle entfernen. Andernfalls haelt der Hub nach dem
@@ -52,7 +59,7 @@ def test_delete_mcp_removes_registry_then_reloads_hub_before_deleting_bundle(mon
     monkeypatch.setattr(
         manage_routes,
         "reload_hub_registry",
-        lambda hub: order.append(("reload_hub_registry", mcp_dir.exists())) or "reload_registry",
+        lambda hub: order.append(("reload_hub_registry", mcp_dir.exists())) or _absent_confirmation(),
     )
 
     real_rmtree = manage_routes.shutil.rmtree
@@ -101,7 +108,7 @@ def test_delete_mcp_ignores_tampered_owned_paths_outside_the_bundle_dir(monkeypa
     import mcp.installer_manage_routes as manage_routes
 
     monkeypatch.setattr(manage_routes, "remove_registry_entry", lambda name: None)
-    monkeypatch.setattr(manage_routes, "reload_hub_registry", lambda hub: "reload_registry")
+    monkeypatch.setattr(manage_routes, "reload_hub_registry", lambda hub: _absent_confirmation())
 
     result = asyncio.run(manage_routes.delete_mcp("demo"))
 
@@ -164,7 +171,7 @@ def test_delete_mcp_raises_when_bundle_directory_survives_deletion(monkeypatch, 
     import mcp.installer_manage_routes as manage_routes
 
     monkeypatch.setattr(manage_routes, "remove_registry_entry", lambda name: None)
-    monkeypatch.setattr(manage_routes, "reload_hub_registry", lambda hub: "reload_registry")
+    monkeypatch.setattr(manage_routes, "reload_hub_registry", lambda hub: _absent_confirmation())
     monkeypatch.setattr(manage_routes.shutil, "rmtree", lambda path: None)  # simuliert Loeschfehler
 
     with pytest.raises(HTTPException):

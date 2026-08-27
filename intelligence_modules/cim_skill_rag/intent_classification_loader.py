@@ -1,11 +1,11 @@
 """Lädt Intent-Klassifizierungs-Tokens aus intent_classification_tokens.csv.
 
 Schema: token, token_type, language
-token_types: meta_token, memory_domain_token, capability_test_token
+token_types: meta_token
 
-Ersetzt die hardcodierten Konstanten META_TOKENS, MEMORY_TOKENS und das
-Inline-Tupel für capability_test in core/routing_frame/builder/intent.py.
-(PIANO 1.0 D1-Vollfix, 2026-06-12)
+Laedt ausschliesslich die Meta-Tokens fuer
+core/routing_frame/builder/intent.py. Memory-Domain und Capability-Test-
+Projektion liegen seit P11 SP8 R5 in der TMR-Regelquelle.
 
 Mtime-basiertes Hot-Reload — kein @lru_cache.
 """

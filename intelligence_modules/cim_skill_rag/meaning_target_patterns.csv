@@ -1,0 +1,5 @@
+pattern,language
+"(?<![\w./-])(?P<target>(?:[a-z0-9_][a-z0-9._-]*/)*[a-z0-9_][a-z0-9._-]*\.[a-z0-9][a-z0-9_-]*)(?![\w./-])",any
+"(?<![\w./-])(?P<target>(?:[a-z0-9_][a-z0-9._-]*/)+[a-z0-9_][a-z0-9._-]*)(?![\w./-])",any
+"""(?P<target>[^""\r\n]+)""",any
+"(?<![\w-])(?:logs\s+des\s+containers|logzeilen\s+von)\s+(?P<target>(?:[a-f0-9]{64}|[a-z][a-z0-9_-]*(?:\.[a-z0-9_-]+)*))(?![\w-])",de

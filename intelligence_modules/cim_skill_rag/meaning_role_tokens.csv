@@ -7,3 +7,5 @@ home space,en,scope,home
 this container,en,scope,home
 trion-home,de,target_alias,trion-home
 trion-home,en,target_alias,trion-home
+workspace,de,scope,home_if_files
+workspace,en,scope,home_if_files

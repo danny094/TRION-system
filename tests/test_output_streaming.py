@@ -11,6 +11,7 @@ from core.models import CoreChatRequest, Message, MessageRole
 from core.output.contracts import OutputRequest, OutputResult
 from core.output.output import generate_output
 from core.output.stream import complete_output
+from core.pipeline.output_evidence_contracts import OutputEvidenceHandoff, OutputEvidenceState
 from core.thinking.contracts import RiskLevel, ThinkingPlan
 
 
@@ -21,7 +22,12 @@ def _request(stream: bool) -> OutputRequest:
         needs_task_loop=False,
         risk_level=RiskLevel.SAFE,
     )
-    return OutputRequest(user_text="Hi", thinking_plan=plan, stream=stream)
+    return OutputRequest(
+        user_text="Hi",
+        thinking_plan=plan,
+        output_evidence=OutputEvidenceHandoff(OutputEvidenceState.NO_TASK_LOOP),
+        stream=stream,
+    )
 
 
 def _chat_request() -> CoreChatRequest:
@@ -148,11 +154,13 @@ def test_response_to_ndjson_skips_content_event_when_already_streamed():
     assert payloads_non_streamed[0]["content"] == "this should not be re-emitted"
 
 
-def test_generate_output_defers_streaming_for_risky_claims():
-    seen = {"chunk_sink_present": None}
+def test_generate_output_blocks_unverified_stream_before_sink():
+    seen = {"complete_called": False}
+    chunks = []
 
     async def fake_complete_output(output_request, chat_request, **kwargs):
-        seen["chunk_sink_present"] = callable(kwargs.get("chunk_sink"))
+        seen["complete_called"] = True
+        kwargs["chunk_sink"]("leaked runtime claim")
         return OutputResult(content="Unbekannt. Es liegen keine verifizierten Tool-Fakten vor.")
 
     result = asyncio.run(
@@ -160,14 +168,16 @@ def test_generate_output_defers_streaming_for_risky_claims():
             OutputRequest(
                 user_text="Wie viel RAM oder VRAM hast du gerade?",
                 thinking_plan=_request(stream=True).thinking_plan,
+                output_evidence=OutputEvidenceHandoff(OutputEvidenceState.NO_TASK_LOOP),
                 context={},
                 stream=True,
             ),
             _chat_request(),
             complete_output_fn=fake_complete_output,
-            chunk_sink=lambda _: None,
+            chunk_sink=chunks.append,
         )
     )
 
-    assert seen["chunk_sink_present"] is False
+    assert seen["complete_called"] is False
+    assert chunks == []
     assert "Unbekannt" in result.content

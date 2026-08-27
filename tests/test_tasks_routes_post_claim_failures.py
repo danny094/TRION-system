@@ -47,7 +47,7 @@ def test_real_task_loop_executor_exception_after_claim_finalizes_blocked(monkeyp
     monkeypatch.setattr(routes, "get_available_tools", lambda: [_raw_tool()])
     monkeypatch.setattr(routes, "make_tool_runner", lambda: lambda _call: TaskToolResult(True, {}))
     monkeypatch.setattr(
-        "core.task_loop.runner.execute_step",
+        "core.task_loop.execution_runner.execute_step",
         lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("EXECUTOR_SECRET_SENTINEL")),
     )
     response = asyncio.run(routes.approve_task(task_id, routes.TaskApproveRequest()))

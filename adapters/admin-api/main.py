@@ -143,4 +143,7 @@ async def startup_event():
 
 @app.on_event("shutdown")
 async def shutdown_event():
+    from mcp.hub import get_hub
+
+    await asyncio.to_thread(get_hub().shutdown)
     logger.info("TRION Admin API shutting down.")

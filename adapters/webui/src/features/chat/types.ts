@@ -19,3 +19,13 @@ export interface ChatSession {
   createdAt: string
   updatedAt: string
 }
+
+export interface ChatState {
+  sessions: ChatSession[]
+  activeSessionId: SessionId | null
+  createSession: () => SessionId
+  activateSession: (sessionId: SessionId) => void
+  closeSession: (sessionId: SessionId) => void
+  sendMessage: (content: string) => Promise<void>
+  approveWaitingTask: (sessionId: SessionId, messageId: string, taskId: string) => Promise<void>
+}

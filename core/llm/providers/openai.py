@@ -6,7 +6,7 @@ from typing import Any, AsyncGenerator, Dict, Iterable, List
 import httpx
 
 from core.llm.messages import flatten_content, normalize_openai_messages
-from core.llm.provider_registry import openai_base
+from core.llm.provider_registry import provider_base
 from core.llm.rate_limits import capture_rate_limit_headers
 from core.llm.secrets import resolve_cloud_api_key
 
@@ -35,7 +35,7 @@ async def complete_chat(
     if tools:
         body["tools"] = tools
     async with httpx.AsyncClient(timeout=timeout_s) as client:
-        response = await client.post(f"{openai_base()}/chat/completions", json=body, headers=await _headers(provider))
+        response = await client.post(f"{provider_base(provider)}/chat/completions", json=body, headers=await _headers(provider))
         capture_rate_limit_headers(provider, response.headers, response.status_code)
         response.raise_for_status()
         data = response.json()
@@ -59,7 +59,7 @@ async def stream_chat_events(
         "stream": True,
     }
     async with httpx.AsyncClient(timeout=timeout_s) as client:
-        async with client.stream("POST", f"{openai_base()}/chat/completions", json=body, headers=await _headers(provider)) as response:
+        async with client.stream("POST", f"{provider_base(provider)}/chat/completions", json=body, headers=await _headers(provider)) as response:
             capture_rate_limit_headers(provider, response.headers, response.status_code)
             response.raise_for_status()
             async for line in response.aiter_lines():
@@ -89,7 +89,7 @@ async def complete_prompt(*, provider: str, model: str, prompt: str, timeout_s: 
     if json_mode:
         body["response_format"] = {"type": "json_object"}
     async with httpx.AsyncClient(timeout=timeout_s) as client:
-        response = await client.post(f"{openai_base()}/chat/completions", json=body, headers=await _headers(provider))
+        response = await client.post(f"{provider_base(provider)}/chat/completions", json=body, headers=await _headers(provider))
         capture_rate_limit_headers(provider, response.headers, response.status_code)
         response.raise_for_status()
         data = response.json()

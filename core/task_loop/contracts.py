@@ -117,6 +117,7 @@ class StepExecutionResult:
     artifacts: List[Dict[str, Any]] = field(default_factory=list)
     tool_call_started: bool = False
     receipt: Optional[StepOperationReceipt] = None
+    structural_result: object | None = None
 
 
 @dataclass(frozen=True)
@@ -179,3 +180,7 @@ class TaskLoopResult:
     snapshot: TaskLoopSnapshot
     completion_status: CompletionStatus = CompletionStatus.INCOMPLETE
     active_plan: Any = None
+    structural_results: tuple[object | None, ...] = ()
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "structural_results", tuple(self.structural_results))

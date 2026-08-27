@@ -1,4 +1,5 @@
 from core.orchestrator.contracts import ToolDescriptor
+from core.pipeline.output_evidence_contracts import OutputEvidenceItem, OutputEvidenceState
 from core.pipeline.task_loop_stage import build_task_loop_stage
 from core.task_loop.contracts import StepExecutionStatus, TaskLoopState
 from core.task_loop.executor import TaskToolResult
@@ -36,15 +37,21 @@ def test_successful_replan_starts_new_receipt_epoch_and_returns_active_plan():
 
     def runner(call):
         calls.append(call.step_id)
-        return TaskToolResult(call.step_id == "new-step", {})
+        return TaskToolResult(
+            call.step_id == "new-step",
+            {},
+            structural_result={"step": call.step_id} if call.step_id == "new-step" else None,
+        )
 
-    result = build_task_loop_stage(
+    stage = build_task_loop_stage(
         original, conversation_id="conv", objective="run", task_loop_fn=start_task_loop,
         tool_runner=runner, replanner_fn=lambda *_args, **_kwargs: replanned,
         max_steps=4, max_retries_per_step=0, max_replans=1,
         available_tools=[_tool()], receipt_tool_descriptors=[_tool()],
         orchestrator_context=canonical_contract_context(allowed_transitions=()),
-    ).result
+        project_output_evidence_item=lambda value: OutputEvidenceItem(value),
+    )
+    result = stage.result
 
     assert calls == ["old-step", "new-step"]
     assert result.state is TaskLoopState.COMPLETED
@@ -55,6 +62,8 @@ def test_successful_replan_starts_new_receipt_epoch_and_returns_active_plan():
     execution = result.snapshot.step_operation_executions[0]
     assert execution.receipt.step_id == "new-step"
     assert execution.status is StepExecutionStatus.SUCCESS
+    assert stage.output_evidence.state is OutputEvidenceState.COMPLETE_WITH_VALIDATED_EVIDENCE
+    assert stage.output_evidence.items == (OutputEvidenceItem({"step": "new-step"}),)
 
 
 def test_replan_to_answer_resets_old_plan_position_provenance():

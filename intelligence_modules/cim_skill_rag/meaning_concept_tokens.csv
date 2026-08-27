@@ -18,3 +18,31 @@ neustarten,de,lifecycle_action,container
 logs,de,log_state,container
 logs,en,log_state,container
 protokoll,de,log_state,container
+logzeilen,de,log_state,container
+weisst du noch,de,memory_recall,memory
+weißt du noch,de,memory_recall,memory
+erinnerst du dich,de,memory_recall,memory
+erinnern sie sich,de,memory_recall,memory
+what do you remember,en,memory_recall,memory
+do you remember,en,memory_recall,memory
+memory,any,,memory
+gedaechtnis,de,,memory
+gedächtnis,de,,memory
+stichwortsuche,de,memory_search,memory
+such,de,memory_search,memory
+suche,de,memory_search,
+suchen,de,memory_search,memory
+erinnerung,de,,memory
+erinnerungen,de,,memory
+search,en,memory_search,
+stichwort,de,capability_test,
+pruef,de,capability_test,
+prüf,de,capability_test,
+teste,de,capability_test,
+gibt es,de,presence,
+gibt,de,presence,
+existiert,de,presence,
+exists,en,presence,
+exist,en,presence,
+datei,de,,files
+file,en,,files

@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from dataclasses import fields
 from typing import Any, get_args, get_origin
 
-from core.routing_frame.contracts import FieldProvenance, OperationContract
+from core.routing_frame.contracts import FieldProvenance, OperationContract, OperationTransition
 
 
 def parse_operation_contract(value: Any) -> OperationContract | None:
@@ -22,7 +22,7 @@ def parse_operation_contract(value: Any) -> OperationContract | None:
         parsed[item.name] = parsed_value
     try:
         contract = OperationContract(**parsed)
-    except TypeError:
+    except (TypeError, ValueError):
         return None
     if not _nonempty_string(contract.domain) or not _nonempty_string(contract.primary_operation):
         return None
@@ -41,6 +41,9 @@ def _field_value(annotation: Any, value: Any) -> Any:
     if origin is tuple and args == (str, Ellipsis):
         parsed = _string_tuple(value)
         return parsed if parsed is not None else _INVALID
+    if origin is tuple and args == (OperationTransition, Ellipsis):
+        parsed = _transition_tuple(value)
+        return parsed if parsed is not None else _INVALID
     if origin is dict and args == (str, FieldProvenance):
         parsed = _provenance(value)
         return parsed if parsed is not None else _INVALID
@@ -53,6 +56,25 @@ def _string_tuple(value: Any) -> tuple[str, ...] | None:
     ):
         return None
     return tuple(value)
+
+
+def _transition_tuple(value: Any) -> tuple[OperationTransition, ...] | None:
+    if not isinstance(value, (list, tuple)):
+        return None
+    result = []
+    for raw in value:
+        if not isinstance(raw, Mapping) or set(raw) != {
+            "source_operation", "target_operation", "required_evidence",
+        }:
+            return None
+        evidence = _string_tuple(raw.get("required_evidence"))
+        try:
+            result.append(OperationTransition(
+                raw.get("source_operation"), raw.get("target_operation"), evidence,
+            ))
+        except (TypeError, ValueError):
+            return None
+    return tuple(result)
 
 
 def _provenance(value: Any) -> dict[str, FieldProvenance] | None:

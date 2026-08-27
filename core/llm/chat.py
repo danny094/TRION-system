@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List
 
+from core.llm.provider_registry import get_provider_spec
 from core.llm.providers import normalize_provider, provider_runtime_module
 from core.llm.reasoning_sanitizer import sanitize_reasoning_text
 
@@ -26,7 +27,8 @@ async def complete_chat(
     }
     if provider_norm in {"ollama", "ollama_cloud"}:
         kwargs["ollama_endpoint"] = ollama_endpoint
-    if tools and provider_norm in {"ollama", "ollama_cloud", "openai"}:
+    supports_openai_tools = get_provider_spec(provider_norm).api_style == "openai"
+    if tools and (provider_norm in {"ollama", "ollama_cloud"} or supports_openai_tools):
         kwargs["tools"] = tools
     result = await impl.complete_chat(**kwargs)
     if isinstance(result, dict):

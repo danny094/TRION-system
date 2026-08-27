@@ -1,28 +1,24 @@
-"""
-Memory Routes — Admin-API-Schicht fuer die WebUI Memory-App.
+"""WebUI Memory-Routen via live-discovered SQL-Memory-MCP-Tools.
 
-Stabile, UI-freundliche Endpunkte unter ``/api/memory/*``. Intern werden die
-existierenden SQL-Memory-MCP-Tools via ``mcp/client.py`` aufgerufen — keine
-hartcodierten Tool-Listen, keine Tool-Existenz-Behauptung ausserhalb der
-Live-Discovery (siehe docs/memory-grounding/34-semantic-tool-truth-drift.md, docs/governance/36-lifecycle-rules.md
-Regel 2).
-
-Scope-Abgrenzung:
-- diese Datei deckt die WebUI Memory-App ab
-- ``trion_memory_routes.py`` ist ein separater aelterer Home-/Note-Pfad an
-  ``container_commander`` (Root-Pfade /recent, /recall, /remember, /status) und
-  wird hier bewusst nicht ersetzt
+Der aeltere ``trion_memory_routes.py``-Home-/Note-Pfad bleibt separat.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 
 from core.conversation_meta.defaults import build_conversation_meta, build_default_conversation_meta
 from core.conversation_meta.policy import build_effective_policy
 from mcp.client import call_tool, get_conversation_meta
+from memory_route_contracts import (
+    DeleteBulkRequest,
+    SearchRequest,
+    _badge_from_policy,
+    _policy_response as _build_policy_response,
+)
+from mcp.tool_result_contracts import MCPResultPresence, MCPToolCallStatus, MCPToolResultEnvelope
 from utils.logger import log_error
 
 router = APIRouter()
@@ -30,86 +26,34 @@ router = APIRouter()
 _DEFAULT_TIMEOUT_S = 5.0
 
 
-# ── Request Models ─────────────────────────────────────────────────
-
-class SearchRequest(BaseModel):
-    query: str
-    mode: str = "fts"
-    conversation_id: Optional[str] = None
-    limit: int = 10
-
-
-class DeleteBulkRequest(BaseModel):
-    ids: List[int]
+def _policy_response(conversation_id: str, raw_meta: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    return _build_policy_response(
+        conversation_id,
+        raw_meta,
+        build_conversation_meta,
+        build_default_conversation_meta,
+        build_effective_policy,
+    )
 
 
-# ── Helpers ────────────────────────────────────────────────────────
+def _mcp_error(result: Any) -> Optional[str]:
+    if not isinstance(result, MCPToolResultEnvelope):
+        return "invalid_tool_result"
+    if result.status is MCPToolCallStatus.SUCCESS:
+        return None
+    return result.status.name.lower()
 
-def _entries_from_result(payload: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Normalisiert eine MCP-Tool-Antwort auf eine flache Liste von Eintraegen."""
-    if not isinstance(payload, dict):
+
+def _entries_from_result(result: MCPToolResultEnvelope) -> list[dict[str, Any]]:
+    if result.structured_content_presence is MCPResultPresence.MISSING:
         return []
-    result = payload.get("result")
-    if isinstance(result, dict):
-        structured = result.get("structuredContent")
-        if isinstance(structured, dict):
-            entries = structured.get("entries")
-            if isinstance(entries, list):
-                return [item for item in entries if isinstance(item, dict)]
-        for key in ("entries", "results", "items"):
-            value = result.get(key)
-            if isinstance(value, list):
-                return [item for item in value if isinstance(item, dict)]
-        if isinstance(result, list):
-            return [item for item in result if isinstance(item, dict)]
-    if isinstance(result, list):
-        return [item for item in result if isinstance(item, dict)]
+    structured = jsonable_encoder(result.structured_content)
+    for key in ("entries", "results", "items", "conversations"):
+        entries = structured.get(key) if isinstance(structured, dict) else None
+        if isinstance(entries, list):
+            return [item for item in entries if isinstance(item, dict)]
     return []
 
-
-def _mcp_error(payload: Optional[Dict[str, Any]]) -> Optional[str]:
-    if not isinstance(payload, dict):
-        return "no_mcp_response"
-    if "error" in payload:
-        value = payload.get("error")
-        return str(value) if value is not None else None
-    return None
-
-
-def _badge_from_policy(meta: Dict[str, Any]) -> str:
-    memory_block = meta.get("memory") if isinstance(meta.get("memory"), dict) else {}
-    status = meta.get("status") if isinstance(meta.get("status"), dict) else {}
-    if bool(status.get("temporary")):
-        return "temporary"
-    if bool(memory_block.get("do_not_remember")):
-        return "do_not_remember"
-    mode = str(memory_block.get("mode") or "global_enabled").strip().lower()
-    if mode in {"global_enabled", "conversation_only", "disabled"}:
-        return mode
-    return "global_enabled"
-
-
-def _policy_response(conversation_id: str, raw_meta: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-    meta = build_conversation_meta(raw_meta, conversation_id) if isinstance(raw_meta, dict) else build_default_conversation_meta(conversation_id)
-    policy = build_effective_policy(meta)
-    if policy.temporary:
-        badge = "temporary"
-    elif policy.do_not_remember:
-        badge = "do_not_remember"
-    else:
-        badge = policy.memory_mode.value
-    return {
-        "conversation_id": conversation_id,
-        "memory_mode": policy.memory_mode.value,
-        "allow_global_memory_read": policy.allow_global_memory_read,
-        "allow_long_term_write": policy.allow_long_term_write,
-        "do_not_remember": policy.do_not_remember,
-        "temporary": policy.temporary,
-        "badge": badge,
-    }
-
-
-# ── Routes ─────────────────────────────────────────────────────────
 
 @router.get("/api/memory/recent")
 async def memory_recent(conversation_id: Optional[str] = None, limit: int = 20):

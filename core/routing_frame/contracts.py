@@ -38,9 +38,9 @@ class MeaningRepresentation:
     """TRION Meaning Representation (TMR) — Doc 55.
 
     Normalisiert die Bedeutung einer Nutzeranfrage vor Routing/Operationswahl.
-    Nicht autoritativ: nur Shadow-Trace gemaess Doc 55 "Migration und
-    Lifecycle" / Plan-A10. Enthaelt bewusst keinen Toolnamen und keine
-    erlaubte Operation (Doc 55 A1 / "TMR darf nicht").
+    Nur occurrence-genau kartierte, vollstaendig provenance-gebundene Paare
+    duerfen ueber den einzigen R5-Projektionsowner Routing-Signale setzen.
+    Enthaelt bewusst keinen Toolnamen und keine erlaubte Operation.
 
     Feldnamen und -reihenfolge sind gemaess P11-Plan bindend ("Zielcontracts").
     """
@@ -78,12 +78,33 @@ class RawSignals:
     repeat_count: int
     home_scope_verified: bool
     self_context_present: bool
-    # P11 SP1: TMR ist Shadow-Trace, keine produktive Autoritaet (Doc55 A10).
-    # build_routing_frame() darf `meaning` ausschliesslich sanitisiert in
-    # source_signals["meaning_shadow_trace"] spiegeln (reine Diagnose) —
-    # niemals zur Entscheidungsfindung (intent_kind/domain/evidence_need/
-    # execution_mode/requested_operation_family/reasons) lesen.
+    # P11 SP8 R5: Der Builder darf `meaning` genau einmal durch den
+    # datengetriebenen Projektionsowner lesen. Nicht kartierte, mehrdeutige
+    # oder unzureichend belegte Bedeutungen bleiben ausschliesslich im
+    # sanitisierten meaning_shadow_trace.
     meaning: Optional[MeaningRepresentation] = None
+
+
+@dataclass(frozen=True)
+class OperationTransition:
+    """Typed successor operation and its contract-owned evidence need."""
+
+    source_operation: str
+    target_operation: str
+    required_evidence: Tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        operations = (self.source_operation, self.target_operation)
+        if any(type(value) is not str or not value or value != value.strip() for value in operations):
+            raise ValueError("operation_transition_invalid_operation")
+        if type(self.required_evidence) is not tuple or any(
+            type(value) is not str or not value or value != value.strip() for value in self.required_evidence
+        ):
+            raise ValueError("operation_transition_invalid_evidence")
+
+    @property
+    def edge(self) -> str:
+        return f"{self.source_operation}->{self.target_operation}"
 
 
 @dataclass(frozen=True)
@@ -109,13 +130,27 @@ class OperationContract:
     domain: str
     primary_operation: str
     target: str
+    targets: Tuple[str, ...]
     detail_fields: Tuple[str, ...]
     mutating_action: bool
     required_evidence: Tuple[str, ...]
     allowed_operations: Tuple[str, ...]
     allowed_transitions: Tuple[str, ...]
+    transition_requirements: Tuple[OperationTransition, ...]
     scope_lock: str
     provenance: Dict[str, FieldProvenance]
+
+    def __post_init__(self) -> None:
+        projected_target = self.targets[0] if self.targets else ""
+        if self.target != projected_target:
+            raise ValueError("operation_contract_target_projection_mismatch")
+        if type(self.transition_requirements) is not tuple or any(
+            type(item) is not OperationTransition for item in self.transition_requirements
+        ):
+            raise ValueError("operation_contract_transition_type_invalid")
+        projected_edges = tuple(item.edge for item in self.transition_requirements)
+        if self.allowed_transitions != projected_edges or len(set(projected_edges)) != len(projected_edges):
+            raise ValueError("operation_contract_transition_projection_mismatch")
 
     @classmethod
     def from_dict(cls, value: Any) -> Optional["OperationContract"]:
@@ -132,11 +167,13 @@ def _empty_operation_contract() -> "OperationContract":
         domain="",
         primary_operation="",
         target="",
+        targets=(),
         detail_fields=(),
         mutating_action=False,
         required_evidence=(),
         allowed_operations=(),
         allowed_transitions=(),
+        transition_requirements=(),
         scope_lock="",
         provenance={},
     )

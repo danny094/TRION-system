@@ -77,7 +77,7 @@ get_output_model()       → str   # Default: qwen2.5:14b
 get_embedding_model()    → str
 
 # Provider
-get_thinking_provider()  → str   # "ollama" | "ollama_cloud" | "openai" | "anthropic" | "openrouter" | "minimax"
+get_thinking_provider()  → str   # "ollama" | "ollama_cloud" | "openai" | "anthropic" | "openrouter" | "deepseek" | "minimax"
 get_control_provider()   → str
 get_output_provider()    → str
 

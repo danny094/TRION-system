@@ -1,6 +1,7 @@
-from typing import Any
+from collections.abc import Mapping
 
 from mcp.client import call_tool
+from mcp.tool_result_contracts import MCPToolCallStatus, MCPToolResultEnvelope
 
 
 def workspace_save_document_chunk(
@@ -18,7 +19,8 @@ def workspace_save_document_chunk(
             "source_layer": source_layer,
         },
     )
-    entry_id = _read_workspace_entry_id(result)
+    structured = _successful_structured(result, "workspace_save_failed")
+    entry_id = int(structured.get("id") or 0)
     if entry_id <= 0:
         raise ValueError("workspace_save_missing_id")
     return entry_id
@@ -41,37 +43,16 @@ def semantic_save_document_chunk(
             "value": value,
         },
     )
-    payload = _unwrap_result(result)
-    if not _is_success(payload):
-        raise ValueError("memory_semantic_save_failed")
-    return payload if isinstance(payload, dict) else {"result": payload}
+    structured = _successful_structured(result, "memory_semantic_save_failed")
+    return dict(structured)
 
 
-def _read_workspace_entry_id(result: Any) -> int:
-    payload = _unwrap_result(result)
-    if not isinstance(payload, dict):
-        return 0
-    structured = payload.get("structuredContent")
-    if isinstance(structured, dict):
-        return int(structured.get("id") or 0)
-    return int(payload.get("id") or 0)
-
-
-def _unwrap_result(result: Any) -> Any:
-    if not isinstance(result, dict):
-        return result
-    if result.get("error"):
-        return {}
-    payload = result.get("result", result)
-    if isinstance(payload, dict) and payload.get("error"):
-        return {}
-    return payload
-
-
-def _is_success(payload: Any) -> bool:
-    if not isinstance(payload, dict):
-        return False
-    if payload.get("success") is True:
-        return True
-    structured = payload.get("structuredContent")
-    return isinstance(structured, dict) and structured.get("success") is True
+def _successful_structured(
+    result: MCPToolResultEnvelope,
+    failure_code: str,
+) -> Mapping[str, object]:
+    if result.status is not MCPToolCallStatus.SUCCESS:
+        raise ValueError(failure_code)
+    if result.structured_content is None:
+        raise ValueError(failure_code)
+    return result.structured_content

@@ -1,5 +1,7 @@
 from typing import Any, Mapping
 
+from core.task_loop.tool_execution_contracts import TaskStructuralValidationStatus
+
 
 def validated_evidence_artifacts(
     *,
@@ -7,8 +9,12 @@ def validated_evidence_artifacts(
     step_id: str,
     output: Mapping[str, Any],
     tool_detail: Mapping[str, Any] | None,
+    structural_result: object | None,
+    structural_validation_status: TaskStructuralValidationStatus = TaskStructuralValidationStatus.MISSING,
     operation_contract_fingerprint: str | None = None,
 ) -> list[dict[str, Any]]:
+    if structural_validation_status is not TaskStructuralValidationStatus.VALID or structural_result is None:
+        return []
     evidence_types = _evidence_types(tool_detail)
     if not evidence_types:
         return []

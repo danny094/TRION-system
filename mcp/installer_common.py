@@ -7,6 +7,7 @@ from typing import Any, Dict
 
 from fastapi import HTTPException
 
+from mcp.catalog_contracts import MCPRegistryReloadConfirmation
 from mcp.installer_health import is_online_flag, run_post_install_health_check
 from mcp.installer_paths import (
     custom_config_path,
@@ -29,6 +30,7 @@ __all__ = [
     "is_installer_owned",
     "validate_mcp_id",
     "load_custom_config",
+    "atomic_write_bytes",
     "atomic_write_text",
     "save_custom_config",
     "resolve_icon_path",
@@ -50,16 +52,22 @@ class InstallationError(Exception):
         self.target_dir = target_dir
 
 
-def reload_hub_registry(hub: Any) -> str:
+def reload_hub_registry(hub: Any) -> MCPRegistryReloadConfirmation:
     reload_fn = getattr(hub, "reload_registry", None)
     if callable(reload_fn):
-        reload_fn()
-        return "reload_registry"
+        confirmation = reload_fn()
+        return _require_reload_confirmation(confirmation)
     refresh_fn = getattr(hub, "refresh", None)
     if callable(refresh_fn):
-        refresh_fn()
-        return "refresh"
+        confirmation = refresh_fn()
+        return _require_reload_confirmation(confirmation)
     raise InstallationError("Hub does not support registry reload/refresh")
+
+
+def _require_reload_confirmation(value: Any) -> MCPRegistryReloadConfirmation:
+    if not isinstance(value, MCPRegistryReloadConfirmation):
+        raise InstallationError("Hub registry reload did not return a typed confirmation")
+    return value
 
 
 def load_custom_config(name: str) -> Dict[str, Any]:
@@ -97,11 +105,20 @@ def atomic_write_text(path: Path, content: str) -> None:
     `_create_unique_tmp_file()` die Tempdatei per `O_CREAT | O_EXCL` mit
     `0o666` an; der Kernel maskiert das atomar mit der Prozess-Umask.
     """
+    if not isinstance(content, str):
+        raise TypeError("content must be str")
+    atomic_write_bytes(path, content.encode("utf-8"))
+
+
+def atomic_write_bytes(path: Path, content: bytes) -> None:
+    """Byte-exakte Variante desselben Temp-/Replace-/Rechte-Vertrags."""
+    if not isinstance(content, bytes):
+        raise TypeError("content must be bytes")
     path.parent.mkdir(parents=True, exist_ok=True)
     existing_mode = stat.S_IMODE(path.stat().st_mode) if path.exists() else None
     fd, tmp_path = _create_unique_tmp_file(path, existing_mode)
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        with os.fdopen(fd, "wb") as handle:
             handle.write(content)
         if existing_mode is not None:
             os.chmod(tmp_path, existing_mode)

@@ -122,14 +122,15 @@ Task Loop checks itself (no LLM):
 ## Supporting layers
 
 ### Config
-All settings come from environment variables — there are no hard-coded values in
-the rest of the code. Modules read configuration through a single `config`
-interface, so models, providers, and budgets can be changed without touching
-source.
+Runtime policy settings flow through the `config` interface so models,
+providers, budgets, CORS, and execution limits can be changed without editing
+their consumers. Some values have local-development defaults; operators must
+review and override them for their deployment boundary.
 
-> **⚠️ Note:** the MCP layer's structured-output and desired-state contracts
-> (`mcp/`) are under active revision. The shape of that layer described here is a
-> moving target and may change between commits.
+The MCP layer now has typed desired-state, catalog, reload-confirmation,
+transport-retirement, and structural-output contracts. Consolidation of the
+phase-one Container Commander surface and its end-to-end evidence handoffs is
+still active, so interfaces may change between development snapshots.
 
 ### Memory
 Memory is its own **isolated MCP server** built on SQLite plus embeddings. It is
@@ -146,12 +147,12 @@ directly, preserving the one-way dependency direction.
 A provider-aware client handles every LLM call behind one interface. Each role —
 `CONTROL`, `THINKING`, `OUTPUT` — can point at a different model and provider.
 
-**Supported providers:** OpenAI · Anthropic · OpenRouter · MiniMax · Ollama
+**Supported providers:** OpenAI · Anthropic · OpenRouter · DeepSeek · MiniMax · Ollama
 (local & cloud).
 
-API keys are never hard-coded. The target architecture stores them encrypted in
-the backend and resolves them internally at the LLM layer; the UI only ever sees
-status (`set`, `empty`, `test failed`), never plaintext.
+Provider credentials are configured outside source and resolved at the backend
+settings boundary. A deployment is responsible for protecting its settings
+store, endpoints, logs, and operator access.
 
 ---
 

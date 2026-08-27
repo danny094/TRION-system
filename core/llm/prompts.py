@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, AsyncGenerator
 
+from core.llm.provider_registry import get_provider_spec
 from core.llm.providers import normalize_provider, provider_runtime_module
 from core.llm.reasoning_sanitizer import StreamingReasoningSanitizer, sanitize_reasoning_text
 
@@ -26,7 +27,7 @@ async def complete_prompt(
     if provider_norm in {"ollama", "ollama_cloud"}:
         kwargs["ollama_endpoint"] = ollama_endpoint
         kwargs["json_mode"] = json_mode
-    elif provider_norm == "openai":
+    elif get_provider_spec(provider_norm).api_style == "openai":
         kwargs["json_mode"] = json_mode
     return sanitize_reasoning_text(await impl.complete_prompt(**kwargs))
 

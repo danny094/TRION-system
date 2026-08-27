@@ -12,14 +12,11 @@ import os
 from config.infra.adapter import settings
 
 
-_VALID_PROVIDERS = {"ollama", "ollama_cloud", "openai", "anthropic", "openrouter", "minimax"}
-
-
 def _normalize_provider(raw: str, default: str = "ollama") -> str:
     provider = str(raw or "").strip().lower()
     if not provider:
         return default
-    return provider if provider in _VALID_PROVIDERS else default
+    return provider
 
 
 def get_output_provider() -> str:

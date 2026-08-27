@@ -3,6 +3,7 @@ import json
 from datetime import datetime, timezone
 
 
+MCP_PROTOCOL_VERSION = "2024-11-05"
 TOOLS = [
     {
         "name": "time_now",
@@ -24,7 +25,7 @@ def handle_request(payload):
             "jsonrpc": "2.0",
             "id": request_id,
             "result": {
-                "protocolVersion": "2024-11-05",
+                "protocolVersion": MCP_PROTOCOL_VERSION,
                 "serverInfo": {"name": "time-mcp", "version": "1.0.0"},
                 "capabilities": {"tools": {"listChanged": False}},
             },

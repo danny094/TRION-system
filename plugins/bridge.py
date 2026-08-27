@@ -5,6 +5,7 @@ import httpx
 
 from config.infra.services import ADMIN_API_URL
 from mcp.client import call_tool
+from mcp.tool_result_contracts import MCPToolResultEnvelope
 from plugins.permissions import is_api_allowed, is_tool_allowed
 
 ALLOWED_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE"}
@@ -21,10 +22,14 @@ async def proxy_request(manifest: dict[str, Any], payload: dict[str, Any]) -> ht
         return await client.request(method, f"{ADMIN_API_URL}{path}", **request_kwargs)
 
 
-def call_permitted_tool(manifest: dict[str, Any], tool_name: str, args: dict[str, Any]) -> dict[str, Any]:
+def call_permitted_tool(
+    manifest: dict[str, Any],
+    tool_name: str,
+    args: dict[str, Any],
+) -> MCPToolResultEnvelope:
     if not is_tool_allowed(manifest, tool_name):
         raise PermissionError(f"Plugin '{manifest['id']}' is not allowed to call tool '{tool_name}'")
-    return call_tool(tool_name, args, timeout=20.0) or {"error": f"tool_unavailable:{tool_name}"}
+    return call_tool(tool_name, args, timeout=20.0)
 
 
 def _validate_path(value: Any) -> str:

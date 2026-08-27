@@ -1,7 +1,9 @@
+from pathlib import Path
+
 from core.task_loop.contracts import EvidenceArtifact, StepExecutionStatus
 from core.task_loop.evidence_adapter import validated_evidence_artifacts
 from core.task_loop.executable_now import details_by_name
-from core.task_loop.executor import TaskToolResult, execute_step
+from core.task_loop.executor import TaskStructuralValidationStatus, TaskToolResult, execute_step
 from core.task_loop.outcome_evaluator import OutcomeAction, evaluate
 from core.orchestrator.contracts import ToolDescriptor
 from core.thinking.contracts import PlanStep, RiskLevel, ThinkingPlan
@@ -29,7 +31,12 @@ def _plan(step: PlanStep) -> ThinkingPlan:
 
 
 def _runner(_call):
-    return TaskToolResult(success=True, result={"status": "running"})
+    return TaskToolResult(
+        success=True,
+        result={"status": "running"},
+        structural_result=object(),
+        structural_validation_status=TaskStructuralValidationStatus.VALID,
+    )
 
 
 def test_tool_success_keeps_tool_result_but_does_not_complete_required_tool_result():
@@ -52,6 +59,8 @@ def test_manifest_evidence_type_creates_validated_evidence_artifact():
         step_id="s1",
         output={"status": "running"},
         tool_detail={"capability_evidence_types": ["runtime_status"]},
+        structural_result=object(),
+        structural_validation_status=TaskStructuralValidationStatus.VALID,
     )
 
     assert artifacts == [
@@ -94,6 +103,31 @@ def test_undeclared_evidence_type_does_not_create_validated_evidence():
         step_id="s1",
         output={"status": "running"},
         tool_detail={"capability_evidence_types": []},
+        structural_result=object(),
+    )
+
+    assert artifacts == []
+
+
+def test_missing_structural_result_does_not_create_validated_evidence():
+    artifacts = validated_evidence_artifacts(
+        tool_name="inspect_container",
+        step_id="s1",
+        output={"status": "running"},
+        tool_detail={"capability_evidence_types": ["runtime_status"]},
+        structural_result=None,
+    )
+
+    assert artifacts == []
+
+
+def test_arbitrary_structural_result_does_not_create_validated_evidence():
+    artifacts = validated_evidence_artifacts(
+        tool_name="inspect_container",
+        step_id="s1",
+        output={"status": "running"},
+        tool_detail={"capability_evidence_types": ["runtime_status"]},
+        structural_result=object(),
     )
 
     assert artifacts == []
@@ -108,3 +142,10 @@ def test_tool_descriptor_details_keep_capability_evidence_types():
     ])
 
     assert details["inspect_container"]["capability_evidence_types"] == ["runtime_status"]
+
+
+def test_sp4_does_not_add_structural_validation_to_p12_evidence_adapter():
+    source = Path(validated_evidence_artifacts.__code__.co_filename).read_text(encoding="utf-8")
+
+    assert "mcp.structural_" not in source
+    assert "MCPStructuralValidation" not in source

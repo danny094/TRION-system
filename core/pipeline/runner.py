@@ -10,12 +10,10 @@ from core.models import CoreChatRequest, CoreChatResponse
 from core.orchestrator.orchestrator import orchestrate
 from core.orchestrator.tools import list_available_tools
 from core.output.output import generate_output
-from core.output.tool_grounding import collect_grounded_tool_results
 from core.pipeline.document_tools_stage import build_document_tools_stage
 from core.pipeline.event_stream import PipelineEventSink, classifier_event, emit_pipeline_event, routing_trace_event, thinking_plan_event, verifier_event
 from core.pipeline.grounding_stage import (
     inject_recent_grounding_state,
-    persist_grounding_state,
     resolve_grounding_state,
 )
 from core.pipeline.log import (
@@ -36,7 +34,7 @@ from core.pipeline.runner_contracts import ChunkSink, OrchestratorFn, OutputFn, 
 from core.pipeline.task_loop_budget import collect_task_loop_budget
 from core.pipeline.task_loop_stage import build_task_loop_stage
 from core.pipeline.thinking_stage import build_thinking_stage
-from core.task_loop.executor import TaskToolCall, TaskToolResult
+from core.task_loop.executor import TaskToolCall, TaskToolResult, TaskToolResultStatus
 from core.task_loop.task_loop import start_task_loop
 from core.thinking.thinking import build_plan
 from core.thinking.replanner import build_replan
@@ -45,7 +43,7 @@ from core.verifier.verifier import verify_plan
 
 def _default_tool_runner(tool_call: TaskToolCall) -> TaskToolResult:
     return TaskToolResult(
-        success=False,
+        status=TaskToolResultStatus.TRANSPORT_FAILURE,
         error=f"tool_runner_missing:{tool_call.tool_name or tool_call.step_id}",
     )
 async def run_chat(
@@ -54,6 +52,7 @@ async def run_chat(
     *,
     task_loop_fn: TaskLoopFn = start_task_loop,
     tool_runner: ToolRunner = _default_tool_runner,
+    project_output_evidence_item: Any = None,
     orchestrator_fn: OrchestratorFn = orchestrate,
     orchestrator_context_sources: Optional[Dict[str, Any]] = None,
     orchestrator_raw_tools: Any = None,
@@ -160,6 +159,7 @@ async def run_chat(
         available_tools=replan_available_tools,
         receipt_tool_descriptors=receipt_tool_descriptors,
         orchestrator_context=orchestrator_stage.context,
+        project_output_evidence_item=project_output_evidence_item,
     )
     log_task_loop(task_loop_stage.result)
     if callable(task_loop_observer) and task_loop_stage.result is not None:
@@ -170,23 +170,15 @@ async def run_chat(
             available_tools=replan_available_tools,
             tool_truth_source=replan_tool_truth_source,
         )
-    grounded_results = collect_grounded_tool_results(task_loop_stage.context)
-    persist_grounding_state(
-        conversation_id=request.conversation_id,
-        history_len=history_len,
-        grounded_results=grounded_results,
-    )
-    grounding_state = resolve_grounding_state(request.conversation_id, history_len)
     output_stage = build_output_stage(
         user_text=user_text,
         thinking_plan=getattr(task_loop_stage.result, "active_plan", None) or plan,
         verifier_result=verifier_result,
         orchestrator_context={**orchestrator_stage.context, **routing_frame_stage.context},
         document_tools_context=document_tools_stage.context,
-        task_loop_context=task_loop_stage.context,
+        output_evidence=task_loop_stage.output_evidence,
         document_context=document_context,
         stream=request.stream,
-        grounding_state=grounding_state,
     )
     output_kwargs: Dict[str, Any] = {"chunk_sink": chunk_sink} if chunk_sink is not None else {}
     output_result = await output_fn(output_stage.output_request, request, **output_kwargs)

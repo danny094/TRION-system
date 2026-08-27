@@ -17,6 +17,6 @@ Version 1 liefert nur:
 - `memory_visibility`
 - `uncertainties`
 
-Fuehrende Architektur-Doc:
+Public architecture reference:
 
-- [docs/memory-grounding/40-self-context-v1.md](/Users/denniskassner/Documents/TRION-github/docs/memory-grounding/40-self-context-v1.md)
+- [Architecture](../../docs/architecture.md)

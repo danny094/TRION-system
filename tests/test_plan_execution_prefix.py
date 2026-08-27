@@ -4,16 +4,26 @@ import pytest
 
 from core.orchestrator.contracts import ToolDescriptor
 from core.pipeline.plan_contract_validator import issue_followup_step_receipt, issue_initial_step_receipt
-from core.pipeline.receipt_validation import build_step_receipt_validator
-from core.task_loop.contracts import StepExecutionStatus, StepOperationExecution, TaskLoopSnapshot, TaskLoopState
+from core.pipeline.output_evidence_contracts import OutputExecutionAttestation
+from core.pipeline.receipt_validation import attest_completed_execution, build_step_receipt_validator
+from core.task_loop.contracts import (
+    CompletionStatus, StepExecutionStatus, StepOperationExecution,
+    TaskLoopResult, TaskLoopSnapshot, TaskLoopState,
+)
 from core.task_loop.executor import TaskToolResult
 from core.task_loop.runner import run_task_loop
 from core.thinking.contracts import PlanStep, RiskLevel, ThinkingPlan
+from core.routing_frame.contracts import OperationTransition
 from tests.operation_contract_context import canonical_contract_context
 
 
 def _context():
-    return canonical_contract_context(allowed_operations=("list",), allowed_transitions=("list->logs",))
+    return canonical_contract_context(
+        allowed_operations=("list",),
+        transition_requirements=(
+            OperationTransition("list", "logs", ("runtime_logs",)),
+        ),
+    )
 
 
 def _tools():
@@ -21,7 +31,7 @@ def _tools():
         ToolDescriptor("inventory", capability_domain="container_runtime", capability_operation="list",
                        capability_evidence_types=[], capability_target_scopes=["runtime_state"], capability_risk="read_only"),
         ToolDescriptor("logs", capability_domain="container_runtime", capability_operation="logs",
-                       capability_evidence_types=[], capability_target_scopes=["runtime_state"], capability_risk="read_only"),
+                       capability_evidence_types=["runtime_logs"], capability_target_scopes=["runtime_state"], capability_risk="read_only"),
     ]
 
 
@@ -152,3 +162,29 @@ def test_three_step_prefix_rejects_reorder_gap_duplicate_extra_and_completed_mis
     assert result.state is TaskLoopState.BLOCKED
     assert calls == []
     assert all(event.get("type") != "tool_start" for event in events)
+
+
+def test_completed_execution_attestation_reuses_receipt_validator() -> None:
+    plan = _plan()
+    initial, followup = _receipts()
+    executions = (
+        StepOperationExecution(initial, StepExecutionStatus.SUCCESS),
+        StepOperationExecution(followup, StepExecutionStatus.SUCCESS),
+    )
+    snapshot = TaskLoopSnapshot(
+        "plan", "conv", "run", TaskLoopState.COMPLETED, 2, 4, 0,
+        completed_steps=["s0", "s1"], step_operation_executions=list(executions),
+    )
+    result = TaskLoopResult(
+        TaskLoopState.COMPLETED, None, [], "done", snapshot,
+        completion_status=CompletionStatus.COMPLETE,
+        structural_results=(object(), object()),
+    )
+    validator = build_step_receipt_validator(_context(), _tools(), plan)
+
+    assert attest_completed_execution(plan, result, validator) == OutputExecutionAttestation(
+        completed_step_ids=("s0", "s1"),
+        operation_contract_fingerprint=initial.operation_contract_fingerprint,
+    )
+    invalid = replace(result, snapshot=replace(snapshot, completed_steps=["s1", "s0"]))
+    assert attest_completed_execution(plan, invalid, validator) is None

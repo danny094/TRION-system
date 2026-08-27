@@ -1,26 +1,23 @@
 # Routing Frame
 
-Shadow-Mode-Schicht fuer den geplanten gemeinsamen Routing-Vertrag.
+Gemeinsame Schicht fuer den produktiven Routing-Vertrag.
 
 Diese Schicht:
 
 - sammelt vorhandene Routing-Signale
 - normalisiert sie in einen `RoutingFrame`
-- trifft noch keine produktive Umschaltung
+- konsumiert occurrence-genau kartierte TMR-Projektionen
 
-P11 SP1: `RawSignals.meaning` (TRION Meaning Representation, TMR) ist ein
-zusaetzliches Shadow-Feld (`core/routing_frame/meaning.py`,
-`meaning_signals.py`, `meaning_shadow_trace.py`). Es ist nicht autoritativ:
-`build_routing_frame()` spiegelt es nur sanitisiert nach
-`source_signals["meaning_shadow_trace"]` (reine Diagnose, kein Doc-10-Event —
-das ist SP7). Keine der Entscheidungs-Ableitungen (intent_kind, domain,
-evidence_need, execution_mode, requested_operation_family, reasons) liest
-`raw.meaning` — Routing und Toolwahl bleiben unveraendert (Doc55 A10). Ein
-Fehler im TMR-Aufbau blockiert die Pipeline nicht
-(`signal_collector._build_meaning_signal_safely` faengt ab).
+P11 SP8 R5: `build_routing_frame()` reicht `RawSignals.meaning` genau einmal
+an `meaning_signal_projection_loader.project_meaning_signals`. Nur
+occurrence-genau kartierte, eindeutige Predicate-/Theme-Paare mit belegter
+Konfidenz duerfen Domain, Intent oder Evidence setzen. Alle anderen TMR-Felder
+bleiben sanitisiertes `meaning_shadow_trace`; TMR waehlt kein Tool und setzt
+keine Safety-/Eligibility-Regel. Ein Fehler im TMR-Aufbau oder eine
+mehrdeutige/niedrig-konfidente Bedeutung bleibt fail-closed ohne Projektion.
 
-Fuehrende Docs:
+Public architecture references:
 
-- [docs/routing/41-routing-ist-zustand.md](/Users/denniskassner/Documents/TRION-github/docs/routing/41-routing-ist-zustand.md)
-- [docs/routing/42-routing-frame-v1.md](/Users/denniskassner/Documents/TRION-github/docs/routing/42-routing-frame-v1.md)
-- [docs/architecture/55-trion-meaning-representation.md](/Users/denniskassner/Documents/TRION-github/docs/architecture/55-trion-meaning-representation.md)
+- [Architecture](../../docs/architecture.md)
+- [TRION Meaning Representation](../../tmr_concept.md)
+- [Operation Contract](../../operation_contract_concept.md)

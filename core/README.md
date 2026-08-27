@@ -108,7 +108,7 @@ Provider-aware Client-Helper für alle LLM-Anfragen.
 Neue Implementierung: `core/llm/`.
 Kompatibilitäts-Fassade: `core/llm_provider_client.py`.
 
-Unterstützte Provider: `ollama`, `ollama_cloud`, `openai`, `anthropic`, `openrouter`, `minimax`.
+Unterstützte Provider: `ollama`, `ollama_cloud`, `openai`, `anthropic`, `openrouter`, `deepseek`, `minimax`.
 
 ### Externe API-Endpunkte
 
@@ -120,6 +120,7 @@ Unterstützte Provider: `ollama`, `ollama_cloud`, `openai`, `anthropic`, `openro
 | OpenAI | `POST /v1/chat/completions` | alle Funktionen |
 | Anthropic | `POST /v1/messages` | alle Funktionen |
 | OpenRouter | `POST /api/v1/chat/completions` | alle Funktionen |
+| DeepSeek | `POST /chat/completions` | alle Funktionen |
 | MiniMax | `POST /v1/chat/completions` | alle Funktionen |
 | Provider Key Store (intern) | Admin-API / SQLite | API-Key-Auflösung |
 

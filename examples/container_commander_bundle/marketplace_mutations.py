@@ -6,13 +6,9 @@ import tarfile
 from datetime import datetime, timezone
 from urllib.request import urlopen
 
-from marketplace_views import _http_get_text
-
-
-def _load_server():
-    import server as commander_bundle
-
-    return commander_bundle
+from bundle_blueprint_store import get_blueprint
+from bundle_blueprint_write import create_blueprint, import_blueprint_yaml, update_blueprint
+from marketplace_views import _http_get_text, get_starters, list_catalog
 
 
 def _marketplace_dir():
@@ -85,22 +81,20 @@ def _add_string_to_tar(tar, name, content):
 
 
 def install_starter(starter_id):
-    commander_bundle = _load_server()
-    starter = next((item for item in commander_bundle.get_starters() if item["id"] == starter_id), None)
+    starter = next((item for item in get_starters() if item["id"] == starter_id), None)
     if not starter:
         return {"error": f"Starter '{starter_id}' not found"}
-    existing = commander_bundle.get_blueprint(starter_id).get("blueprint")
+    existing = get_blueprint(starter_id).get("blueprint")
     if isinstance(existing, dict) and existing:
         return {"exists": True, "blueprint": existing}
     payload = dict(starter)
     payload.pop("allowed_domains", None)
-    result = commander_bundle.create_blueprint(payload)
+    result = create_blueprint(payload)
     return {"installed": True, "blueprint": result.get("blueprint", {})}
 
 
 def export_bundle(blueprint_id):
-    commander_bundle = _load_server()
-    detail = commander_bundle.get_blueprint(blueprint_id).get("blueprint")
+    detail = get_blueprint(blueprint_id).get("blueprint")
     if not isinstance(detail, dict) or not detail:
         return None
     definition = dict(detail.get("definition") or {})
@@ -125,7 +119,6 @@ def export_bundle(blueprint_id):
 
 
 def import_bundle(bundle_bytes, filename="", overwrite=False):
-    commander_bundle = _load_server()
     try:
         with tarfile.open(fileobj=io.BytesIO(bundle_bytes), mode="r:gz") as tar:
             blueprint_file = tar.extractfile("blueprint.yaml")
@@ -134,11 +127,11 @@ def import_bundle(bundle_bytes, filename="", overwrite=False):
             yaml_content = blueprint_file.read().decode("utf-8")
             data = _yaml_load(yaml_content)
             blueprint_id = str(data.get("id") or "").strip()
-            existing = commander_bundle.get_blueprint(blueprint_id).get("blueprint") if blueprint_id else None
+            existing = get_blueprint(blueprint_id).get("blueprint") if blueprint_id else None
             if overwrite and isinstance(existing, dict) and blueprint_id:
-                imported = commander_bundle.update_blueprint(blueprint_id, data)
+                imported = update_blueprint(blueprint_id, data)
             else:
-                imported = commander_bundle.import_blueprint_yaml(yaml_content)
+                imported = import_blueprint_yaml(yaml_content)
             result = dict(imported) if isinstance(imported, dict) else {"error": "import_failed"}
             result["imported"] = True
             if filename:
@@ -149,8 +142,7 @@ def import_bundle(bundle_bytes, filename="", overwrite=False):
 
 
 def install_catalog_blueprint(blueprint_id, overwrite=False):
-    commander_bundle = _load_server()
-    catalog = commander_bundle.list_catalog().get("blueprints", [])
+    catalog = list_catalog().get("blueprints", [])
     target = next((row for row in catalog if str(row.get("id", "")).strip() == str(blueprint_id).strip()), None)
     if not isinstance(target, dict):
         return {"error": f"catalog_blueprint_not_found: {blueprint_id}"}
@@ -168,11 +160,11 @@ def install_catalog_blueprint(blueprint_id, overwrite=False):
     raw_yaml = _http_get_text(yaml_url, timeout=20)
     data = _yaml_load(raw_yaml)
     blueprint_id_value = str(data.get("id") or target.get("id") or "").strip()
-    existing = commander_bundle.get_blueprint(blueprint_id_value).get("blueprint") if blueprint_id_value else None
+    existing = get_blueprint(blueprint_id_value).get("blueprint") if blueprint_id_value else None
     if overwrite and isinstance(existing, dict) and blueprint_id_value:
-        imported = commander_bundle.update_blueprint(blueprint_id_value, data)
+        imported = update_blueprint(blueprint_id_value, data)
     else:
-        imported = commander_bundle.import_blueprint_yaml(raw_yaml)
+        imported = import_blueprint_yaml(raw_yaml)
     result = dict(imported) if isinstance(imported, dict) else {"error": "catalog_import_failed"}
     result["source"] = target
     if isinstance(result, dict) and "exists" not in result and "error" not in result:

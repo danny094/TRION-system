@@ -46,10 +46,14 @@ SP2-Vertrag (von Codex bestaetigt, kein Downgrade-/Semver-Check):
   paralleler Rollback einen bereits erfolgreichen Registry-Write einer
   anderen Anfrage durch Wiederherstellen der alten Config widersprechen.
 """
+import fcntl
 import json
+import os
 import threading
+from contextlib import contextmanager
 from collections.abc import Mapping
-from typing import Any, Dict
+from pathlib import Path
+from typing import Any, Dict, Iterator
 
 from mcp.config import core_mcp_names, get_registry_path
 from mcp.desired_state import MCPRegistrySourceStatus, load_registry_source
@@ -99,7 +103,7 @@ def upsert_registry_entry(name: str, config: Dict[str, Any]) -> None:
     _assert_mirror_consistency(config)
     if name in core_mcp_names():
         raise ValueError("Core MCP entries cannot be persisted as custom data")
-    with REGISTRY_LOCK:
+    with registry_write_transaction():
         registry = _custom_registry_for_write()
         registry[name] = entry
         _write_registry(registry)
@@ -108,11 +112,26 @@ def upsert_registry_entry(name: str, config: Dict[str, Any]) -> None:
 def remove_registry_entry(name: str) -> None:
     if name in core_mcp_names():
         raise ValueError("Core MCP entries cannot be removed by the custom writer")
-    with REGISTRY_LOCK:
+    with registry_write_transaction():
         registry = _custom_registry_for_write()
         if name in registry:
             del registry[name]
             _write_registry(registry)
+
+
+@contextmanager
+def registry_write_transaction(path: Path | None = None) -> Iterator[Path]:
+    """Serialize registry read-modify-write across threads and processes."""
+    target = path or get_registry_path()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with REGISTRY_LOCK:
+        directory_fd = os.open(target.parent, os.O_RDONLY)
+        try:
+            fcntl.flock(directory_fd, fcntl.LOCK_EX)
+            yield target
+        finally:
+            fcntl.flock(directory_fd, fcntl.LOCK_UN)
+            os.close(directory_fd)
 
 
 def _custom_registry_for_write() -> Dict[str, Any]:
@@ -121,7 +140,10 @@ def _custom_registry_for_write() -> Dict[str, Any]:
         return {}
     if outcome.status is not MCPRegistrySourceStatus.VALID:
         raise ValueError(f"Registry source status blocks mutation: {outcome.status.name}")
+    return _mutable_registry(outcome.custom_registry or {})
 
+
+def _mutable_registry(value: Any) -> Any:
     def mutable(value: Any) -> Any:
         if isinstance(value, Mapping):
             return {key: mutable(item) for key, item in value.items()}
@@ -129,10 +151,16 @@ def _custom_registry_for_write() -> Dict[str, Any]:
             return [mutable(item) for item in value]
         return value
 
-    return mutable(outcome.custom_registry or {})
+    return mutable(value)
 
 
 def _write_registry(registry: Dict[str, Any]) -> None:
+    payload = _registry_json_bytes(registry)
+    path = get_registry_path()
+    atomic_write_text(path, payload.decode("utf-8"))
+
+
+def _registry_json_bytes(registry: Dict[str, Any]) -> bytes:
     if set(registry).intersection(core_mcp_names()):
         raise ValueError("Registry writer accepts pure custom data only")
     if not all(
@@ -140,5 +168,15 @@ def _write_registry(registry: Dict[str, Any]) -> None:
         for name, config in registry.items()
     ):
         raise ValueError("Registry writer requires an object of MCP objects")
-    path = get_registry_path()
-    atomic_write_text(path, json.dumps(registry, indent=2, ensure_ascii=False) + "\n")
+    return (json.dumps(registry, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+
+
+def migrate_legacy_core_entries(*, apply: bool = False) -> Dict[str, Any]:
+    """Compatibility facade for the explicit operator migration."""
+    from mcp.installer_registry_migration import migrate_legacy_core_entries as migrate
+
+    return migrate(
+        path=get_registry_path(),
+        core_ids=core_mcp_names(),
+        apply=apply,
+    )

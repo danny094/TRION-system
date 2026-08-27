@@ -4,8 +4,11 @@ import asyncio
 import json
 from typing import Any
 
+from fastapi.encoders import jsonable_encoder
+from mcp.tool_result_contracts import MCPResultPresence, MCPToolCallStatus, MCPToolResultEnvelope
 
-async def _hub_call_tool(tool_name: str, args: dict[str, Any]) -> Any:
+
+async def _hub_call_tool(tool_name: str, args: dict[str, Any]) -> MCPToolResultEnvelope:
     from mcp.hub import get_hub
 
     hub = get_hub()
@@ -13,25 +16,19 @@ async def _hub_call_tool(tool_name: str, args: dict[str, Any]) -> Any:
     return await asyncio.to_thread(hub.call_tool, tool_name, args)
 
 
-def _extract_events(result_obj: Any) -> list[dict[str, Any]]:
-    if isinstance(result_obj, list):
-        return [item for item in result_obj if isinstance(item, dict)]
-    if isinstance(result_obj, dict):
-        structured = result_obj.get("structuredContent", {})
-        payload = (
-            result_obj.get("events")
-            or result_obj.get("content")
-            or (structured.get("events") if isinstance(structured, dict) else None)
-            or []
-        )
-        if isinstance(payload, str):
-            try:
-                payload = json.loads(payload)
-            except Exception:
-                payload = []
-        if isinstance(payload, list):
-            return [item for item in payload if isinstance(item, dict)]
-    return []
+def _extract_events(result: MCPToolResultEnvelope) -> list[dict[str, Any]]:
+    if not isinstance(result, MCPToolResultEnvelope) or result.status is not MCPToolCallStatus.SUCCESS:
+        return []
+    structured = jsonable_encoder(result.structured_content)
+    payload = structured.get("events") if isinstance(structured, dict) else None
+    if payload is None and result.content_presence is not MCPResultPresence.MISSING:
+        payload = jsonable_encoder(result.content)
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except (TypeError, ValueError):
+            return []
+    return [item for item in payload if isinstance(item, dict)] if isinstance(payload, list) else []
 
 
 def _compact_event_line(event: dict[str, Any]) -> str:

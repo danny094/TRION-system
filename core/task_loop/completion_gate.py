@@ -25,6 +25,7 @@ def finalize_completion(
     event_sink: TaskLoopEventSink | None = None,
     available_evidence_types: frozenset = frozenset(),
     expected_operation_contract_fingerprint: str | None = None,
+    structural_results: tuple[object | None, ...] = (),
 ) -> tuple[TaskLoopResult, StepExecutionResult | None]:
     missing_tools = unresolved_additional_evidence_tools(plan, list(snapshot.artifacts))
     completed_step_id = snapshot.completed_steps[-1] if snapshot.completed_steps else ""
@@ -50,6 +51,7 @@ def finalize_completion(
                     visible_content="Task loop completed.",
                     snapshot=snapshot,
                     completion_status=CompletionStatus.COMPLETE,
+                    structural_results=structural_results,
                 ),
                 None,
             )
@@ -75,6 +77,7 @@ def finalize_completion(
                     visible_content="Objective not yet met — triggering replanning.",
                     snapshot=replan_snap,
                     completion_status=CompletionStatus.NEEDS_REPLAN,
+                    structural_results=structural_results,
                 ),
                 synthetic,
             )
@@ -94,6 +97,7 @@ def finalize_completion(
                 visible_content=f"Task loop blocked: {blocked.stop_reason.value if blocked.stop_reason else 'objective_not_met'}.",
                 snapshot=blocked,
                 completion_status=CompletionStatus.BLOCKED,
+                structural_results=structural_results,
             ),
             None,
         )
@@ -120,6 +124,7 @@ def finalize_completion(
                 visible_content="Task loop stopped because the replanning budget was exhausted before additional evidence could be gathered.",
                 snapshot=blocked,
                 completion_status=CompletionStatus.BLOCKED,
+                structural_results=structural_results,
             ),
             None,
         )
@@ -144,6 +149,7 @@ def finalize_completion(
             visible_content="Additional verified evidence is required before the objective can be completed.",
             snapshot=replan_snapshot,
             completion_status=CompletionStatus.NEEDS_MORE_EVIDENCE,
+            structural_results=structural_results,
         ),
         StepExecutionResult(
             step_id=replan_snapshot.pending_step,

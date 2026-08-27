@@ -1,5 +1,5 @@
 [![CI](https://github.com/danny094/TRION-system/actions/workflows/ci.yml/badge.svg)](https://github.com/danny094/TRION-system/actions/workflows/ci.yml)
-[![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/pvYShfjb2)
+[![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/HDsSbSQaC)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 ![Status: active development](https://img.shields.io/badge/status-active%20development-orange)
 ![Python](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)
@@ -9,10 +9,12 @@
 **An open-source framework for AI agents whose behavior is predictable, auditable, and safe *by design* — because the rules that govern routing, tool use, and safety live in transparent configuration, not buried in code.**
 
 > **Public snapshot notice:** This repository is a curated development snapshot,
-> not a continuously mirrored release branch. Public code updates are reviewed
-> against an explicit scope and publication gate. Follow the issue tracker for
-> current work, and see [Public Update and Release Governance](docs/publication-governance.md)
-> before interpreting a milestone or merged change as a release.
+> not a release branch or a mirror of private development history. Public
+> `main` is synchronized through a reviewed export branch that shares its exact
+> commit, while private-only plans, audits, credentials, and history remain
+> excluded. See [Public Snapshot Synchronization](docs/public-sync.md) and
+> [Public Update and Release Governance](docs/publication-governance.md) before
+> interpreting a milestone or merged change as a release.
 
 ---
 
@@ -49,21 +51,29 @@ Every stage is small, testable, and replaceable. Output only leaves the pipeline
 
 TRION is not tied to a single model vendor. The LLM layer runs on a central provider registry, and each role — `CONTROL`, `THINKING`, `OUTPUT` — can be pointed at a different model.
 
-**Supported providers:** OpenAI · Anthropic · OpenRouter · MiniMax · Ollama (local & cloud)
+**Supported providers:** OpenAI · Anthropic · OpenRouter · DeepSeek · MiniMax · Ollama (local & cloud)
 
-This means you can run TRION **fully local** with Ollama — no request ever leaves your machine — or point any individual role at a hosted model (OpenAI, Anthropic, OpenRouter, MiniMax, or Ollama Cloud). Local and cloud can be mixed per role: for example a small local `CONTROL` model with a hosted `OUTPUT` model.
+This means you can run TRION **fully local** with Ollama — no model request leaves your machine — or point any individual role at a hosted model (OpenAI, Anthropic, OpenRouter, DeepSeek, MiniMax, or Ollama Cloud). Local and cloud can be mixed per role: for example a small local `CONTROL` model with a hosted `OUTPUT` model.
 
-API keys are never hard-coded — the target architecture stores them encrypted in the backend and resolves them internally at the LLM layer; the UI only ever sees status (`set`, `empty`, `test failed`), never plaintext.
+Provider credentials are configured outside the repository and resolved through
+the backend settings boundary. Never commit real keys to source or expose a
+configured development instance to untrusted users.
 
 ## Your data & privacy
 
-Your data stays on your machine. TRION collects nothing and phones home to no one. Memory lives in a local database on your own system — there are no cloud backups, so keeping regular backups is on you.
+Memory and workspace data live in local storage under the operator's control;
+TRION does not provide a managed cloud backup. Keep your own backups and review
+the configured providers and MCP servers before handling sensitive data.
 
-The only data that ever leaves your machine is what you deliberately send to a hosted model: if a role points at a cloud provider, those messages go to that provider under their terms — that's between you and them. Run local models via Ollama and everything, inference included, stays fully local — which also means TRION works completely offline.
+When a role points at a hosted model, its requests go to that provider under the
+provider's terms. Other configured network capabilities may also contact their
+declared endpoints. Run local models via Ollama and keep MCP endpoints local if
+you need an offline deployment.
 
 ## Quickstart
 
-TRION ships with a minimal Docker stack (WebUI + Admin API + Memory):
+TRION ships with a Docker development stack (WebUI + Admin API + Memory + a
+managed home container):
 
 ```bash
 docker compose up --build -d
@@ -73,8 +83,15 @@ This starts:
 - `trion-webui` — the web interface (Vite / React / TypeScript)
 - `trion-admin-api` — the backend (chat, models, workspace, routers)
 - `trion-memory` — the SQL-backed memory server
+- `trion-home` — the managed home/runtime container
 
 Health checks: `GET /health` on both the Admin API and the WebUI.
+
+> **Security boundary:** the default Compose file is for a trusted local
+> development host. It exposes service ports, enables CORS, and mounts the
+> Docker socket into the Admin API. Do not expose this stack to an untrusted
+> network or multi-user host without adding authentication, restrictive network
+> bindings, a CORS allowlist, and a narrower container-control boundary.
 
 > **Tested on:** macOS on Apple Silicon (M4). The stack is fully Docker-based, so it is expected to run on any Docker host — other platforms are simply not yet as widely tested. Ubuntu support is planned.
 
@@ -95,6 +112,7 @@ New capabilities are added through the MCP Installer: drop a ZIP or TAR archive 
 ## Concepts & deep dives
 
 - [Architecture — the full pipeline](docs/architecture.md)
+- [Generated Admin API route inventory](docs/reference/20-backend-api-reference.md)
 - [PIANO — the cognitive engine](piano_concept.md)
 - [Operation Contract concept](operation_contract_concept.md)
 - [TRION Meaning Representation (TMR)](tmr_concept.md)
@@ -124,13 +142,33 @@ TRION/
 
 ## Status
 
-TRION is in **active development**. Working today: the core vertical slice (`Classifier → Thinking → Verifier → Output`), the multi-step task loop, the MCP layer with a live installer, the SQL memory server, the WebUI v2, and a Docker stack verified to build, start, and pass a chat smoke test. The read-only Container Commander v2 path and guarded start/stop tools run against a live container. Orchestrator, autonomous tool execution, and provider/secret management are actively being hardened.
+TRION is in **active development**. Working today: the core vertical slice
+(`Classifier → Thinking → Verifier → Output`), the governed multi-step task
+loop, typed MCP desired-state/catalog lifecycle, structural tool-output
+validation, the SQL memory server, WebUI v2, and the Docker development stack.
+The Container Commander includes read-only inventory plus guarded lifecycle
+operations.
 
-> **⚠️ MCP layer under active revision.** The MCP structured-output and desired-state contracts (`mcp/`) are currently being reworked. Interfaces and payload shapes in that layer may change between commits — treat them as unstable until this note is removed.
+Current work is tightening the full container-ID/evidence handoff, consolidating
+phase-one Container Commander contracts, and hardening authentication, Docker
+authority, provider credentials, and persistence. Interfaces may still change;
+this snapshot is not a production-security claim.
 
 ## Known limitations
 
 - **Chat is not persisted across reloads.** Reloading the WebUI clears the current conversation — the chat starts fresh. Session persistence is planned, but other fixes take priority first, so this is a known gap rather than a bug.
+- **Ten target-behavior tests remain explicitly deselected in public CI.** They
+  cover long-document execution, legacy P10.1 backend seams, plan-metadata
+  expectations, and one truth-reasoning capability case. The rest of the
+  configured suite must pass; a green public CI run does not claim these ten
+  contracts are complete.
+- **The default Docker stack is development-only.** Authentication and Docker
+  authority hardening remain required before deployment on an untrusted host.
+- **WebUI quality debt is visible, not hidden.** The production WebUI build
+  succeeds, but the current ESLint run reports 16 errors and 1 warning. The
+  unchanged lockfile also reports 1 low and 4 high dependency advisories in
+  `npm audit`; these are inherited from the preceding public snapshot and are
+  not represented as resolved by this synchronization.
 
 ## Contributing & community
 
@@ -139,7 +177,7 @@ active development, please read [CONTRIBUTING.md](CONTRIBUTING.md) before
 starting a large change. Report suspected vulnerabilities privately through
 [SECURITY.md](SECURITY.md).
 
-Join the [Discord](https://discord.gg/pvYShfjb2) to discuss architecture and
+Join the [Discord](https://discord.gg/HDsSbSQaC) to discuss architecture and
 direction. Public updates follow the documented
 [publication governance](docs/publication-governance.md); issue or milestone
 closure alone does not authorize a release or branch update.

@@ -2,13 +2,53 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Mapping
 from datetime import datetime
 
 from commander_deploy_blueprints import ensure_store_initialized, list_blueprints
 from commander_blueprint_trust import evaluate_blueprint_trust
+from mcp.tool_result_contracts import (
+    MCPResultPresence,
+    MCPToolCallStatus,
+    MCPToolResultEnvelope,
+)
 
 
 logger = logging.getLogger(__name__)
+
+
+def _successful_result(result: MCPToolResultEnvelope) -> bool:
+    return (
+        isinstance(result, MCPToolResultEnvelope)
+        and result.status is MCPToolCallStatus.SUCCESS
+    )
+
+
+def _structured_nodes(result: MCPToolResultEnvelope):
+    if not _successful_result(result):
+        return None
+    if result.structured_content_presence is not MCPResultPresence.VALUE:
+        return ()
+    structured = result.structured_content
+    nodes = structured.get("nodes")
+    if nodes is None:
+        nodes = structured.get("results")
+    return nodes if isinstance(nodes, (list, tuple)) else ()
+
+
+def _node_metadata(node):
+    if not isinstance(node, Mapping):
+        return None
+    metadata_raw = node.get("metadata")
+    if isinstance(metadata_raw, Mapping):
+        return dict(metadata_raw)
+    if not isinstance(metadata_raw, str):
+        return None
+    try:
+        metadata = json.loads(metadata_raw)
+    except (TypeError, ValueError):
+        return None
+    return metadata if isinstance(metadata, dict) else None
 
 
 def sync_blueprint_to_graph(bp, trust_level: str = "", force_update: bool = False) -> bool:
@@ -17,20 +57,16 @@ def sync_blueprint_to_graph(bp, trust_level: str = "", force_update: bool = Fals
         from mcp.client import call_tool
 
         if not force_update:
-            existing_raw = call_tool(
+            search_result = call_tool(
                 "memory_graph_search",
                 {"conversation_id": "_blueprints", "query": bp.id, "limit": 5},
-            ) or {}
-            existing = existing_raw.get("result", existing_raw) if isinstance(existing_raw, dict) else {}
-            structured = (
-                existing_raw.get("structuredContent", {}) or existing.get("structuredContent", {})
-            ) if isinstance(existing_raw, dict) else {}
-            nodes = existing.get("nodes") or existing.get("results") or structured.get("nodes") or structured.get("results") or []
+            )
+            nodes = _structured_nodes(search_result)
+            if nodes is None:
+                return False
             for node in nodes:
-                try:
-                    metadata_raw = node.get("metadata") or "{}"
-                    metadata = metadata_raw if isinstance(metadata_raw, dict) else json.loads(metadata_raw)
-                except Exception:
+                metadata = _node_metadata(node)
+                if metadata is None:
                     continue
                 if metadata.get("blueprint_id") == bp.id:
                     logger.info("[CommanderBlueprintGraphSync] %s already in graph — skipping", bp.id)
@@ -65,8 +101,8 @@ def sync_blueprint_to_graph(bp, trust_level: str = "", force_update: bool = Fals
                 ),
             },
         )
-        if result and result.get("error"):
-            logger.warning("[CommanderBlueprintGraphSync] graph_add_node error for %s: %s", bp.id, result)
+        if not _successful_result(result):
+            logger.warning("[CommanderBlueprintGraphSync] graph_add_node failed for %s", bp.id)
             return False
         logger.info("[CommanderBlueprintGraphSync] Synced %s (trust=%s)", bp.id, trust_level)
         return True
@@ -80,28 +116,24 @@ def remove_blueprint_from_graph(blueprint_id: str) -> int:
     try:
         from mcp.client import call_tool
 
-        existing_raw = call_tool(
+        search_result = call_tool(
             "memory_graph_search",
             {"conversation_id": "_blueprints", "query": blueprint_id, "limit": 10},
-        ) or {}
-        existing = existing_raw.get("result", existing_raw) if isinstance(existing_raw, dict) else {}
-        structured = (
-            existing_raw.get("structuredContent", {}) or existing.get("structuredContent", {})
-        ) if isinstance(existing_raw, dict) else {}
-        nodes = existing.get("nodes") or existing.get("results") or structured.get("nodes") or structured.get("results") or []
+        )
+        nodes = _structured_nodes(search_result)
+        if nodes is None:
+            return 0
 
         marked = 0
         for node in nodes:
-            try:
-                metadata_raw = node.get("metadata") or "{}"
-                metadata = metadata_raw if isinstance(metadata_raw, dict) else json.loads(metadata_raw)
-            except Exception:
+            metadata = _node_metadata(node)
+            if metadata is None:
                 continue
             if metadata.get("blueprint_id") != blueprint_id:
                 continue
             metadata["is_deleted"] = True
             metadata["deleted_at"] = datetime.utcnow().isoformat()
-            call_tool(
+            write_result = call_tool(
                 "graph_add_node",
                 {
                     "conversation_id": "_blueprints",
@@ -111,7 +143,8 @@ def remove_blueprint_from_graph(blueprint_id: str) -> int:
                     "metadata": json.dumps(metadata),
                 },
             )
-            marked += 1
+            if _successful_result(write_result):
+                marked += 1
         return marked
     except Exception as exc:
         logger.warning("[CommanderBlueprintGraphSync] remove_blueprint_from_graph failed for %s: %s", blueprint_id, exc)
@@ -132,20 +165,20 @@ def sync_blueprints_to_graph() -> int:
 
     existing_ids: set[str] = set()
     try:
-        response = call_tool(
+        search_result = call_tool(
             "memory_graph_search",
             {"query": "blueprint", "conversation_id": "_blueprints", "depth": 0, "limit": 100},
         )
-        result = response.get("result", response) if response else {}
-        for node in (result.get("results", []) if isinstance(result, dict) else []):
-            try:
-                metadata_raw = node.get("metadata") or "{}"
-                metadata = json.loads(metadata_raw) if isinstance(metadata_raw, str) else metadata_raw
-                blueprint_id = metadata.get("blueprint_id")
-                if blueprint_id:
-                    existing_ids.add(blueprint_id)
-            except Exception:
-                pass
+        nodes = _structured_nodes(search_result)
+        if nodes is None:
+            return 0
+        for node in nodes:
+            metadata = _node_metadata(node)
+            if metadata is None:
+                continue
+            blueprint_id = metadata.get("blueprint_id")
+            if isinstance(blueprint_id, str) and blueprint_id:
+                existing_ids.add(blueprint_id)
         logger.info("[CommanderBlueprintGraphSync] %s blueprints already in graph", len(existing_ids))
     except Exception as exc:
         logger.warning("[CommanderBlueprintGraphSync] Could not fetch existing graph nodes: %s — syncing all", exc)

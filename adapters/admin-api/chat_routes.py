@@ -15,7 +15,7 @@ from adapters.document_store import (
 from adapters.orchestrator_sources import build_context_sources
 from adapters.task_resume_events import waiting_result_event_payload
 from adapters.task_resume_store import register_waiting_task
-from adapters.tool_runner_bridge import get_available_tools, make_tool_runner
+from adapters.tool_runner_bridge import get_available_tools, make_tool_runner, project_output_evidence_item
 from chat_stream import error_to_ndjson, event_to_ndjson, response_to_ndjson
 from core.task_loop.contracts import TaskLoopState
 from utils.logger import log_error
@@ -142,6 +142,7 @@ async def chat(request: Request):
                         document_workspace_save_fn=workspace_save_document_chunk,
                         document_semantic_save_fn=semantic_save_document_chunk,
                         tool_runner=make_tool_runner(),
+                        project_output_evidence_item=project_output_evidence_item,
                         orchestrator_raw_tools=get_available_tools(),
                         orchestrator_context_sources=build_context_sources(),
                         task_loop_observer=observe_task_loop,

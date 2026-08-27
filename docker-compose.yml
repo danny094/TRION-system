@@ -42,6 +42,7 @@ services:
       MCP_REGISTRY_PATH: /app/data/mcp_registry.json
       MEMORY_URL: http://trion-memory:8081
       PERSONAS_DIR: /app/personas
+      TRION_FILESYSTEM_ROOT: /trion-home
       TRION_PLUGINS_DIR: /app/ui_plugins
       THINKING_PROVIDER: ${THINKING_PROVIDER:-ollama_cloud}
       THINKING_ANALYZER_ENABLE: ${THINKING_ANALYZER_ENABLE:-true}
@@ -57,7 +58,7 @@ services:
     volumes:
       - trion-admin-api-data:/app/data
       - trion-custom-mcps:/app/custom_mcps
-      - trion-home:/trion-home
+      - trion-home:/trion-home:ro
       - trion-memory-files:/app/memory
       - trion-memory-speicher:/app/memory_speicher
       - trion-storage-broker:/app/storage_broker

@@ -4,7 +4,11 @@ from typing import Any, Callable
 from core.orchestrator.contracts import ToolDescriptor
 from core.orchestrator.tool_eligibility import eligible_tools_for_contract
 from core.pipeline.plan_contract_validator import authorized_contract_for_receipt
-from core.task_loop.contracts import StepExecutionStatus, StepOperationExecution
+from core.pipeline.output_evidence_contracts import OutputExecutionAttestation
+from core.task_loop.contracts import (
+    CompletionStatus, StepExecutionStatus, StepOperationExecution,
+    TaskLoopResult, TaskLoopState,
+)
 from core.task_loop.step_operation_receipt import ReceiptValidationContext, StepOperationReceipt
 from core.thinking.contracts import ThinkingPlan
 
@@ -36,6 +40,44 @@ def build_step_receipt_validator(context: Any, tools: Any, plan: ThinkingPlan) -
 
 def build_step_receipt_validator_factory(context: Any, tools: Any) -> Callable:
     return lambda plan: build_step_receipt_validator(context, tools, plan) if isinstance(plan, ThinkingPlan) else None
+
+
+def attest_completed_execution(
+    plan: ThinkingPlan,
+    task_loop_result: TaskLoopResult,
+    receipt_validator: Callable,
+) -> OutputExecutionAttestation | None:
+    if (
+        type(plan) is not ThinkingPlan
+        or type(task_loop_result) is not TaskLoopResult
+        or task_loop_result.state is not TaskLoopState.COMPLETED
+        or task_loop_result.completion_status is not CompletionStatus.COMPLETE
+        or not callable(receipt_validator)
+    ):
+        return None
+    planned = list(plan.steps)
+    planned_ids = tuple(getattr(step, "step_id", None) for step in planned)
+    snapshot = task_loop_result.snapshot
+    executions = tuple(snapshot.step_operation_executions)
+    if tuple(snapshot.completed_steps) != planned_ids or len(executions) != len(planned):
+        return None
+    fingerprints: set[str] = set()
+    for index, (step, execution) in enumerate(zip(planned, executions)):
+        if type(execution) is not StepOperationExecution or execution.status is not StepExecutionStatus.SUCCESS:
+            return None
+        provenance = ReceiptValidationContext(
+            plan_step_ids=planned_ids,
+            current_step_index=index,
+            completed_steps=planned_ids[:index],
+            executions=executions[:index],
+            current_step_id=planned_ids[index],
+        )
+        if receipt_validator(step, execution.receipt, provenance) != execution.receipt:
+            return None
+        fingerprints.add(execution.receipt.operation_contract_fingerprint)
+    if len(fingerprints) != 1:
+        return None
+    return OutputExecutionAttestation(planned_ids, fingerprints.pop())
 
 
 def _validated_prefix(

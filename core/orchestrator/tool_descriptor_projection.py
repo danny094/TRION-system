@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+from copy import deepcopy
 from typing import Any, List, Optional
 
 from core.orchestrator.contracts import ToolDescriptor
@@ -7,6 +9,14 @@ from core.orchestrator.contracts import ToolDescriptor
 # sind fail-closed, nicht tolerant.
 _VALID_SCHEMA_VERSIONS = (1, 2)
 _SHA256_HEX_LENGTH = 64
+
+
+def _plain_deepcopy(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {key: _plain_deepcopy(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_plain_deepcopy(item) for item in value]
+    return deepcopy(value)
 
 
 def is_eligible_tool_intent(tool_intent: Any) -> bool:
@@ -103,6 +113,13 @@ def descriptor_from_raw(raw: Any) -> Optional[ToolDescriptor]:
     if intent_name != name:
         return None
     meta = tool_intent.get("tool_intent_meta") or {}
+    capability_output_schema = str(tool_intent.get("output_schema") or "").strip()
+    live_output_schema = raw.get("outputSchema")
+    output_schema = {}
+    if meta.get("schema_version") == 2 and capability_output_schema == "mcp_output_schema":
+        if not isinstance(live_output_schema, Mapping):
+            return None
+        output_schema = _plain_deepcopy(live_output_schema)
     return ToolDescriptor(
         name=name,
         description=str(raw.get("description") or "").strip(),
@@ -119,7 +136,8 @@ def descriptor_from_raw(raw: Any) -> Optional[ToolDescriptor]:
         capability_risk=str(tool_intent.get("risk") or "").strip().lower(),
         capability_target_scopes=_string_list(tool_intent.get("target_scopes")),
         capability_freshness_support=str(tool_intent.get("freshness_support") or "").strip().lower(),
-        capability_output_schema=str(tool_intent.get("output_schema") or "").strip(),
+        capability_output_schema=capability_output_schema,
+        output_schema=output_schema,
         tool_role=str(tool_intent.get("tool_role") or "").strip().lower() or "primary",
         can_answer_directly=bool(tool_intent.get("can_answer_directly") is not False),
         mirror_schema_version=meta.get("schema_version"),

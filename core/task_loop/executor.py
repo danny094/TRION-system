@@ -1,5 +1,4 @@
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Mapping
+from typing import Any, Mapping
 
 from core.task_loop.document_resolution import collect_result_artifacts, resolve_tool_arguments
 from core.task_loop.evidence_adapter import validated_evidence_artifacts
@@ -7,27 +6,17 @@ from core.task_loop.contracts import StepExecutionResult, StepExecutionStatus
 from core.task_loop.execution_block import blocked_execution_result
 from core.task_loop.step_operation_receipt import StepOperationReceipt
 from core.task_loop.executable_now import check_executable_now
+from core.task_loop.tool_execution_contracts import (
+    _TASK_TOOL_RESULT_MISSING,
+    TaskLoopEventSink,
+    TaskStructuralValidationStatus,
+    TaskToolCall,
+    TaskToolResult,
+    TaskToolResultStatus,
+    ToolRunner,
+)
 from core.task_loop.toolcall_governor import toolcall_governor_error
 from core.thinking.contracts import PlanStep
-
-
-@dataclass(frozen=True)
-class TaskToolCall:
-    tool_name: str
-    arguments: Dict[str, Any] = field(default_factory=dict)
-    step_id: str = ""
-    timeout_s: float = 30.0
-
-
-@dataclass(frozen=True)
-class TaskToolResult:
-    success: bool
-    result: Dict[str, Any] = field(default_factory=dict)
-    error: str | None = None
-
-
-ToolRunner = Callable[[TaskToolCall], TaskToolResult]
-TaskLoopEventSink = Callable[[dict[str, Any]], None]
 
 
 def _timeout_for_step(step: PlanStep, default_timeout_s: float) -> float:
@@ -39,12 +28,14 @@ def build_tool_call(
     step: PlanStep,
     artifacts: list[dict[str, Any]] | None = None,
     default_timeout_s: float = 30.0,
+    output_schema: Mapping[str, Any] | None = None,
 ) -> TaskToolCall:
     return TaskToolCall(
         tool_name=str(step.tool or "").strip(),
         arguments=resolve_tool_arguments(dict(step.tool_arguments or {}), artifacts or []),
         step_id=step.step_id,
         timeout_s=_timeout_for_step(step, default_timeout_s),
+        output_schema=output_schema,
     )
 
 
@@ -65,7 +56,18 @@ def execute_step(
             step.step_id, "", "missing_tool", event_sink, status=StepExecutionStatus.SKIPPED, receipt=receipt
         )
 
-    tool_call = build_tool_call(step, artifacts=artifacts, default_timeout_s=default_timeout_s)
+    detail = (tool_details_by_name or {}).get(str(step.tool or "").strip())
+    output_schema = None
+    if isinstance(detail, Mapping) and detail.get("capability_output_schema") == "mcp_output_schema":
+        candidate = detail.get("output_schema")
+        if isinstance(candidate, Mapping):
+            output_schema = candidate
+    tool_call = build_tool_call(
+        step,
+        artifacts=artifacts,
+        default_timeout_s=default_timeout_s,
+        output_schema=output_schema,
+    )
     executable = check_executable_now(tool_call, tool_details_by_name)
     if not executable.allowed:
         error = executable.error or "not_executable_now"
@@ -125,6 +127,8 @@ def execute_step(
         step_id=step.step_id,
         output=output,
         tool_detail=(tool_details_by_name or {}).get(tool_call.tool_name),
+        structural_result=tool_result.structural_result,
+        structural_validation_status=tool_result.structural_validation_status,
         operation_contract_fingerprint=operation_contract_fingerprint,
     )
     collected = collect_result_artifacts(step.tool, step.step_id, output, [*base_artifacts, *evidence])
@@ -143,6 +147,7 @@ def execute_step(
         artifacts=collected,
         tool_call_started=True,
         receipt=receipt,
+        structural_result=tool_result.structural_result,
     )
 
 
