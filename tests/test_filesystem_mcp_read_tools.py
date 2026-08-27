@@ -84,6 +84,25 @@ def test_list_stops_traversal_after_response_boundary(tmp_path, monkeypatch):
     assert calls <= 4
 
 
+def test_bounded_name_selection_is_independent_of_scandir_order(monkeypatch):
+    listing = _module("listing")
+
+    class Entry:
+        def __init__(self, name):
+            self.name = name
+
+    class Scan:
+        def __enter__(self):
+            return iter([Entry("status.txt"), Entry("notes.md"), Entry("archive.txt")])
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setattr(listing.os, "scandir", lambda _fd: Scan())
+
+    assert listing._bounded_names(1, 2) == (["archive.txt", "notes.md"], True)
+
+
 def test_search_has_a_hard_scan_budget(tmp_path, monkeypatch):
     contracts = _module("contracts")
     listing = _module("listing")

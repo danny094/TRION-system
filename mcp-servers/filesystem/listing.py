@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import heapq
 import os
 import stat
 from pathlib import Path
@@ -83,10 +84,6 @@ def walk_entries(
 
 
 def _bounded_names(directory_fd: int, limit: int) -> tuple[list[str], bool]:
-    names = []
     with os.scandir(directory_fd) as iterator:
-        for entry in iterator:
-            if len(names) >= limit:
-                return sorted(names), True
-            names.append(entry.name)
-    return sorted(names), False
+        names = heapq.nsmallest(limit + 1, (entry.name for entry in iterator))
+    return names[:limit], len(names) > limit
