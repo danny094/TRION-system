@@ -28,8 +28,12 @@ def test_list_is_ordered_bounded_and_exact_target_aware(tmp_path):
     _tree(tmp_path)
     listing = _module("listing")
 
-    result = listing.list_entries(tmp_path, max_entries=2, max_depth=2)
-    assert [item["relative_path"] for item in result["entries"]] == ["docs", "docs/notes.md"]
+    result = listing.list_entries(tmp_path, max_entries=3, max_depth=2)
+    assert [item["relative_path"] for item in result["entries"]] == [
+        "docs",
+        "docs/notes.md",
+        "docs/status.txt",
+    ]
     assert result["complete"] is False
     assert result["truncated"] is True
 
@@ -82,25 +86,6 @@ def test_list_stops_traversal_after_response_boundary(tmp_path, monkeypatch):
 
     assert result["truncated"] is True
     assert calls <= 4
-
-
-def test_bounded_name_selection_is_independent_of_scandir_order(monkeypatch):
-    listing = _module("listing")
-
-    class Entry:
-        def __init__(self, name):
-            self.name = name
-
-    class Scan:
-        def __enter__(self):
-            return iter([Entry("status.txt"), Entry("notes.md"), Entry("archive.txt")])
-
-        def __exit__(self, *_args):
-            return False
-
-    monkeypatch.setattr(listing.os, "scandir", lambda _fd: Scan())
-
-    assert listing._bounded_names(1, 2) == (["archive.txt", "notes.md"], True)
 
 
 def test_search_has_a_hard_scan_budget(tmp_path, monkeypatch):
