@@ -14,20 +14,15 @@ from core.classifier.contracts import ClassifierResult, Category, Route, SafetyL
 from core.orchestrator.contracts import ToolDescriptor
 from core.orchestrator.tool_eligibility import eligible_tools_for_contract
 from core.routing_frame.builder import build_routing_frame
+from tests.operation_contract_context import canonical_contract_context
 
 
 def _list_contract(**overrides) -> dict:
-    base = {
-        "domain": "container_runtime",
-        "primary_operation": "list",
-        "target": "trion-home",
-        "required_evidence": ["runtime_status"],
-        "allowed_operations": ["list"],
-        "mutating_action": False,
-        "scope_lock": "home",
-    }
-    base.update(overrides)
-    return base
+    contract = canonical_contract_context(
+        target="trion-home", required_evidence=("runtime_status",), scope_lock="home",
+    )["routing_frame"]["operation_contract"]
+    contract.update(overrides)
+    return contract
 
 
 def _list_tool(**overrides) -> ToolDescriptor:

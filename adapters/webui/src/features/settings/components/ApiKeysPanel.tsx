@@ -5,6 +5,7 @@ import { ApiError } from '@/lib/api/client'
 import { fetchApiKeys, addApiKey, deleteApiKey, type ApiKey } from '@/features/settings/apiKeysApi'
 import { ApiKeyNamingHelp } from '@/features/settings/components/ApiKeyNamingHelp'
 import { ApiKeysTable } from '@/features/settings/components/ApiKeysTable'
+import { useTranslation } from '@/lib/i18n'
 
 export function ApiKeysPanel() {
   const [keys, setKeys] = useState<ApiKey[]>([])
@@ -18,6 +19,7 @@ export function ApiKeysPanel() {
   const [showHelp, setShowHelp] = useState(false)
   const [adding, setAdding] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const { t } = useTranslation()
 
   useEffect(() => { void load(true) }, [])
 
@@ -29,7 +31,7 @@ export function ApiKeysPanel() {
       const res = await fetchApiKeys()
       setKeys(res.keys)
     } catch (err) {
-      setError(apiErrorMessage(err, 'API-Keys konnten nicht geladen werden.'))
+      setError(apiErrorMessage(err, t('api.loadFailed')))
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -48,9 +50,9 @@ export function ApiKeysPanel() {
       setKeys((prev) => [added, ...prev])
       setNewName('')
       setNewValue('')
-      setStatus(`„${added.name}" wurde gespeichert.`)
+      setStatus(t('api.saved', { name: added.name }))
     } catch (err) {
-      setError(apiErrorMessage(err, 'Key konnte nicht gespeichert werden.'))
+      setError(apiErrorMessage(err, t('api.saveFailed')))
     } finally {
       setAdding(false)
     }
@@ -63,9 +65,9 @@ export function ApiKeysPanel() {
     try {
       await deleteApiKey(id)
       setKeys((prev) => prev.filter((k) => k.id !== id))
-      setStatus(`„${name}" wurde entfernt.`)
+      setStatus(t('api.removed', { name }))
     } catch (err) {
-      setError(apiErrorMessage(err, 'Key konnte nicht gelöscht werden.'))
+      setError(apiErrorMessage(err, t('api.deleteFailed')))
     } finally {
       setDeletingId(null)
     }
@@ -75,9 +77,9 @@ export function ApiKeysPanel() {
     <div className="flex flex-col gap-5">
       <header className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/35">Voreinstellungen</div>
+          <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/35">{t('api.preferences')}</div>
           <div className="mt-2 flex items-center gap-2">
-            <h1 className="text-[22px] font-semibold leading-tight text-white/95">API-Schlüssel</h1>
+            <h1 className="text-[22px] font-semibold leading-tight text-white/95">{t('api.title')}</h1>
             <button
               type="button"
               onClick={() => setShowHelp((v) => !v)}
@@ -85,14 +87,14 @@ export function ApiKeysPanel() {
                 'inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-white/45 transition hover:bg-white/[0.06] hover:text-white/85',
                 showHelp && 'border-amber-400/30 bg-amber-400/10 text-amber-200',
               )}
-              title="Welche Key-Namen werden gelesen?"
-              aria-label="Welche Key-Namen werden gelesen?"
+              title={t('api.helpTitle')}
+              aria-label={t('api.helpTitle')}
             >
               <CircleHelp className="h-3.5 w-3.5" />
             </button>
           </div>
           <p className="mt-2 text-[12px] text-white/55">
-            Verwalte API-Keys für externe Provider. Werte werden verschlüsselt gespeichert.
+            {t('api.description')}
           </p>
         </div>
         <button
@@ -102,7 +104,7 @@ export function ApiKeysPanel() {
           className="inline-flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/[0.03] px-3 py-1.5 text-[11px] text-white/70 transition hover:bg-white/[0.06] hover:text-white/95 disabled:opacity-50"
         >
           <RefreshCw className={cn('h-3.5 w-3.5', refreshing && 'animate-spin')} />
-          Aktualisieren
+          {t('common.refresh')}
         </button>
       </header>
 
@@ -111,13 +113,13 @@ export function ApiKeysPanel() {
       {showHelp && <ApiKeyNamingHelp />}
 
       <section className="rounded-2xl border border-white/6 bg-white/[0.02] p-4">
-        <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-white/35">Neuen Key hinzufügen</div>
+        <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-white/35">{t('api.add')}</div>
         <div className="mt-3 flex gap-2">
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && void handleAdd()}
-            placeholder="NAME (z.B. OPENAI_API_KEY)"
+            placeholder={t('api.namePlaceholder')}
             className="w-1/3 rounded-xl border border-white/10 bg-black/20 px-3 py-2 font-mono text-[11px] text-white/85 outline-none transition placeholder:text-white/25 focus:border-primary/50"
           />
           <div className="relative flex-1">
@@ -133,7 +135,7 @@ export function ApiKeysPanel() {
               type="button"
               onClick={() => setShowValue((v) => !v)}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 transition-colors hover:text-white/65"
-              title={showValue ? 'Verbergen' : 'Anzeigen'}
+              title={showValue ? t('api.hide') : t('api.show')}
             >
               {showValue ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             </button>
@@ -145,7 +147,7 @@ export function ApiKeysPanel() {
             className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-primary/20 px-3.5 py-2 text-[11px] font-medium text-primary transition hover:bg-primary/30 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-            Hinzufügen
+            {t('common.add')}
           </button>
         </div>
       </section>

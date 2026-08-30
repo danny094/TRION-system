@@ -5,6 +5,9 @@ from core.thinking.contracts import PlanStep, RiskLevel, ThinkingPlan
 from tests._task_loop_runner_helpers import _plan, _step
 
 
+_TOOL_DETAILS = {"demo_tool": {"name": "demo_tool", "capability_required_args": []}}
+
+
 def test_start_task_loop_completes_when_replan_drops_back_to_answer_only():
     replanned = ThinkingPlan(
         intent="answer_user",
@@ -19,6 +22,7 @@ def test_start_task_loop_completes_when_replan_drops_back_to_answer_only():
         conversation_id="conv-1",
         objective="Need a final answer",
         tool_runner=_failing_runner,
+        tool_details_by_name=_TOOL_DETAILS,
         replanner_fn=lambda *args, **kwargs: replanned,
         max_steps=5,
         max_retries_per_step=0,
@@ -63,6 +67,7 @@ def test_start_task_loop_calls_replanner_and_completes_with_new_plan():
         conversation_id="conv-1",
         objective="Need replanning",
         tool_runner=runner,
+        tool_details_by_name=_TOOL_DETAILS,
         replanner_fn=replanner,
         max_steps=5,
         max_retries_per_step=0,
@@ -105,6 +110,7 @@ def test_replan_on_success_but_incomplete():
         conversation_id="conv-1",
         objective="Need file evidence",
         tool_runner=runner,
+        tool_details_by_name=_TOOL_DETAILS,
         replanner_fn=replanner,
         max_steps=5,
         max_retries_per_step=0,

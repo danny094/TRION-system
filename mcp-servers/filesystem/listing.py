@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 import stat
+from heapq import heapify, heappop, heappush
+from itertools import islice
 from pathlib import Path
 
 from .contracts import (
@@ -48,45 +50,43 @@ def walk_entries(
     max_depth: int,
     scan_limit: int,
 ) -> tuple[list[dict[str, object]], bool, bool]:
-    pending = [(base, 0)]
+    with open_target(root, base, allow_root=True) as directory:
+        if not stat.S_ISDIR(directory.stat_result.st_mode):
+            raise FilesystemFailure("NOT_A_FILE", "list target must be a directory")
+        names, scan_limited = _bounded_names(directory.fd, scan_limit)
+    pending = [
+        (f"{base}/{name}" if base else name, 0)
+        for name in names
+    ]
+    heapify(pending)
     entries: list[dict[str, object]] = []
     depth_limited = False
-    scan_limited = False
     scanned = 0
     while pending and scanned < scan_limit:
-        current, depth = pending.pop()
-        with open_target(root, current, allow_root=True) as directory:
-            if not stat.S_ISDIR(directory.stat_result.st_mode):
-                raise FilesystemFailure("NOT_A_FILE", "list target must be a directory")
-            names, names_limited = _bounded_names(directory.fd, scan_limit - scanned)
-            scan_limited = scan_limited or names_limited
-        child_directories = []
-        for name in names:
-            scanned += 1
-            child = f"{current}/{name}" if current else name
-            try:
-                with open_target(root, child) as target:
-                    entry = entry_from_target(target)
-            except FilesystemFailure as failure:
-                if failure.code == "SYMLINK_ESCAPE":
-                    continue
+        current, depth = heappop(pending)
+        scanned += 1
+        try:
+            with open_target(root, current, allow_root=True) as directory:
+                entry = entry_from_target(directory)
+                entries.append(entry)
+                if entry["entry_type"] == "directory":
+                    if depth + 1 < max_depth:
+                        names, names_limited = _bounded_names(
+                            directory.fd, scan_limit - scanned,
+                        )
+                        scan_limited = scan_limited or names_limited
+                        for name in names:
+                            heappush(pending, (f"{current}/{name}", depth + 1))
+                    else:
+                        depth_limited = True
+        except FilesystemFailure as failure:
+            if failure.code != "SYMLINK_ESCAPE":
                 raise
-            entries.append(entry)
-            if entry["entry_type"] == "directory":
-                if depth + 1 < max_depth:
-                    child_directories.append((child, depth + 1))
-                else:
-                    depth_limited = True
-        pending.extend(reversed(child_directories))
     scan_limited = scan_limited or bool(pending)
-    return sorted(entries, key=lambda item: str(item["relative_path"])), depth_limited, scan_limited
+    return entries, depth_limited, scan_limited
 
 
 def _bounded_names(directory_fd: int, limit: int) -> tuple[list[str], bool]:
-    names = []
     with os.scandir(directory_fd) as iterator:
-        for entry in iterator:
-            if len(names) >= limit:
-                return sorted(names), True
-            names.append(entry.name)
-    return sorted(names), False
+        names = sorted(entry.name for entry in islice(iterator, limit + 1))
+    return names[:limit], len(names) > limit

@@ -1,8 +1,10 @@
 import importlib
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+from jsonschema import Draft202012Validator
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,6 +29,33 @@ def test_contract_limits_reject_values_above_hard_caps():
     assert failure.value.code == "LIMIT_EXCEEDED"
 
 
+def test_directory_name_scan_stops_at_hard_budget(monkeypatch):
+    listing = _module("listing")
+    consumed = 0
+
+    def guarded_entries():
+        nonlocal consumed
+        for value in ("c", "b", "a", "z", "must-not-be-read"):
+            consumed += 1
+            assert consumed <= 4
+            yield SimpleNamespace(name=value)
+
+    class GuardedScan:
+        def __enter__(self):
+            return guarded_entries()
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setattr(listing.os, "scandir", lambda _fd: GuardedScan())
+
+    names, truncated = listing._bounded_names(7, 3)
+
+    assert names == ["a", "b", "c"]
+    assert truncated is True
+    assert consumed == 4
+
+
 def test_error_envelope_keeps_typed_status_authoritative(tmp_path):
     server = _module("server")
 
@@ -45,8 +74,12 @@ def test_error_envelope_keeps_typed_status_authoritative(tmp_path):
     assert result["structuredContent"]["error"]["code"] == "MALFORMED_REQUEST"
     assert result["content"][0]["type"] == "text"
 
+    for tool in server.TOOLS:
+        Draft202012Validator(tool["outputSchema"]).validate(result["structuredContent"])
+
 
 def test_live_tools_publish_input_and_output_schemas():
+    contracts = _module("contracts")
     server = _module("server")
 
     tools = {tool["name"]: tool for tool in server.TOOLS}
@@ -59,4 +92,9 @@ def test_live_tools_publish_input_and_output_schemas():
     assert tools["filesystem_search"]["inputSchema"]["required"] == ["query"]
     assert tools["filesystem_metadata"]["inputSchema"]["required"] == ["relative_path"]
     assert tools["filesystem_read"]["inputSchema"]["required"] == ["relative_path"]
+    assert tools["filesystem_list"]["inputSchema"]["properties"]["max_entries"]["maximum"] == contracts.LIST_MAX_ENTRIES
+    assert tools["filesystem_list"]["inputSchema"]["properties"]["max_depth"]["maximum"] == contracts.LIST_MAX_DEPTH
+    assert tools["filesystem_search"]["inputSchema"]["properties"]["max_results"]["maximum"] == contracts.SEARCH_MAX_RESULTS
+    assert tools["filesystem_search"]["inputSchema"]["properties"]["max_depth"]["maximum"] == contracts.SEARCH_MAX_DEPTH
+    assert tools["filesystem_read"]["inputSchema"]["properties"]["max_bytes"]["maximum"] == contracts.READ_MAX_BYTES
     assert all(tool["outputSchema"]["type"] == "object" for tool in tools.values())

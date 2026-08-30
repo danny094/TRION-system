@@ -5,6 +5,7 @@ import type { ChatMessage } from '../api'
 import { createMessageId, deriveSessionTitleFromMessage } from '../lib/sessionFactory'
 import { getActiveSession } from '../lib/sessionSelectors'
 import type { ChatState } from '../types'
+import { translateCurrent } from '@/lib/i18n'
 
 type SetChatState = StoreApi<ChatState>['setState']
 type GetChatState = StoreApi<ChatState>['getState']
@@ -80,7 +81,7 @@ export function createSendMessageAction(
               asstMsg.content = getEventContent(event)
             } else if (event.type === 'error') {
               const errContent = getErrorContent(event)
-              if (errContent) asstMsg.content += `\n\n**Fehler:** ${errContent}`
+              if (errContent) asstMsg.content += `\n\n**${translateCurrent('chat.error')}:** ${errContent}`
             } else if (event.type === 'done') {
               asstMsg.isStreaming = false
             }
@@ -96,7 +97,7 @@ export function createSendMessageAction(
         })
       }
     } catch (error) {
-      const errMsg = error instanceof Error ? error.message : 'Unbekannter Fehler'
+      const errMsg = error instanceof Error ? error.message : translateCurrent('chat.unknownError')
       set((state) => {
         const sessions = state.sessions.map((session) => {
           if (session.id !== sessionId) return session
@@ -104,7 +105,7 @@ export function createSendMessageAction(
           const asstMsg = messages.find((message) => message.id === asstMsgId)
           if (asstMsg) {
             asstMsg.isStreaming = false
-            asstMsg.content = asstMsg.content || `**Verbindungsfehler:** ${errMsg}`
+            asstMsg.content = asstMsg.content || `**${translateCurrent('chat.connectionError')}:** ${errMsg}`
           }
           return {
             ...session,

@@ -1,10 +1,17 @@
-from dataclasses import asdict, fields
+from dataclasses import asdict, fields, replace
+
+import pytest
 
 from core.pipeline.operation_contract_context import (
     ReceiptConfigurationState, receipt_configuration_state, typed_operation_contract_from_context,
 )
 from core.routing_frame.builder.contract_fingerprint import compute_operation_contract_fingerprint
-from core.routing_frame.contracts import OperationContract, OperationTransition
+from core.routing_frame.contracts import (
+    FieldProvenance,
+    OperationContract,
+    OperationTransition,
+    RoutingFrame,
+)
 from tests.operation_contract_context import canonical_contract_context
 
 
@@ -42,8 +49,63 @@ def test_parser_field_set_is_derived_from_contract_and_fail_closed():
         {**raw, "transition_requirements": [{"source_operation": "list", "target_operation": "logs", "required_evidence": "runtime_logs"}]},
         {**raw, "allowed_transitions": []},
         {**raw, "targets": ["other"]},
+        {**raw, "allowed_operations": ["list", "inspect"]},
+        {**raw, "mutating_action": True},
     ):
         assert OperationContract.from_dict(malformed) is None
+
+
+@pytest.mark.parametrize(
+    "field_name",
+    ("targets", "detail_fields", "required_evidence", "allowed_operations", "allowed_transitions"),
+)
+def test_typed_contract_rejects_mutable_sequence_fields(field_name):
+    with pytest.raises(ValueError, match="operation_contract_tuple_field_invalid"):
+        replace(_typed(), **{field_name: list(getattr(_typed(), field_name))})
+
+
+def test_typed_instance_is_revalidated_instead_of_bypassing_parser():
+    contract = _typed()
+    object.__setattr__(contract, "mutating_action", True)
+
+    assert OperationContract.from_dict(contract) is None
+
+
+def test_contract_provenance_is_deeply_immutable():
+    source = {"predicate": FieldProvenance("meaning", 1.0, "list")}
+    contract = replace(_typed(), provenance=source)
+    source.clear()
+
+    assert tuple(contract.provenance) == ("predicate",)
+    with pytest.raises(TypeError):
+        contract.provenance["target"] = FieldProvenance("meaning", 1.0, "x")
+
+
+def test_routing_frame_asdict_roundtrip_preserves_nonempty_provenance():
+    contract = replace(
+        _typed(),
+        provenance={"predicate": FieldProvenance("meaning", 1.0, "list")},
+    )
+    frame = RoutingFrame(
+        intent_kind="current_state_question",
+        domain="container_runtime",
+        evidence_need="runtime_logs",
+        execution_mode="loop",
+        dialogue_style="neutral",
+        confidence=1.0,
+        operation_contract=contract,
+    )
+    raw = asdict(frame)["operation_contract"]
+    restored = OperationContract.from_dict(raw)
+
+    assert restored == contract
+    assert compute_operation_contract_fingerprint(restored) == compute_operation_contract_fingerprint(contract)
+    provenance = raw["provenance"]["predicate"]
+    for malformed in (
+        {key: value for key, value in provenance.items() if key != "span"},
+        {**provenance, "unexpected": "blocked"},
+    ):
+        assert OperationContract.from_dict({**raw, "provenance": {"predicate": malformed}}) is None
 
 
 def test_context_accepts_typed_contract_and_rejects_stale_fingerprint():

@@ -4,12 +4,7 @@ import { searchMemory } from '../../api'
 import type { SearchHit, SearchMode } from '../../contracts'
 import { useMemoryStore } from '../../state/memoryStore'
 import { cn } from '@/lib/utils'
-
-const MODES: { id: SearchMode; label: string; hint: string }[] = [
-  { id: 'fts', label: 'Volltext', hint: 'schnell, sucht in Worten' },
-  { id: 'semantic', label: 'Semantisch', hint: 'sucht in Bedeutung' },
-  { id: 'graph', label: 'Graph', hint: 'sucht in Verbindungen' },
-]
+import { useTranslation } from '@/lib/i18n'
 
 export function SearchView() {
   const query = useMemoryStore((s) => s.searchQuery)
@@ -20,6 +15,12 @@ export function SearchView() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastSearchedMode, setLastSearchedMode] = useState<SearchMode | null>(null)
+  const { t } = useTranslation()
+  const modes: { id: SearchMode; label: string; hint: string }[] = [
+    { id: 'fts', label: t('memory.fullText'), hint: t('memory.fullTextHint') },
+    { id: 'semantic', label: t('memory.semantic'), hint: t('memory.semanticHint') },
+    { id: 'graph', label: t('memory.graph'), hint: t('memory.graphHint') },
+  ]
 
   async function runSearch() {
     const trimmed = query.trim()
@@ -35,7 +36,7 @@ export function SearchView() {
       setHits(response.hits ?? [])
       setLastSearchedMode(response.mode)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Suche fehlgeschlagen')
+      setError(err instanceof Error ? err.message : t('memory.searchFailed'))
       setHits([])
     } finally {
       setLoading(false)
@@ -46,8 +47,8 @@ export function SearchView() {
     <div className="px-8 py-7">
       <div>
         <div className="text-[10px] uppercase tracking-[0.22em] text-white/40">Memory</div>
-        <h1 className="mt-1 text-[22px] font-semibold text-white/92">Suchen</h1>
-        <p className="mt-1 text-[12px] text-white/55">Drei Suchmodi gegen das gleiche Memory.</p>
+        <h1 className="mt-1 text-[22px] font-semibold text-white/92">{t('memory.searchTitle')}</h1>
+        <p className="mt-1 text-[12px] text-white/55">{t('memory.searchDescription')}</p>
       </div>
 
       <div className="mt-6 flex items-center gap-2">
@@ -60,7 +61,7 @@ export function SearchView() {
             onKeyDown={(event) => {
               if (event.key === 'Enter') void runSearch()
             }}
-            placeholder="Suchbegriff..."
+            placeholder={t('memory.searchPlaceholder')}
             className="w-full rounded-xl border border-white/10 bg-white/5 py-2 pl-9 pr-3 text-[13px] text-white/85 placeholder:text-white/35 focus:border-white/20 focus:outline-none"
           />
         </div>
@@ -71,12 +72,12 @@ export function SearchView() {
           className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/8 px-4 py-2 text-[12px] text-white/85 hover:bg-white/12 disabled:opacity-40"
         >
           {loading ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : null}
-          Suchen
+          {t('memory.search')}
         </button>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-1.5">
-        {MODES.map((option) => (
+        {modes.map((option) => (
           <button
             key={option.id}
             type="button"
@@ -92,7 +93,7 @@ export function SearchView() {
             {option.label}
           </button>
         ))}
-        <span className="text-[10px] text-white/35 self-center ml-2">{MODES.find((entry) => entry.id === mode)?.hint}</span>
+        <span className="text-[10px] text-white/35 self-center ml-2">{modes.find((entry) => entry.id === mode)?.hint}</span>
       </div>
 
       {error ? (
@@ -104,7 +105,7 @@ export function SearchView() {
       <div className="mt-6 space-y-2.5">
         {hits.length === 0 && lastSearchedMode ? (
           <div className="rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-8 text-center text-[12px] text-white/45">
-            Keine Treffer fuer "{query}".
+            {t('memory.noResults', { query })}
           </div>
         ) : (
           hits.map((hit, index) => (
@@ -114,7 +115,7 @@ export function SearchView() {
             >
               <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-white/40">
                 <span>{hit.source}</span>
-                {typeof hit.score === 'number' ? <span>score {hit.score.toFixed(2)}</span> : null}
+                {typeof hit.score === 'number' ? <span>{t('memory.score')} {hit.score.toFixed(2)}</span> : null}
                 {hit.conversation_id ? <span className="font-mono truncate max-w-[200px]">{hit.conversation_id}</span> : null}
               </div>
               <div className="mt-2 whitespace-pre-wrap break-words text-[13px] leading-relaxed text-white/82">

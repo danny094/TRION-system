@@ -7,6 +7,9 @@ from core.task_loop.runner import run_task_loop
 from tests._task_loop_runner_helpers import _plan, _step
 
 
+_TOOL_DETAILS = {"demo_tool": {"name": "demo_tool", "capability_required_args": []}}
+
+
 def test_executor_blocks_toolcall_governor_before_tool_start_and_runner():
     events = []
     called = {"value": False}
@@ -18,6 +21,7 @@ def test_executor_blocks_toolcall_governor_before_tool_start_and_runner():
     result = execute_step(
         _step("step-1"),
         runner,
+        tool_details_by_name=_TOOL_DETAILS,
         event_sink=lambda payload: events.append(dict(payload)),
         governor_snapshot=_snapshot(max_tool_calls=0),
     )
@@ -31,7 +35,10 @@ def test_executor_blocks_toolcall_governor_before_tool_start_and_runner():
 
 def test_runner_counts_allowed_toolcalls_and_blocks_second_call():
     calls = []
-    first = run_task_loop(_plan(_step("step-1")), _snapshot(max_tool_calls=1), _successful_runner(calls))
+    first = run_task_loop(
+        _plan(_step("step-1")), _snapshot(max_tool_calls=1), _successful_runner(calls),
+        tool_details_by_name=_TOOL_DETAILS,
+    )
 
     assert calls == ["demo_tool"]
     assert first.snapshot.tool_calls == 1
@@ -41,6 +48,7 @@ def test_runner_counts_allowed_toolcalls_and_blocks_second_call():
         _plan(_step("step-2")),
         _resume_for_second_step(first.snapshot),
         _successful_runner(calls),
+        tool_details_by_name=_TOOL_DETAILS,
         event_sink=lambda payload: events.append(dict(payload)),
     )
 

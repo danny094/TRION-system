@@ -6,6 +6,7 @@ alte Capability-Spec-Schicht wurde entfernt.
 from __future__ import annotations
 
 from core.orchestrator.contracts import ToolDescriptor
+from core.routing_frame.contracts import OperationContract
 
 
 def capability_operation_family(operation: str) -> str:
@@ -126,15 +127,17 @@ def tool_has_side_effects(tool: ToolDescriptor) -> bool:
     return infer_tool_operation_family(tool) in {"write", "update", "delete", "execute", "maintain", "admin"}
 
 
-def target_scope_from_contract(*, domain: str, intent_kind: str, contract: dict) -> str:
+def target_scope_from_contract(
+    *, domain: str, intent_kind: str, contract: OperationContract,
+) -> str:
     if domain == "memory":
         return "assistant_identity"
     if domain == "container_runtime":
-        return "runtime_state" if str(contract.get("primary_operation") or "").strip() else ""
+        return "runtime_state" if contract.primary_operation else ""
     if domain == "tools":
         return "tool_capability"
     if domain == "files":
-        if str(contract.get("scope_lock") or "").strip().lower() == "home":
+        if contract.scope_lock.lower() == "home":
             return "assistant_home"
         return "project_docs"
     if domain == "time":

@@ -6,12 +6,14 @@ import { useDockStore, type DockApp } from '@/state/dockStore'
 import { useWindowStore } from '@/state/windowStore'
 import { AppIcon } from '@/components/icons/AppIcon'
 import { cn } from '@/lib/utils'
+import { useTranslation } from '@/lib/i18n'
 
 export const DOCK_DROP_ID = 'dock-drop-zone'
 
 export function Dock() {
   const { apps, removeApp } = useDockStore()
   const { openWindow } = useWindowStore()
+  const { t } = useTranslation()
 
   const { setNodeRef, isOver } = useDroppable({ id: DOCK_DROP_ID })
 
@@ -29,7 +31,7 @@ export function Dock() {
             'text-xs font-medium tracking-wide transition-colors select-none',
             isOver ? 'text-primary/70' : 'text-white/20'
           )}>
-            {isOver ? 'Loslassen zum Hinzufügen' : 'Apps hier ablegen'}
+            {isOver ? t('dock.dropToAdd') : t('dock.dropHint')}
           </p>
         ) : (
           apps.map((app) => (
@@ -38,6 +40,7 @@ export function Dock() {
               app={app}
               onOpen={() => openWindow(app.openArgs)}
               onRemove={() => removeApp(app.id)}
+              removeLabel={t('dock.remove')}
             />
           ))
         )}
@@ -57,9 +60,10 @@ interface SortableDockItemProps {
   app: DockApp
   onOpen: () => void
   onRemove: () => void
+  removeLabel: string
 }
 
-function SortableDockItem({ app, onOpen, onRemove }: SortableDockItemProps) {
+function SortableDockItem({ app, onOpen, onRemove, removeLabel }: SortableDockItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: app.id,
   })
@@ -93,7 +97,7 @@ function SortableDockItem({ app, onOpen, onRemove }: SortableDockItemProps) {
       <button
         onClick={(e) => { e.stopPropagation(); onRemove() }}
         className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-black/70 border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
-        title="Aus Dock entfernen"
+        title={removeLabel}
       >
         <X className="w-2.5 h-2.5 text-white" />
       </button>

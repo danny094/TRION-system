@@ -1,6 +1,7 @@
 import { Brain, History, MessageSquare, Search } from 'lucide-react'
 import { useMemoryStore, type MemoryView } from '../state/memoryStore'
 import { cn } from '@/lib/utils'
+import { useTranslation } from '@/lib/i18n'
 
 interface ViewOption {
   id: MemoryView
@@ -9,16 +10,16 @@ interface ViewOption {
   hint: string
 }
 
-const VIEWS: ViewOption[] = [
-  { id: 'recent', label: 'Zuletzt', icon: History, hint: 'Juengste Eintraege' },
-  { id: 'search', label: 'Suchen', icon: Search, hint: 'Volltext, Semantik, Graph' },
-  { id: 'conversations', label: 'Unterhaltungen', icon: MessageSquare, hint: 'Pro Conversation' },
-]
-
 export function MemorySidebar() {
   const view = useMemoryStore((s) => s.view)
   const setView = useMemoryStore((s) => s.setView)
   const selectConversation = useMemoryStore((s) => s.selectConversation)
+  const { t } = useTranslation()
+  const views: ViewOption[] = [
+    { id: 'recent', label: t('memory.recent'), icon: History, hint: t('memory.recentHint') },
+    { id: 'search', label: t('memory.search'), icon: Search, hint: t('memory.searchHint') },
+    { id: 'conversations', label: t('memory.conversations'), icon: MessageSquare, hint: t('memory.conversationsHint') },
+  ]
 
   function switchTo(next: MemoryView) {
     setView(next)
@@ -40,7 +41,7 @@ export function MemorySidebar() {
       </div>
 
       <nav className="flex-1 px-3 py-3 space-y-0.5">
-        {VIEWS.map((option) => {
+        {views.map((option) => {
           const Icon = option.icon
           const isActive = view === option.id
           return (
@@ -63,7 +64,7 @@ export function MemorySidebar() {
       </nav>
 
       <div className="border-t border-white/5 px-5 py-3 text-[10px] uppercase tracking-[0.16em] text-white/35">
-        Live aus SQL Memory
+        {t('memory.sqlLive')}
       </div>
     </div>
   )

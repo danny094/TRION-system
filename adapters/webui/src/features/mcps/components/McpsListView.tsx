@@ -1,6 +1,7 @@
 import { Inbox } from 'lucide-react'
 import type { McpSummary } from '@/lib/contracts/mcp'
 import { McpListItem } from './McpListItem'
+import { useTranslation } from '@/lib/i18n'
 
 interface McpsListViewProps {
   mcps: McpSummary[]
@@ -9,11 +10,12 @@ interface McpsListViewProps {
 }
 
 export function McpsListView({ mcps, selectedName, onSelect }: McpsListViewProps) {
+  const { t } = useTranslation()
   if (mcps.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 text-white/30 select-none">
         <Inbox className="h-8 w-8 opacity-60" />
-        <span className="text-xs uppercase tracking-widest">Keine MCPs installiert</span>
+        <span className="text-xs uppercase tracking-widest">{t('mcp.noneInstalled')}</span>
       </div>
     )
   }

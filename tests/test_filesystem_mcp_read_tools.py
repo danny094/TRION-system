@@ -59,6 +59,39 @@ def test_search_matches_names_only_and_reports_limits(tmp_path):
     assert result["complete"] is False
     assert result["truncated"] is True
 
+    (tmp_path / "z.txt").unlink()
+    exact_cap = search.search_paths(tmp_path, "t", max_results=2, max_depth=3)
+    assert len(exact_cap["matches"]) == 2
+    assert exact_cap["complete"] is True
+    assert exact_cap["truncated"] is False
+
+
+def test_list_sorts_directory_names_before_applying_the_cap(tmp_path, monkeypatch):
+    listing = _module("listing")
+    (tmp_path / "a").mkdir()
+    (tmp_path / "a" / "child.txt").write_text("a", encoding="utf-8")
+    for name in ("b.txt", "z.txt"):
+        (tmp_path / name).write_text(name, encoding="utf-8")
+    real_scandir = listing.os.scandir
+
+    class ReverseScan:
+        def __init__(self, directory_fd):
+            with real_scandir(directory_fd) as iterator:
+                entries = {entry.name: entry for entry in iterator}
+                self.entries = [entries[name] for name in sorted(entries, reverse=True)]
+
+        def __enter__(self):
+            return iter(self.entries)
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setattr(listing.os, "scandir", ReverseScan)
+    result = listing.list_entries(tmp_path, max_entries=2, max_depth=2)
+
+    assert [item["relative_path"] for item in result["entries"]] == ["a", "a/child.txt"]
+    assert result["truncated"] is True
+
 
 def test_search_rejects_non_string_query(tmp_path):
     contracts = _module("contracts")
@@ -88,7 +121,7 @@ def test_list_stops_traversal_after_response_boundary(tmp_path, monkeypatch):
     assert calls <= 4
 
 
-def test_search_has_a_hard_scan_budget(tmp_path, monkeypatch):
+def test_search_has_a_hard_scan_budget_and_detects_hard_cap_overflow(tmp_path, monkeypatch):
     contracts = _module("contracts")
     listing = _module("listing")
     search = _module("search")
@@ -103,11 +136,11 @@ def test_search_has_a_hard_scan_budget(tmp_path, monkeypatch):
         return real_open_target(*args, **kwargs)
 
     monkeypatch.setattr(listing, "open_target", counted_open_target)
-    result = search.search_paths(tmp_path, "absent", max_results=2)
+    result = search.search_paths(tmp_path, "file", max_results=contracts.SEARCH_MAX_RESULTS)
 
-    assert result["matches"] == []
+    assert len(result["matches"]) == contracts.SEARCH_MAX_RESULTS
     assert result["complete"] is False
-    assert result["truncated"] is False
+    assert result["truncated"] is True
     assert calls <= contracts.SEARCH_MAX_RESULTS + 2
 
 

@@ -15,7 +15,11 @@ from enum import Enum
 from typing import List, Optional
 
 from core.task_loop.contracts import EvidenceArtifact, StopReason
-from core.thinking.contracts import PlanStep, ThinkingPlan
+from core.thinking.contracts import (
+    INVALID_OPERATION_CONTRACT_CRITERION,
+    PlanStep,
+    ThinkingPlan,
+)
 
 
 class OutcomeAction(str, Enum):
@@ -68,6 +72,11 @@ def _evaluate_step(
     replan_budget_remaining: bool,
     expected_operation_contract_fingerprint: str | None,
 ) -> OutcomeDecision:
+    if step.done_when == INVALID_OPERATION_CONTRACT_CRITERION:
+        return OutcomeDecision(
+            action=OutcomeAction.BLOCK,
+            stop_reason=StopReason.OBJECTIVE_NOT_MET,
+        )
     # Kein Kriterium gesetzt → heutiges Verhalten (step-SUCCESS = fertig)
     if not step.done_when and not step.required_evidence:
         return OutcomeDecision(action=OutcomeAction.COMPLETE)

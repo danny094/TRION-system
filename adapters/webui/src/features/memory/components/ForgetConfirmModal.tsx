@@ -1,4 +1,5 @@
 import { AlertTriangle } from 'lucide-react'
+import { useTranslation } from '@/lib/i18n'
 
 interface ForgetConfirmModalProps {
   open: boolean
@@ -11,16 +12,21 @@ interface ForgetConfirmModalProps {
 
 export function ForgetConfirmModal({
   open,
-  title = 'Erinnerung vergessen?',
+  title,
   description,
   onConfirm,
   onCancel,
   busy = false,
 }: ForgetConfirmModalProps) {
+  const { t } = useTranslation()
+  const dialogTitle = title ?? t('memory.forgetTitle')
   if (!open) return null
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onCancel}>
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="forget-confirm-title"
         className="w-[400px] rounded-2xl border border-white/10 bg-[#1a1a1d] shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
@@ -29,10 +35,10 @@ export function ForgetConfirmModal({
             <AlertTriangle className="w-4 h-4" />
           </div>
           <div className="flex-1">
-            <div className="text-[14px] font-semibold text-white/88">{title}</div>
+            <div id="forget-confirm-title" className="text-[14px] font-semibold text-white/88">{dialogTitle}</div>
             <div className="mt-1 text-[12px] leading-relaxed text-white/65">{description}</div>
             <div className="mt-2 text-[11px] uppercase tracking-[0.16em] text-white/35">
-              Kann nicht rueckgaengig gemacht werden.
+              {t('memory.irreversible')}
             </div>
           </div>
         </div>
@@ -43,7 +49,7 @@ export function ForgetConfirmModal({
             disabled={busy}
             className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[12px] text-white/75 hover:bg-white/10 disabled:opacity-40"
           >
-            Abbrechen
+            {t('common.cancel')}
           </button>
           <button
             type="button"
@@ -51,7 +57,7 @@ export function ForgetConfirmModal({
             disabled={busy}
             className="rounded-lg border border-rose-400/30 bg-rose-500/20 px-3 py-1.5 text-[12px] font-medium text-rose-100 hover:bg-rose-500/30 disabled:opacity-40"
           >
-            {busy ? 'Vergesse...' : 'Vergessen'}
+            {busy ? t('memory.forgetting') : t('memory.forget')}
           </button>
         </div>
       </div>

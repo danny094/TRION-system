@@ -17,6 +17,8 @@ neustart,de,lifecycle_action,container
 neustarten,de,lifecycle_action,container
 logs,de,log_state,container
 logs,en,log_state,container
+log lines,en,log_state,container
+log output,en,log_state,container
 protokoll,de,log_state,container
 logzeilen,de,log_state,container
 weisst du noch,de,memory_recall,memory

@@ -2,4 +2,6 @@ pattern,language
 "(?<![\w./-])(?P<target>(?:[a-z0-9_][a-z0-9._-]*/)*[a-z0-9_][a-z0-9._-]*\.[a-z0-9][a-z0-9_-]*)(?![\w./-])",any
 "(?<![\w./-])(?P<target>(?:[a-z0-9_][a-z0-9._-]*/)+[a-z0-9_][a-z0-9._-]*)(?![\w./-])",any
 """(?P<target>[^""\r\n]+)""",any
-"(?<![\w-])(?:logs\s+des\s+containers|logzeilen\s+von)\s+(?P<target>(?:[a-f0-9]{64}|[a-z][a-z0-9_-]*(?:\.[a-z0-9_-]+)*))(?![\w-])",de
+"(?<![\w-])(?:logs|logzeilen|protokoll)\s+(?:(?:des\s+containers|vom\s+container)\s+mit\s+der\s+id|(?:des\s+containers|vom\s+container)(?!\s+mit\b)|von\s+container|von(?!\s+container\b)|f(?:ür|uer)\s+(?:den\s+)?container|f(?:ür|uer)\s+die\s+container-id|f(?:ür|uer)(?!\s+(?:(?:den\s+)?container|die\s+container-id)\b))\s+(?P<target>(?:[a-f0-9]{64}(?!\.[a-z0-9_-])|(?![a-f0-9]+(?=(?:\.(?![a-z0-9_-])|[^\w.-]|$)))[a-z][a-z0-9_-]*(?:\.[a-z0-9_-]+)*))(?![\w-])",de
+"(?<![\w-])(?:logs|log\s+lines|log\s+output)\s+(?:(?:for|from)\s+the\s+container\s+with\s+id|of\s+the\s+container\s+named|(?:for|from|of)\s+(?:the\s+)?container\s+id|(?:for|from|of)\s+(?:the\s+)?container(?!\s+(?:with|named|id)\b)|(?:for|from|of)(?!\s+(?:the\s+)?container\b))\s+(?P<target>(?:[a-f0-9]{64}(?!\.[a-z0-9_-])|(?![a-f0-9]+(?=(?:\.(?![a-z0-9_-])|[^\w.-]|$)))[a-z][a-z0-9_-]*(?:\.[a-z0-9_-]+)*))(?![\w-])",en
+"(?<![\w-])(?:containers?\s+are\s+(?:running|active)|running\s+containers)[^.\r\n]{0,160}?(?P<target>(?:[a-f0-9]{64}(?!\.[a-z0-9_-])|(?![a-f0-9]+(?=(?:\.(?![a-z0-9_-])|[^\w.-]|$)))[a-z][a-z0-9_-]*(?:\.[a-z0-9_-]+)*))(?:'s|’s)\s+logs(?![\w-])",en

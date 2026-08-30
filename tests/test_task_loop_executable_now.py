@@ -116,6 +116,20 @@ def test_missing_tool_metadata_fails_closed_when_guard_is_active():
     assert result.error == "missing_tool_metadata"
 
 
+def test_absent_tool_metadata_map_fails_closed():
+    called = {"value": False}
+
+    def runner(_call):
+        called["value"] = True
+        return TaskToolResult(success=True, result={"ok": True})
+
+    result = execute_step(_step(), runner, tool_details_by_name=None)
+
+    assert called["value"] is False
+    assert result.status == StepExecutionStatus.FAILED
+    assert result.error == "missing_tool_metadata"
+
+
 def test_details_by_name_reads_registry_mirror_requires():
     details = details_by_name([
         {"name": "container_inspect", "tool_intent": {"requires": ["container_id_or_name"]}}

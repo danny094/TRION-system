@@ -1,11 +1,12 @@
 import { MessageSquarePlus, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useChatStore } from '../state/chatStore'
 import { cn } from '@/lib/utils'
+import { useTranslation } from '@/lib/i18n'
 
-function formatTimestamp(value: string): string {
+function formatTimestamp(value: string, locale: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
-  return new Intl.DateTimeFormat('de-DE', {
+  return new Intl.DateTimeFormat(locale, {
     hour: '2-digit',
     minute: '2-digit',
   }).format(date)
@@ -18,6 +19,7 @@ interface ChatSessionSidebarProps {
 
 export function ChatSessionSidebar({ collapsed, onToggle }: ChatSessionSidebarProps) {
   const { sessions, activeSessionId, createSession, activateSession, closeSession } = useChatStore()
+  const { locale, t } = useTranslation()
 
   // Collapsed: narrow strip with toggle + new-chat button + small dots per session
   if (collapsed) {
@@ -26,7 +28,7 @@ export function ChatSessionSidebar({ collapsed, onToggle }: ChatSessionSidebarPr
         <button
           type="button"
           onClick={onToggle}
-          title="Sitzungen einblenden"
+          title={t('chat.showSessions')}
           className="flex h-8 w-8 items-center justify-center rounded-lg text-white/45 transition hover:bg-white/8 hover:text-white/85"
         >
           <ChevronRight className="h-4 w-4" />
@@ -35,7 +37,7 @@ export function ChatSessionSidebar({ collapsed, onToggle }: ChatSessionSidebarPr
         <button
           type="button"
           onClick={createSession}
-          title="Neuer Chat"
+          title={t('chat.newChat')}
           className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/25 bg-primary/12 text-primary transition hover:bg-primary/18"
         >
           <MessageSquarePlus className="h-4 w-4" />
@@ -68,12 +70,12 @@ export function ChatSessionSidebar({ collapsed, onToggle }: ChatSessionSidebarPr
       <div className="border-b border-white/8 px-4 py-4 space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-medium uppercase tracking-wider text-white/35">
-            Sitzungen
+            {t('chat.sessions')}
           </span>
           <button
             type="button"
             onClick={onToggle}
-            title="Sitzungen ausblenden"
+            title={t('chat.hideSessions')}
             className="flex h-6 w-6 items-center justify-center rounded-md text-white/40 transition hover:bg-white/8 hover:text-white/80"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
@@ -85,7 +87,7 @@ export function ChatSessionSidebar({ collapsed, onToggle }: ChatSessionSidebarPr
           className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/25 bg-primary/12 px-4 py-3 text-sm font-medium text-primary transition hover:bg-primary/18"
         >
           <MessageSquarePlus className="h-4 w-4" />
-          Neuer Chat
+          {t('chat.newChat')}
         </button>
       </div>
 
@@ -111,13 +113,13 @@ export function ChatSessionSidebar({ collapsed, onToggle }: ChatSessionSidebarPr
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium text-white/90">{session.title}</div>
                   <div className="mt-1 flex items-center gap-2 text-[11px] text-white/35">
-                    <span>{session.messages.length} Nachrichten</span>
+                    <span>{t('chat.messages', { count: session.messages.length })}</span>
                     <span>·</span>
-                    <span>{formatTimestamp(session.updatedAt)}</span>
+                    <span>{formatTimestamp(session.updatedAt, locale)}</span>
                     {session.isBusy ? (
                       <>
                         <span>·</span>
-                        <span className="text-emerald-300/85">aktiv</span>
+                        <span className="text-emerald-300/85">{t('chat.active')}</span>
                       </>
                     ) : null}
                   </div>
@@ -132,7 +134,7 @@ export function ChatSessionSidebar({ collapsed, onToggle }: ChatSessionSidebarPr
                     className="inline-flex items-center gap-1 rounded-xl px-2 py-1 text-[11px] text-white/35 transition hover:bg-white/6 hover:text-white/65"
                   >
                     <X className="h-3.5 w-3.5" />
-                    Schließen
+                    {t('chat.close')}
                   </button>
                 </div>
               ) : null}

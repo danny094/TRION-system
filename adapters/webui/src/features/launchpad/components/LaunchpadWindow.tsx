@@ -11,12 +11,14 @@ import { useMcpsStore } from '@/features/mcps/state/mcpsStore'
 import { launchpadAppsFromMcps } from '@/lib/contracts/mcpHostApps'
 import { usePluginStore } from '@/features/plugins/state/pluginStore'
 import { launchpadAppsFromPlugins } from '@/lib/contracts/pluginApps'
+import { useTranslation } from '@/lib/i18n'
 
 export function LaunchpadWindow() {
   const items = useMcpsStore((s) => s.items)
   const refresh = useMcpsStore((s) => s.refresh)
   const plugins = usePluginStore((s) => s.items)
   const refreshPlugins = usePluginStore((s) => s.refresh)
+  const { t } = useTranslation()
   const apps = useMemo(() => [...APP_REGISTRY, ...launchpadAppsFromMcps(items), ...launchpadAppsFromPlugins(plugins)], [items, plugins])
 
   useEffect(() => {
@@ -36,7 +38,7 @@ export function LaunchpadWindow() {
         ))}
       </div>
       <div className="mt-auto pt-4 border-t border-white/5 text-[10px] text-white/20 text-center select-none">
-        Apps per Drag in den Dock ziehen
+        {t('launchpad.dragHint')}
       </div>
     </div>
   )
@@ -50,6 +52,7 @@ interface DraggableAppIconProps {
 function DraggableAppIcon({ app, index }: DraggableAppIconProps) {
   const { openWindow } = useWindowStore()
   const isPinned = useDockStore((s) => s.hasApp(app.id))
+  const { t } = useTranslation()
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `launch-${app.id}`,
@@ -101,7 +104,7 @@ function DraggableAppIcon({ app, index }: DraggableAppIconProps) {
 
         {!app.canPin && (
           <span className="text-[9px] text-white/25 uppercase tracking-wide select-none">
-            Quick Launch
+            {t('launchpad.quickLaunch')}
           </span>
         )}
       </div>

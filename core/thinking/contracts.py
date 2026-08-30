@@ -3,6 +3,9 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 
+INVALID_OPERATION_CONTRACT_CRITERION = "operation_contract_invalid"
+
+
 class RiskLevel(str, Enum):
     SAFE = "safe"
     NEEDS_CONFIRMATION = "needs_confirmation"

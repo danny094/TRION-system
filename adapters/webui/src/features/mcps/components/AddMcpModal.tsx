@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Loader2, Plus, UploadCloud, X } from 'lucide-react'
 import { useMcpsStore } from '../state/mcpsStore'
+import { useTranslation } from '@/lib/i18n'
 
 interface AddMcpModalProps {
   onClose: () => void
@@ -12,6 +13,7 @@ export function AddMcpModal({ onClose }: AddMcpModalProps) {
   const saving = useMcpsStore((s) => s.saving)
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const { t } = useTranslation()
 
   async function handleFileChange(file: File | null) {
     if (!file) return
@@ -20,7 +22,7 @@ export function AddMcpModal({ onClose }: AddMcpModalProps) {
       await uploadBundle(file)
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bundle konnte nicht installiert werden.')
+      setError(err instanceof Error ? err.message : t('mcp.installFailed'))
     }
   }
 
@@ -35,11 +37,12 @@ export function AddMcpModal({ onClose }: AddMcpModalProps) {
         <header className="flex items-center justify-between border-b border-white/8 bg-white/5 px-4 py-3">
           <h3 className="flex items-center gap-2 text-sm font-medium text-white/85">
             <Plus className="h-4 w-4 text-primary" />
-            MCP hinzufügen
+            {t('mcp.add')}
           </h3>
           <button
             type="button"
             onClick={onClose}
+            aria-label={t('common.close')}
             className="rounded-full p-1 text-white/40 transition-colors hover:bg-white/8 hover:text-white/80"
           >
             <X className="h-4 w-4" />
@@ -59,8 +62,7 @@ export function AddMcpModal({ onClose }: AddMcpModalProps) {
             onPick={() => inputRef.current?.click()}
           />
           <p className="mt-3 text-xs text-white/40">
-            Lokale Archive werden direkt an den Installer übergeben. URL-Install und
-            externer Katalog bleiben bewusst außen vor.
+            {t('mcp.archiveNote')}
           </p>
           {error && (
             <div className="mt-3 rounded-2xl border border-rose-500/20 bg-rose-500/[0.06] px-3 py-2 text-xs text-rose-200">
@@ -79,6 +81,7 @@ interface UploadDropZoneProps {
 }
 
 function UploadDropZone({ saving, onPick }: UploadDropZoneProps) {
+  const { t } = useTranslation()
   return (
     <button
       type="button"
@@ -95,10 +98,10 @@ function UploadDropZone({ saving, onPick }: UploadDropZoneProps) {
       </div>
       <div className="text-center">
         <p className="text-sm font-medium text-white/85">
-          {saving ? 'Bundle wird installiert …' : 'Archiv auswählen'}
+          {saving ? t('mcp.installingBundle') : t('mcp.chooseArchive')}
         </p>
         <p className="mt-1 text-xs text-white/40">
-          {saving ? 'Bitte kurz warten' : 'Klicken, um eine lokale Datei auszuwählen'}
+          {saving ? t('mcp.wait') : t('mcp.chooseLocalFile')}
         </p>
       </div>
     </button>

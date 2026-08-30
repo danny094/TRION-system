@@ -1,4 +1,5 @@
 import { ChevronLeft } from 'lucide-react'
+import { useTranslation } from '@/lib/i18n'
 
 interface DetailHeaderProps {
   title: string
@@ -12,9 +13,11 @@ export function DetailHeader({
   title,
   subtitle,
   onBack,
-  eyebrow = 'KI & Verhalten',
+  eyebrow,
   action,
 }: DetailHeaderProps) {
+  const { t } = useTranslation()
+  const eyebrowLabel = eyebrow ?? t('ai.headerEyebrow')
   return (
     <div className="flex flex-col gap-4">
       <button
@@ -23,12 +26,12 @@ export function DetailHeader({
         className="flex w-fit items-center gap-1 text-[12px] text-purple-300/80 transition hover:text-purple-200"
       >
         <ChevronLeft className="h-3.5 w-3.5" />
-        {eyebrow}
+        {eyebrowLabel}
       </button>
       <header className="flex items-start justify-between gap-4">
         <div>
           <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/35">
-            {eyebrow}
+            {eyebrowLabel}
           </div>
           <h1 className="mt-2 text-[22px] font-semibold leading-tight text-white/95">
             {title}

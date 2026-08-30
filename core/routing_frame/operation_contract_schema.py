@@ -1,14 +1,18 @@
 """Canonical structured parser for persisted OperationContract data."""
 from collections.abc import Mapping
-from dataclasses import fields
+from dataclasses import asdict, fields
 from typing import Any, get_args, get_origin
 
 from core.routing_frame.contracts import FieldProvenance, OperationContract, OperationTransition
 
 
 def parse_operation_contract(value: Any) -> OperationContract | None:
+    typed = value if type(value) is OperationContract else None
     if type(value) is OperationContract:
-        return value
+        try:
+            value = asdict(value)
+        except (TypeError, ValueError):
+            return None
     if not isinstance(value, Mapping):
         return None
     names = {item.name for item in fields(OperationContract)}
@@ -26,7 +30,9 @@ def parse_operation_contract(value: Any) -> OperationContract | None:
         return None
     if not _nonempty_string(contract.domain) or not _nonempty_string(contract.primary_operation):
         return None
-    return contract if contract.primary_operation in contract.allowed_operations else None
+    if contract.primary_operation not in contract.allowed_operations:
+        return None
+    return typed if typed is not None and typed == contract else contract
 
 
 _INVALID = object()
@@ -44,7 +50,7 @@ def _field_value(annotation: Any, value: Any) -> Any:
     if origin is tuple and args == (OperationTransition, Ellipsis):
         parsed = _transition_tuple(value)
         return parsed if parsed is not None else _INVALID
-    if origin is dict and args == (str, FieldProvenance):
+    if origin in (dict, Mapping) and args == (str, FieldProvenance):
         parsed = _provenance(value)
         return parsed if parsed is not None else _INVALID
     return _INVALID

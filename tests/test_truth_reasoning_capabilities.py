@@ -6,6 +6,18 @@ from core.thinking.planner import build_plan_from_analysis
 from core.thinking.replanner import build_replan
 
 
+_TOOL_DETAILS = {
+    "time_now": {"name": "time_now", "capability_required_args": []},
+    "workspace_get": {
+        "name": "workspace_get",
+        "description": "Read a workspace entry by id.",
+        "intent_description": "Read file or document content from the workspace.",
+        "intent_keywords": ["file", "read", "workspace", "document"],
+        "capability_required_args": [],
+    },
+}
+
+
 def _classifier() -> ClassifierResult:
     return ClassifierResult(
         category=Category.INFORMATION,
@@ -22,14 +34,7 @@ def test_analyzer_resolves_file_capability_from_live_tool_details():
     raw = analyze_request(
         "Lies danach /trion-home/status.txt.",
         _classifier(),
-        available_tools=[
-            {
-                "name": "workspace_get",
-                "description": "Read a workspace entry by id.",
-                "intent_description": "Read file or document content from the workspace.",
-                "intent_keywords": ["file", "read", "workspace", "document"],
-            }
-        ],
+        available_tools=[_TOOL_DETAILS["workspace_get"]],
         selected_tools=[],
         llm_enabled=False,
     )
@@ -67,6 +72,7 @@ def test_task_loop_replans_for_additional_evidence_using_regular_second_step():
         conversation_id="truth-reasoning",
         objective="Prüfe zuerst die aktuelle Uhrzeit. Lies danach /trion-home/status.txt.",
         tool_runner=tool_runner,
+        tool_details_by_name=_TOOL_DETAILS,
         replanner_fn=lambda *args, **kwargs: build_replan(*args, **kwargs, available_tools=["time_now", "workspace_get"]),
     )
 

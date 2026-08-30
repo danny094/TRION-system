@@ -15,7 +15,10 @@ def check_executable_now(
     tool_details_by_name: Mapping[str, Mapping[str, Any]] | None,
 ) -> ExecutableNowDecision:
     if tool_details_by_name is None:
-        return ExecutableNowDecision(allowed=True)
+        return ExecutableNowDecision(
+            allowed=False,
+            error="missing_tool_metadata",
+        )
     tool_name = str(getattr(tool_call, "tool_name", "") or "").strip()
     detail = tool_details_by_name.get(tool_name)
     if not isinstance(detail, Mapping):

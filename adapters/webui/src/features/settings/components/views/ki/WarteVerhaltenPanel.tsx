@@ -1,29 +1,30 @@
 import { cn } from '@/lib/utils'
 import { DetailHeader } from './DetailHeader'
+import { useTranslation } from '@/lib/i18n'
 
 export type WaitBehavior = 'sofort' | '30sek' | '2min' | 'immer'
 
 interface Props { value: WaitBehavior; onChange: (v: WaitBehavior) => void; onBack: () => void }
 
-const OPTIONS: { id: WaitBehavior; label: string; hint: string }[] = [
-  { id: 'sofort', label: 'Sofort stopp',  hint: 'Planung stoppt sofort wenn du zu tippen anfängst' },
-  { id: '30sek',  label: '30 Sek',        hint: 'Gedanken laufen noch 30 Sekunden weiter' },
-  { id: '2min',   label: '2 Min',         hint: 'Hintergrundplanung für bis zu 2 Minuten' },
-  { id: 'immer',  label: 'Immer',         hint: 'TRION denkt ständig weiter — auch im Leerlauf' },
-]
-
 export function WarteVerhaltenPanel({ value, onChange, onBack }: Props) {
-  const current = OPTIONS.find((o) => o.id === value)
+  const { t } = useTranslation()
+  const options = [
+    { id: 'sofort' as const, label: t('autonomy.stopNow'), hint: t('autonomy.stopNowHint') },
+    { id: '30sek' as const, label: t('autonomy.seconds30'), hint: t('autonomy.seconds30Hint') },
+    { id: '2min' as const, label: t('autonomy.minutes2'), hint: t('autonomy.minutes2Hint') },
+    { id: 'immer' as const, label: t('autonomy.always'), hint: t('autonomy.alwaysHint') },
+  ]
+  const current = options.find((o) => o.id === value)
   return (
     <div className="flex flex-col gap-5">
       <DetailHeader
-        title="Warteverhalten"
-        subtitle="Wie lange darf TRION im Hintergrund weiterplanen, während er auf deine Antwort wartet?"
+        title={t('autonomy.waitTitle')}
+        subtitle={t('autonomy.waitSubtitle')}
         onBack={onBack}
       />
       <div className="rounded-2xl border border-white/6 bg-white/[0.02] p-4">
         <div className="flex flex-wrap gap-2">
-          {OPTIONS.map((o) => (
+          {options.map((o) => (
             <button
               key={o.id}
               type="button"

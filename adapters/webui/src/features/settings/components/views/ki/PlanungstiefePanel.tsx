@@ -1,29 +1,30 @@
 import { cn } from '@/lib/utils'
 import { DetailHeader } from './DetailHeader'
+import { useTranslation } from '@/lib/i18n'
 
 export type PlanningDepth = 'schnell' | 'normal' | 'gründlich' | 'unbegrenzt'
 
 interface Props { value: PlanningDepth; onChange: (v: PlanningDepth) => void; onBack: () => void }
 
-const OPTIONS: { id: PlanningDepth; label: string; hint: string }[] = [
-  { id: 'schnell',      label: 'Schnell',      hint: 'Bis zu 3 Schritte — direkt und schnell' },
-  { id: 'normal',       label: 'Normal',       hint: 'Bis zu 10 Schritte pro Task' },
-  { id: 'gründlich',    label: 'Gründlich',    hint: 'Bis zu 25 Schritte für komplexe Aufgaben' },
-  { id: 'unbegrenzt',   label: 'Unbegrenzt',   hint: 'Keine Begrenzung — TRION denkt so weit wie nötig' },
-]
-
 export function PlanungstiefePanel({ value, onChange, onBack }: Props) {
-  const current = OPTIONS.find((o) => o.id === value)
+  const { t } = useTranslation()
+  const options = [
+    { id: 'schnell' as const, label: t('autonomy.fast'), hint: t('autonomy.fastHint') },
+    { id: 'normal' as const, label: t('autonomy.normal'), hint: t('autonomy.normalHint') },
+    { id: 'gründlich' as const, label: t('autonomy.thorough'), hint: t('autonomy.thoroughHint') },
+    { id: 'unbegrenzt' as const, label: t('autonomy.unlimited'), hint: t('autonomy.unlimitedHint') },
+  ]
+  const current = options.find((o) => o.id === value)
   return (
     <div className="flex flex-col gap-5">
       <DetailHeader
-        title="Planungstiefe"
-        subtitle="Wie viele Schritte darf TRION vorausdenken, bevor er loslegt?"
+        title={t('autonomy.planningTitle')}
+        subtitle={t('autonomy.planningSubtitle')}
         onBack={onBack}
       />
       <div className="rounded-2xl border border-white/6 bg-white/[0.02] p-4">
         <div className="flex flex-wrap gap-2">
-          {OPTIONS.map((o) => (
+          {options.map((o) => (
             <button
               key={o.id}
               type="button"

@@ -164,11 +164,19 @@ this snapshot is not a production-security claim.
   contracts are complete.
 - **The default Docker stack is development-only.** Authentication and Docker
   authority hardening remain required before deployment on an untrusted host.
-- **WebUI quality debt is visible, not hidden.** The production WebUI build
-  succeeds, but the current ESLint run reports 16 errors and 1 warning. The
-  unchanged lockfile also reports 1 low and 4 high dependency advisories in
-  `npm audit`; these are inherited from the preceding public snapshot and are
-  not represented as resolved by this synchronization.
+- **WebUI localization is still partial.** English is the default on migrated
+  surfaces, while some legacy Appearance controls and other untouched views
+  still contain German text. This snapshot does not claim complete localization.
+- **WebUI quality gates are incomplete, not green.** Both TypeScript project
+  checks pass, but the local Vite production build and ESLint run each made no
+  further progress and were stopped after 180 seconds; neither is claimed as a
+  pass. The unchanged lockfile reports 1 low and 4 high dependency advisories
+  in `npm audit`.
+- **Release supply-chain evidence remains incomplete.** The repository does
+  not yet provide a central reproducible Python lock/constraint process, a
+  dependency-license policy, CycloneDX SBOMs for every shipped image and
+  bundle, or digest-pinned base images. This development snapshot is not a
+  production-security or release-readiness claim.
 
 ## Contributing & community
 

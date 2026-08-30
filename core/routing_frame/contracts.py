@@ -1,9 +1,10 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from core.classifier.contracts import ClassifierResult
 from core.classifier.live_claims import LiveClaimKind
 from core.dialogue_signal.contracts import DialogueSignal
+from core.routing_frame.operation_contract_invariants import validate_operation_contract
 
 
 @dataclass(frozen=True)
@@ -138,19 +139,14 @@ class OperationContract:
     allowed_transitions: Tuple[str, ...]
     transition_requirements: Tuple[OperationTransition, ...]
     scope_lock: str
-    provenance: Dict[str, FieldProvenance]
+    provenance: Mapping[str, FieldProvenance]
 
     def __post_init__(self) -> None:
-        projected_target = self.targets[0] if self.targets else ""
-        if self.target != projected_target:
-            raise ValueError("operation_contract_target_projection_mismatch")
-        if type(self.transition_requirements) is not tuple or any(
-            type(item) is not OperationTransition for item in self.transition_requirements
-        ):
-            raise ValueError("operation_contract_transition_type_invalid")
-        projected_edges = tuple(item.edge for item in self.transition_requirements)
-        if self.allowed_transitions != projected_edges or len(set(projected_edges)) != len(projected_edges):
-            raise ValueError("operation_contract_transition_projection_mismatch")
+        validate_operation_contract(
+            self,
+            transition_type=OperationTransition,
+            provenance_type=FieldProvenance,
+        )
 
     @classmethod
     def from_dict(cls, value: Any) -> Optional["OperationContract"]:

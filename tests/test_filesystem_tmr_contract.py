@@ -1,11 +1,13 @@
 """P11-SP8-R6-I: typed filesystem meaning and argument contracts."""
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 from core.classifier.classifier import classify
 from core.orchestrator.tool_eligibility_helpers import target_scope_from_contract
 from core.routing_frame.builder import build_routing_frame
+from core.routing_frame.contracts import OperationContract
 from core.routing_frame.meaning import build_meaning_representation
 from core.thinking.runtime_arguments import resolve_step_tool_arguments
 
@@ -42,16 +44,28 @@ def test_relative_path_syntax_is_data_driven_without_concrete_filename_rule():
     assert "today.md" not in pattern_source
 
 
+def test_mixed_target_patterns_follow_global_text_order():
+    meaning = build_meaning_representation(
+        "Check folder/subdir before status.txt in the home workspace."
+    )
+
+    assert meaning.target_candidates == ("folder/subdir", "status.txt")
+
+
 def test_absolute_and_parent_paths_never_become_target_candidates():
     absolute = build_meaning_representation("Does /etc/passwd exist in home?")
     parent = build_meaning_representation("Does ../secrets.txt exist in home?")
     quoted_absolute = build_meaning_representation('Search for "/etc/passwd".')
     quoted_parent = build_meaning_representation('Search for "../secrets.txt".')
+    quoted_nested_parent = build_meaning_representation(
+        'Search for "safe/../secrets.txt".'
+    )
 
     assert absolute.target_candidates == ()
     assert parent.target_candidates == ()
     assert quoted_absolute.target_candidates == ()
     assert quoted_parent.target_candidates == ()
+    assert quoted_nested_parent.target_candidates == ()
 
 
 def test_root_relative_target_preserves_case_for_linux_lookup():
@@ -83,11 +97,12 @@ def test_non_file_presence_keeps_read_operation():
 
 def test_memory_workspace_and_project_docs_do_not_become_assistant_home():
     memory_frame = _frame("Weisst du noch, was wir im Workspace besprochen haben?")
-    project_contract = {
-        "domain": "files",
-        "primary_operation": "read",
-        "scope_lock": "",
-    }
+    memory_contract = OperationContract.from_dict(memory_frame["operation_contract"])
+    assert memory_contract is not None
+    project_contract = replace(
+        memory_contract, domain="files", primary_operation="read",
+        allowed_operations=("read",), scope_lock="",
+    )
 
     assert memory_frame["domain"] == "memory"
     assert memory_frame["operation_contract"]["scope_lock"] != "home"
@@ -147,3 +162,34 @@ def test_search_query_uses_contract_target_without_toolname_fallback():
 
     assert arguments == {"query": "release-notes.md"}
     assert no_contract == {}
+
+
+def test_multi_target_binding_uses_step_index_and_blocks_drift_or_overflow():
+    detail = {
+        "capability_operation": "read",
+        "capability_required_args": ["relative_path"],
+    }
+    contract = {
+        "domain": "files",
+        "primary_operation": "read",
+        "target": "one.txt",
+        "targets": ("one.txt", "two.txt"),
+        "scope_lock": "home",
+    }
+
+    assert resolve_step_tool_arguments(
+        "filesystem_read", "ignored", detail, _context(contract), step_index=0
+    ) == {"relative_path": "one.txt"}
+    assert resolve_step_tool_arguments(
+        "filesystem_read", "ignored", detail, _context(contract), step_index=1
+    ) == {"relative_path": "two.txt"}
+    assert resolve_step_tool_arguments(
+        "filesystem_read", "ignored", detail, _context(contract), step_index=2
+    ) == {}
+    assert resolve_step_tool_arguments(
+        "filesystem_read",
+        "ignored",
+        detail,
+        _context({**contract, "target": "drift.txt"}),
+        step_index=0,
+    ) == {}

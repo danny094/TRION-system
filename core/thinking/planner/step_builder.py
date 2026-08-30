@@ -8,7 +8,11 @@ from typing import Any, Dict
 
 from core.input_processor.contracts import DocumentContext
 from core.routing_frame.contracts import OperationContract
-from core.thinking.contracts import PlanStep, RiskLevel
+from core.thinking.contracts import (
+    INVALID_OPERATION_CONTRACT_CRITERION,
+    PlanStep,
+    RiskLevel,
+)
 from core.thinking.document_steps import build_document_steps
 from core.thinking.planner.frame_reader import (
     needs_loop,
@@ -76,9 +80,14 @@ def _authoritative_criteria(
     tool_detail: Dict[str, Any],
     fallback: Dict[str, Any],
 ) -> Dict[str, Any]:
+    if "operation_contract" not in frame:
+        return fallback
     contract = OperationContract.from_dict(frame.get("operation_contract"))
     if contract is None:
-        return fallback
+        return {
+            "done_when": INVALID_OPERATION_CONTRACT_CRITERION,
+            "required_evidence": [],
+        }
     required = list(contract.required_evidence)
     declared: set[str] = set()
     if str(tool_detail.get("name") or "").strip() == tool_name:

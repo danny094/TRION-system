@@ -10,23 +10,24 @@ import { KiVerhaltenPanel } from '@/features/settings/components/KiVerhaltenPane
 import { PluginSettingsPanel } from '@/features/settings/components/PluginSettingsPanel'
 import { usePluginStore } from '@/features/plugins/state/pluginStore'
 import { settingsTabsFromPlugins, type PluginSettingsTab } from '@/lib/contracts/pluginPanels'
+import { useTranslation } from '@/lib/i18n'
 
 type BuiltinSettingsTab = 'allgemein' | 'ki-verhalten' | 'erscheinungsbild' | 'modelle' | 'api'
 type SettingsTab = BuiltinSettingsTab | `plugin-settings:${string}`
 
 interface TabConfig {
   id: BuiltinSettingsTab
-  label: string
+  labelKey: string
   icon: React.ReactNode
   tint: string
 }
 
 const TABS: TabConfig[] = [
-  { id: 'allgemein',        label: 'Allgemein',        icon: <Sliders className="h-3 w-3" />, tint: '#6E6E73' },
-  { id: 'ki-verhalten',     label: 'KI & Verhalten',   icon: <Cpu     className="h-3 w-3" />, tint: '#7F77DD' },
-  { id: 'erscheinungsbild', label: 'Erscheinungsbild', icon: <Palette className="h-3 w-3" />, tint: '#D4537E' },
-  { id: 'modelle',          label: 'Modelle',          icon: <Box     className="h-3 w-3" />, tint: '#378ADD' },
-  { id: 'api',              label: 'API',              icon: <Key     className="h-3 w-3" />, tint: '#BA7517' },
+  { id: 'allgemein', labelKey: 'settings.general', icon: <Sliders className="h-3 w-3" />, tint: '#6E6E73' },
+  { id: 'ki-verhalten', labelKey: 'settings.aiBehavior', icon: <Cpu className="h-3 w-3" />, tint: '#7F77DD' },
+  { id: 'erscheinungsbild', labelKey: 'settings.appearance', icon: <Palette className="h-3 w-3" />, tint: '#D4537E' },
+  { id: 'modelle', labelKey: 'settings.models', icon: <Box className="h-3 w-3" />, tint: '#378ADD' },
+  { id: 'api', labelKey: 'API', icon: <Key className="h-3 w-3" />, tint: '#BA7517' },
 ]
 
 export function SettingsWindow() {
@@ -73,6 +74,7 @@ interface SidebarProps {
 }
 
 function Sidebar({ active, onSelect, pluginTabs }: SidebarProps) {
+  const { t } = useTranslation()
   return (
     <aside className="flex w-44 shrink-0 flex-col border-r border-white/8 bg-white/[0.015] px-3 py-4">
       <div className="mb-5 flex items-center gap-2.5 px-1">
@@ -81,7 +83,7 @@ function Sidebar({ active, onSelect, pluginTabs }: SidebarProps) {
         </div>
         <div className="min-w-0">
           <div className="text-[13px] font-semibold leading-tight text-white/95">
-            Einstellungen
+            {t('settings.title')}
           </div>
           <div className="mt-0.5 text-[10px] leading-tight text-white/35">
             v 1.0 · TRION
@@ -93,7 +95,7 @@ function Sidebar({ active, onSelect, pluginTabs }: SidebarProps) {
         {TABS.map((tab) => (
           <TabButton
             key={tab.id}
-            label={tab.label}
+            label={t(tab.labelKey)}
             icon={<span
               className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-white"
               style={{ backgroundColor: tab.tint }}
@@ -107,7 +109,7 @@ function Sidebar({ active, onSelect, pluginTabs }: SidebarProps) {
         {pluginTabs.length > 0 && (
           <div className="mt-3 border-t border-white/8 pt-3">
             <div className="px-2 pb-2 text-[10px] uppercase tracking-[0.18em] text-white/25">
-              Plugins
+              {t('settings.plugins')}
             </div>
             <div className="flex flex-col gap-0.5">
               {pluginTabs.map((tab) => (

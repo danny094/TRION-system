@@ -27,6 +27,9 @@ from mcp.tool_result_contracts import (
 )
 
 
+_TOOL_DETAILS = {"inventory": {"name": "inventory", "capability_required_args": []}}
+
+
 def _envelope() -> MCPToolResultEnvelope:
     return MCPToolResultEnvelope(
         MCPToolCallStatus.SUCCESS,
@@ -93,6 +96,7 @@ def test_success_step_preserves_opaque_structural_result() -> None:
             result={"ok": True},
             structural_result=structural_result,
         ),
+        tool_details_by_name=_TOOL_DETAILS,
     )
 
     assert result.structural_result is structural_result
@@ -107,6 +111,7 @@ def test_failure_step_and_new_loop_start_without_structural_results() -> None:
             error="failed",
             structural_result=structural_result,
         ),
+        tool_details_by_name=_TOOL_DETAILS,
     )
     loop_result = TaskLoopResult(TaskLoopState.COMPLETED, None, [], "done", _snapshot())
 
@@ -130,6 +135,7 @@ def test_loop_collects_one_structural_slot_per_successful_step() -> None:
             status=TaskToolResultStatus.SUCCESS_EMPTY,
             structural_result=structural_results[call.step_id],
         ),
+        tool_details_by_name=_TOOL_DETAILS,
     )
 
     assert result.structural_results == (structural_results["s1"], structural_results["s2"])
@@ -154,6 +160,7 @@ def test_loop_preserves_current_epoch_after_later_failure() -> None:
         plan,
         TaskLoopSnapshot("plan", "conv", "inspect", TaskLoopState.EXECUTING, 0, 3, 0),
         tool_runner,
+        tool_details_by_name=_TOOL_DETAILS,
     )
 
     assert result.structural_results == (first,)

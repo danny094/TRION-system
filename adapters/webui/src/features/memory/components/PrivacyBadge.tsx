@@ -1,13 +1,6 @@
 import { cn } from '@/lib/utils'
 import type { PolicyBadge } from '../contracts'
-
-const BADGE_LABELS: Record<PolicyBadge, string> = {
-  global_enabled: 'Global',
-  conversation_only: 'Nur hier',
-  temporary: 'Temporaer',
-  do_not_remember: 'Nicht merken',
-  disabled: 'Aus',
-}
+import { useTranslation } from '@/lib/i18n'
 
 const BADGE_TONE: Record<PolicyBadge, string> = {
   global_enabled: 'border-emerald-400/25 bg-emerald-500/10 text-emerald-100/85',
@@ -18,6 +11,14 @@ const BADGE_TONE: Record<PolicyBadge, string> = {
 }
 
 export function PrivacyBadge({ badge }: { badge: PolicyBadge }) {
+  const { t } = useTranslation()
+  const badgeLabels: Record<PolicyBadge, string> = {
+    global_enabled: t('memory.global'),
+    conversation_only: t('memory.hereOnly'),
+    temporary: t('memory.temporary'),
+    do_not_remember: t('memory.doNotRemember'),
+    disabled: t('memory.off'),
+  }
   return (
     <span
       className={cn(
@@ -25,7 +26,7 @@ export function PrivacyBadge({ badge }: { badge: PolicyBadge }) {
         BADGE_TONE[badge],
       )}
     >
-      {BADGE_LABELS[badge]}
+      {badgeLabels[badge]}
     </span>
   )
 }

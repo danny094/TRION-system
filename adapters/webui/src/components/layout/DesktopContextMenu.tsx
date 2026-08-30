@@ -5,6 +5,7 @@ import { useUiStore } from '@/state/uiStore'
 import { APP_REGISTRY } from '@/lib/contracts/appRegistry'
 import { AppIcon } from '@/components/icons/AppIcon'
 import { ImageOff } from 'lucide-react'
+import { useTranslation } from '@/lib/i18n'
 
 interface Props {
   x: number
@@ -18,6 +19,7 @@ const MENU_H_APPROX = 200
 export function DesktopContextMenu({ x, y, onClose }: Props) {
   const { openWindow } = useWindowStore()
   const { backgroundImage, setBackgroundImage } = useUiStore()
+  const { t } = useTranslation()
 
   // Stay within viewport
   const safeX = Math.min(x, window.innerWidth  - MENU_W - 8)
@@ -64,7 +66,7 @@ export function DesktopContextMenu({ x, y, onClose }: Props) {
         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/50 hover:text-white/80 hover:bg-white/8 transition-colors text-left disabled:opacity-30 disabled:pointer-events-none"
       >
         <ImageOff className="w-4 h-4 flex-shrink-0" />
-        <span>Hintergrund zurücksetzen</span>
+        <span>{t('desktop.resetBackground')}</span>
       </button>
     </motion.div>
   )

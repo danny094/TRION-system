@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Send, Square } from 'lucide-react'
 import { useChatStore } from '../state/chatStore'
 import { getActiveSession } from '../lib/sessionSelectors'
+import { useTranslation } from '@/lib/i18n'
 
 export function ChatInput() {
   const [input, setInput] = useState('')
@@ -10,6 +11,7 @@ export function ChatInput() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const activeSession = getActiveSession(sessions, activeSessionId)
   const isBusy = activeSession?.isBusy ?? false
+  const { t } = useTranslation()
 
   const handleSend = () => {
     if (input.trim() && !isBusy) {
@@ -50,7 +52,7 @@ export function ChatInput() {
             value={input}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
-            placeholder={isBusy ? 'TRION antwortet…' : 'Nachricht eingeben… (Enter senden, Shift+Enter Zeilenumbruch)'}
+            placeholder={isBusy ? t('chat.replying') : t('chat.inputPlaceholder')}
             disabled={isBusy}
             rows={1}
             className="w-full bg-white/5 border border-white/10 group-focus-within:border-primary/30 rounded-2xl px-4 py-3 text-sm text-white/90 placeholder:text-white/25 focus:outline-none transition-colors resize-none leading-relaxed"
@@ -62,6 +64,7 @@ export function ChatInput() {
           {isBusy ? (
             <motion.button
               key="stop"
+              aria-label={t('chat.stop')}
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
@@ -72,6 +75,7 @@ export function ChatInput() {
           ) : (
             <motion.button
               key="send"
+              aria-label={t('chat.send')}
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
@@ -86,7 +90,7 @@ export function ChatInput() {
       </div>
 
       <p className="text-[10px] text-white/15 text-center mt-2">
-        TRION kann Fehler machen. Wichtige Aktionen immer prüfen.
+        {t('chat.disclaimer')}
       </p>
     </div>
   )

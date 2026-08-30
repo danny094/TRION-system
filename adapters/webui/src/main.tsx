@@ -6,9 +6,12 @@ import '@fontsource/geist-sans/600.css'
 import '@fontsource/geist-sans/700.css'
 import './index.css'
 import App from './App.tsx'
+import { TranslationProvider } from '@/lib/i18n'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <TranslationProvider>
+      <App />
+    </TranslationProvider>
   </StrictMode>,
 )

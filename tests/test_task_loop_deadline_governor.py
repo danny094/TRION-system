@@ -7,6 +7,9 @@ from adapters.task_resume_serialization import snapshot_from_dict, snapshot_to_d
 from tests._task_loop_runner_helpers import _plan, _step
 
 
+_TOOL_DETAILS = {"demo_tool": {"name": "demo_tool", "capability_required_args": []}}
+
+
 def test_snapshot_roundtrips_deadline_ts():
     snapshot = _snapshot(deadline_ts=1234.5)
 
@@ -44,6 +47,7 @@ def test_step_gate_blocks_past_deadline_before_executing_and_tool_runner():
         _plan(_step("step-1")),
         _snapshot(deadline_ts=0.0),
         runner,
+        tool_details_by_name=_TOOL_DETAILS,
         event_sink=lambda payload: events.append(dict(payload)),
     )
 
@@ -65,6 +69,7 @@ def test_toolcall_gate_blocks_past_deadline_before_tool_start_and_runner():
     result = execute_step(
         _step("step-1"),
         runner,
+        tool_details_by_name=_TOOL_DETAILS,
         event_sink=lambda payload: events.append(dict(payload)),
         governor_snapshot=_snapshot(deadline_ts=0.0),
     )
@@ -91,6 +96,7 @@ def test_replan_gate_blocks_past_deadline_before_replanner(monkeypatch):
         _snapshot(deadline_ts=100.0, max_replans=1),
         lambda _call: TaskToolResult(success=False, error="tool_failed"),
         replanner_fn=replanner,
+        tool_details_by_name=_TOOL_DETAILS,
     )
 
     assert called["value"] is False
@@ -110,6 +116,7 @@ def test_future_deadline_allows_existing_path():
         _plan(_step("step-1")),
         _snapshot(deadline_ts=4_102_444_800.0),
         runner,
+        tool_details_by_name=_TOOL_DETAILS,
     )
 
     assert calls == ["demo_tool"]

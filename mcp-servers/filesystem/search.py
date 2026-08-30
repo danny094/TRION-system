@@ -33,11 +33,11 @@ def search_paths(
         root,
         base,
         depth_cap,
-        SEARCH_MAX_RESULTS,
+        SEARCH_MAX_RESULTS + 1,
     )
     folded = clean_query.casefold()
     matches = [entry for entry in entries if folded in str(entry["relative_path"]).casefold()]
-    truncated = len(matches) >= result_cap
+    truncated = len(matches) > result_cap
     return {
         "query": clean_query,
         "matches": matches[:result_cap],

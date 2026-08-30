@@ -23,6 +23,7 @@ from core.orchestrator.orchestrator import orchestrate
 from core.pipeline.orchestrator_stage import build_orchestrator_stage
 
 from tests._orchestrator_classifier_helpers import make_classifier_result
+from tests.operation_contract_context import canonical_contract_context
 
 _VALID_TOOL_INTENT_META = {
     "schema_version": 1,
@@ -146,6 +147,7 @@ def test_orchestrator_stage_keeps_memory_search_candidate_for_direct_looped_memo
                     "description": "Search memory relationships.",
                     "evidence_types": ["memory_context"],
                     "target_scopes": ["assistant_identity"],
+                    "risk": "read_only",
                     "keywords": ["memory", "search", "graph", "recall"], "tool_intent_meta": _VALID_TOOL_INTENT_META,
                 },
             },
@@ -153,11 +155,10 @@ def test_orchestrator_stage_keeps_memory_search_candidate_for_direct_looped_memo
         routing_frame={
             "domain": "memory", "intent_kind": "task_loop_request",
             "evidence_need": "memory_context", "execution_mode": "loop",
-            "operation_contract": {
-                "domain": "memory", "primary_operation": "search",
-                "required_evidence": ["memory_context"], "allowed_operations": ["search"],
-                "mutating_action": False,
-            },
+            "operation_contract": canonical_contract_context(
+                domain="memory", primary_operation="search", target="",
+                required_evidence=("memory_context",), allowed_operations=("search",), scope_lock="",
+            )["routing_frame"]["operation_contract"],
         },
     )
 

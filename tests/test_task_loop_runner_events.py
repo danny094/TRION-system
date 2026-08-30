@@ -5,6 +5,9 @@ from core.thinking.contracts import RiskLevel, ThinkingPlan
 from tests._task_loop_runner_helpers import _plan, _step
 
 
+_TOOL_DETAILS = {"demo_tool": {"name": "demo_tool", "capability_required_args": []}}
+
+
 def test_start_task_loop_emits_zero_based_index_for_replanned_to_answer_completion():
     events = []
     replanned = ThinkingPlan(
@@ -20,6 +23,7 @@ def test_start_task_loop_emits_zero_based_index_for_replanned_to_answer_completi
         conversation_id="conv-1",
         objective="Need a final answer",
         tool_runner=lambda call: TaskToolResult(success=False, error="tool_failed"),
+        tool_details_by_name=_TOOL_DETAILS,
         replanner_fn=lambda *args, **kwargs: replanned,
         max_steps=5,
         max_retries_per_step=0,
@@ -43,6 +47,7 @@ def test_start_task_loop_emits_zero_based_index_for_single_step_completion():
         conversation_id="conv-1",
         objective="Run one step",
         tool_runner=lambda call: TaskToolResult(success=True, result={"artifacts": [{"id": call.step_id}]}),
+        tool_details_by_name=_TOOL_DETAILS,
         max_steps=5,
         max_replans=2,
         event_sink=lambda payload: events.append(dict(payload)),
@@ -65,6 +70,7 @@ def test_start_task_loop_emits_state_events():
         conversation_id="conv-1",
         objective="Emit state events",
         tool_runner=lambda call: TaskToolResult(success=True, result={"artifacts": [{"id": call.step_id}]}),
+        tool_details_by_name=_TOOL_DETAILS,
         event_sink=lambda payload: events.append(dict(payload)),
     )
 

@@ -26,6 +26,8 @@ from core.orchestrator.tool_eligibility_helpers import (
     infer_tool_target_scopes,
     target_scope_from_contract,
 )
+from core.routing_frame.contracts import OperationContract
+from tests.operation_contract_context import canonical_contract_context
 
 # Muss 1:1 der Liste in docs/routing/43b-capability-manifest-taxonomy.md
 # ("Target Scope") entsprechen - bei Aenderung dort auch hier nachziehen.
@@ -40,24 +42,27 @@ _DOC43B_TARGET_SCOPES = {
 }
 
 
+def _contract(domain: str) -> OperationContract:
+    raw = canonical_contract_context(
+        domain=domain, primary_operation="read", target="",
+        allowed_operations=("read",), scope_lock="",
+    )["routing_frame"]["operation_contract"]
+    contract = OperationContract.from_dict(raw)
+    assert contract is not None
+    return contract
+
+
 def test_target_scope_from_contract_values_are_in_doc43b_taxonomy():
-    contracts = [
-        {"domain": "memory", "primary_operation": "read"},
-        {"domain": "container_runtime", "primary_operation": "list"},
-        {"domain": "tools", "primary_operation": "read"},
-        {"domain": "files", "primary_operation": "read"},
-        {"domain": "time", "primary_operation": "read"},
-        {"domain": "unknown_domain", "primary_operation": "read"},
-    ]
-    for contract in contracts:
+    for domain in ("memory", "container_runtime", "tools", "files", "time", "unknown_domain"):
+        contract = _contract(domain)
         scope = target_scope_from_contract(
-            domain=str(contract["domain"]), intent_kind="", contract=contract
+            domain=domain, intent_kind="", contract=contract
         )
         if scope:
             assert scope in _DOC43B_TARGET_SCOPES, scope
 
     capability_scope = target_scope_from_contract(
-        domain="anything_else", intent_kind="capability_question", contract={}
+        domain="anything_else", intent_kind="capability_question", contract=_contract("anything_else")
     )
     assert capability_scope in _DOC43B_TARGET_SCOPES
 

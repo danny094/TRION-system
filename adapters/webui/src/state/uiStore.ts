@@ -4,6 +4,9 @@ import { persist } from 'zustand/middleware'
 export type FontSize = 'sm' | 'md' | 'lg' | 'xl'
 export type AppearanceMode = 'auto' | 'light' | 'dark'
 export type BackgroundSource = 'own' | 'system'
+export type { Locale } from '@/lib/i18n/types'
+
+import type { Locale } from '@/lib/i18n/types'
 
 export const FONT_SIZE_PX: Record<FontSize, number> = {
   sm: 13,
@@ -12,14 +15,8 @@ export const FONT_SIZE_PX: Record<FontSize, number> = {
   xl: 20,
 }
 
-export const FONT_SIZE_LABELS: Record<FontSize, string> = {
-  sm: 'Klein',
-  md: 'Mittel',
-  lg: 'Groß',
-  xl: 'Sehr groß',
-}
-
 interface UiState {
+  locale: Locale
   fontSize: FontSize
   backgroundImage: string | null
   backgroundSource: BackgroundSource
@@ -37,11 +34,13 @@ interface UiState {
   setCustomThemeName: (name: string) => void
   setAppearanceMode: (mode: AppearanceMode) => void
   setDockAutoHide: (enabled: boolean) => void
+  setLocale: (locale: Locale) => void
 }
 
 export const useUiStore = create<UiState>()(
   persist(
     (set, get) => ({
+      locale: 'en',
       fontSize: 'md',
       backgroundImage: null,
       backgroundSource: 'own',
@@ -61,6 +60,7 @@ export const useUiStore = create<UiState>()(
       setCustomThemeName: (name) => set({ customThemeName: name }),
       setAppearanceMode: (mode) => set({ appearanceMode: mode }),
       setDockAutoHide: (enabled) => set({ dockAutoHide: enabled }),
+      setLocale: (locale) => set({ locale }),
     }),
     { name: 'trion-ui' }
   )

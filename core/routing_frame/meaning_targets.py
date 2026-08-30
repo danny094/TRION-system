@@ -34,10 +34,17 @@ def target_candidates_from_text(
 
 
 def _pattern_matches(text: str) -> List[TargetMatch]:
-    matches: List[TargetMatch] = []
-    for row in load_meaning_target_patterns():
+    positioned: List[Tuple[int, int, str, str]] = []
+    for row_index, row in enumerate(load_meaning_target_patterns()):
         for match in re.finditer(row["pattern"], text, re.IGNORECASE):
             target = str(match.group("target") or "").strip()
-            if target and not target.startswith(("/", ".")):
-                matches.append((target, target))
-    return matches
+            if _is_safe_relative_target(target):
+                positioned.append((match.start("target"), row_index, target, target))
+    positioned.sort(key=lambda item: (item[0], item[1]))
+    return [(target, span) for _position, _row, target, span in positioned]
+
+
+def _is_safe_relative_target(target: str) -> bool:
+    if not target or "\x00" in target or target.startswith(("/", ".")):
+        return False
+    return all(part not in {"", ".", ".."} for part in target.split("/"))

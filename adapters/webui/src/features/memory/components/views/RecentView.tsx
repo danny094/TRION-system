@@ -5,6 +5,7 @@ import type { MemoryEntry } from '../../contracts'
 import { useMemoryStore } from '../../state/memoryStore'
 import { MemoryEntryItem } from '../MemoryEntryItem'
 import { ForgetConfirmModal } from '../ForgetConfirmModal'
+import { useTranslation } from '@/lib/i18n'
 
 export function RecentView() {
   const selectConversation = useMemoryStore((s) => s.selectConversation)
@@ -14,6 +15,7 @@ export function RecentView() {
   const [error, setError] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<MemoryEntry | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const { t } = useTranslation()
 
   async function reload() {
     setLoading(true)
@@ -22,7 +24,7 @@ export function RecentView() {
       const next = await fetchRecent(null, 50)
       setEntries(next)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Laden fehlgeschlagen')
+      setError(err instanceof Error ? err.message : t('memory.loadFailed'))
     } finally {
       setLoading(false)
     }
@@ -40,7 +42,7 @@ export function RecentView() {
       setEntries((current) => current.filter((entry) => entry.id !== pendingDelete.id))
       setPendingDelete(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Loeschen fehlgeschlagen')
+      setError(err instanceof Error ? err.message : t('memory.deleteFailed'))
     } finally {
       setDeleting(false)
     }
@@ -56,8 +58,8 @@ export function RecentView() {
       <div className="flex items-end justify-between gap-4">
         <div>
           <div className="text-[10px] uppercase tracking-[0.22em] text-white/40">Memory</div>
-          <h1 className="mt-1 text-[22px] font-semibold text-white/92">Zuletzt gemerkt</h1>
-          <p className="mt-1 text-[12px] text-white/55">Die juengsten Eintraege ueber alle Unterhaltungen.</p>
+          <h1 className="mt-1 text-[22px] font-semibold text-white/92">{t('memory.recentTitle')}</h1>
+          <p className="mt-1 text-[12px] text-white/55">{t('memory.recentDescription')}</p>
         </div>
         <button
           type="button"
@@ -66,7 +68,7 @@ export function RecentView() {
           className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] text-white/75 hover:bg-white/10 disabled:opacity-40"
         >
           {loading ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <RotateCw className="w-3.5 h-3.5" />}
-          Neu laden
+          {t('memory.reload')}
         </button>
       </div>
 
@@ -79,11 +81,11 @@ export function RecentView() {
       <div className="mt-6 space-y-2.5">
         {loading && entries.length === 0 ? (
           <div className="rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-8 text-center text-[12px] text-white/45">
-            Laedt...
+            {t('memory.loading')}
           </div>
         ) : entries.length === 0 ? (
           <div className="rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-8 text-center text-[12px] text-white/45">
-            Noch keine Erinnerungen.
+            {t('memory.noneYet')}
           </div>
         ) : (
           entries.map((entry) => (

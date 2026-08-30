@@ -1,14 +1,13 @@
 import { useRef } from 'react'
-import { Sun, Moon, SunMoon, Plus, X } from 'lucide-react'
+import { Sun, Moon, SunMoon, Plus } from 'lucide-react'
 import {
   useUiStore,
   FONT_SIZE_PX,
-  FONT_SIZE_LABELS,
   type FontSize,
   type AppearanceMode,
-  type BackgroundSource,
 } from '@/state/uiStore'
 import { cn } from '@/lib/utils'
+import { BackgroundSection, FontSizeCard, SectionLabel, SwatchButton } from './AppearancePanelParts'
 
 const PRESETS = [
   { label: 'Gelb',  value: '#eab308' },
@@ -27,11 +26,6 @@ const MODES: { id: AppearanceMode; label: string; icon: React.ReactNode }[] = [
   { id: 'dark',  label: 'Dunkel',      icon: <Moon    className="h-3.5 w-3.5" /> },
 ]
 
-const BG_SOURCES: { id: BackgroundSource; label: string }[] = [
-  { id: 'system', label: 'System' },
-  { id: 'own',    label: 'Eigene' },
-]
-
 export function AppearancePanel() {
   const {
     fontSize, setFontSize,
@@ -44,23 +38,7 @@ export function AppearancePanel() {
   } = useUiStore()
 
   const colorInputRef = useRef<HTMLInputElement>(null)
-  const fileInputRef  = useRef<HTMLInputElement>(null)
   const isCustomColor = !PRESETS.some((p) => p.value.toLowerCase() === accentColor.toLowerCase())
-
-  function handleBgUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      const result = ev.target?.result
-      if (typeof result === 'string') {
-        addOwnBackground(result)
-        setBackgroundImage(result)
-      }
-    }
-    reader.readAsDataURL(file)
-    e.target.value = ''
-  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -130,80 +108,15 @@ export function AppearancePanel() {
         />
       </section>
 
-      {/* Hintergrundbild */}
-      <section className="rounded-2xl border border-white/6 bg-white/[0.02] p-4">
-        <SectionLabel>Hintergrundbild</SectionLabel>
-        <div className="mt-3 flex gap-1 rounded-xl border border-white/8 bg-white/[0.02] p-1">
-          {BG_SOURCES.map((src) => (
-            <button
-              key={src.id}
-              type="button"
-              onClick={() => setBackgroundSource(src.id)}
-              className={cn(
-                'flex-1 rounded-lg py-1.5 text-[12px] font-medium transition-colors',
-                backgroundSource === src.id
-                  ? 'bg-white/10 text-white/90'
-                  : 'text-white/40 hover:text-white/65',
-              )}
-            >
-              {src.label}
-            </button>
-          ))}
-        </div>
-
-        {backgroundSource === 'own' && (
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {ownBackgrounds.map((img, idx) => (
-              <div key={idx} className="group relative aspect-video overflow-hidden rounded-xl border border-white/10">
-                <img
-                  src={img}
-                  alt=""
-                  onClick={() => setBackgroundImage(img)}
-                  className={cn(
-                    'h-full w-full cursor-pointer object-cover transition-opacity',
-                    backgroundImage === img ? 'ring-2 ring-white/50 ring-offset-1 ring-offset-black/40' : 'opacity-70 hover:opacity-100',
-                  )}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    removeOwnBackground(idx)
-                    if (backgroundImage === img) setBackgroundImage(null)
-                  }}
-                  className="absolute right-1 top-1 hidden h-5 w-5 items-center justify-center
-                             rounded-full bg-black/60 text-white/80 group-hover:flex"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex aspect-video flex-col items-center justify-center gap-1 rounded-xl
-                         border border-dashed border-white/15 text-white/30
-                         transition-colors hover:border-white/25 hover:text-white/55"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="text-[10px]">Bild hochladen</span>
-            </button>
-          </div>
-        )}
-
-        {backgroundSource === 'system' && (
-          <p className="mt-3 text-[11px] text-white/30">
-            Verwendet das System-Hintergrundbild des Betriebssystems (wenn verfügbar).
-          </p>
-        )}
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleBgUpload}
-        />
-      </section>
+      <BackgroundSection
+        backgroundSource={backgroundSource}
+        setBackgroundSource={setBackgroundSource}
+        ownBackgrounds={ownBackgrounds}
+        addOwnBackground={addOwnBackground}
+        removeOwnBackground={removeOwnBackground}
+        backgroundImage={backgroundImage}
+        setBackgroundImage={setBackgroundImage}
+      />
 
       {/* Erscheinungsbild-Modus */}
       <section className="rounded-2xl border border-white/6 bg-white/[0.02] p-4">
@@ -233,65 +146,5 @@ export function AppearancePanel() {
         )}
       </section>
     </div>
-  )
-}
-
-/* ── Sub-components ───────────────────────────────────────────── */
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
-      {children}
-    </div>
-  )
-}
-
-interface FontSizeCardProps {
-  size: FontSize
-  active: boolean
-  onClick: () => void
-}
-
-function FontSizeCard({ size, active, onClick }: FontSizeCardProps) {
-  const sizeMap: Record<FontSize, string> = { lg: 'text-4xl', md: 'text-2xl', sm: 'text-xl', xl: 'text-5xl' }
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'flex flex-col items-center gap-2 rounded-xl border py-3 transition-colors',
-        active
-          ? 'border-white/25 bg-white/[0.06] text-white/95'
-          : 'border-white/8 text-white/40 hover:border-white/15 hover:text-white/70',
-      )}
-    >
-      <span className={cn('font-semibold leading-none', sizeMap[size])}>Aa</span>
-      <span className="text-[11px]">{FONT_SIZE_LABELS[size]}</span>
-    </button>
-  )
-}
-
-interface SwatchButtonProps {
-  label: string
-  color: string
-  active: boolean
-  onClick: () => void
-  renderChild?: React.ReactNode
-}
-
-function SwatchButton({ label, color, active, onClick, renderChild }: SwatchButtonProps) {
-  return (
-    <button
-      type="button"
-      title={label}
-      onClick={onClick}
-      className={cn(
-        'flex h-8 w-8 items-center justify-center rounded-full border-2 transition-transform duration-150 hover:scale-110',
-        active ? 'scale-110 border-white/55' : 'border-white/15 hover:border-white/35',
-      )}
-      style={{ backgroundColor: color }}
-    >
-      {renderChild}
-    </button>
   )
 }

@@ -2,9 +2,9 @@
 from __future__ import annotations
 
 from core.routing_frame.contracts import OperationContract
+from core.routing_frame.operation_contract_invariants import MUTATING_OPERATIONS
 
 _PREDICATE_AMBIGUOUS_CONFIDENCE = 0.5
-_MUTATING_OPERATIONS = {"write", "update", "delete", "execute", "maintain"}
 
 
 def _build(
@@ -25,7 +25,7 @@ def _build(
         target=target,
         targets=tuple(meaning.target_candidates),
         detail_fields=detail_fields,
-        mutating_action=operation in _MUTATING_OPERATIONS,
+        mutating_action=operation in MUTATING_OPERATIONS,
         required_evidence=required_evidence,
         allowed_operations=(operation,),
         allowed_transitions=tuple(item.edge for item in transition_requirements),

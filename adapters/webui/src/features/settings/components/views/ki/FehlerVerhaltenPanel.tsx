@@ -1,33 +1,34 @@
 import { cn } from '@/lib/utils'
 import { DetailHeader } from './DetailHeader'
+import { useTranslation } from '@/lib/i18n'
 
 export type ErrorBehavior = 'retry' | 'ask' | 'abort'
 
 interface Props { value: ErrorBehavior; onChange: (v: ErrorBehavior) => void; onBack: () => void }
 
-const OPTIONS: { id: ErrorBehavior; label: string; desc: string }[] = [
-  { id: 'retry', label: 'Begrenzt erneut versuchen', desc: 'TRION darf fehlgeschlagene Schritte kurz erneut versuchen und plant danach neu' },
-  { id: 'ask',   label: 'Nach Fehlern nachfragen',   desc: 'TRION hält nach fehlgeschlagenen Schritten eher an und fragt nach' },
-  { id: 'abort', label: 'Nach Fehlern abbrechen',    desc: 'TRION stoppt sichtbar statt nach Fehlern weiter zu replannen' },
-]
-
 export function FehlerVerhaltenPanel({ value, onChange, onBack }: Props) {
+  const { t } = useTranslation()
+  const options = [
+    { id: 'retry' as const, label: t('autonomy.retry'), desc: t('autonomy.retryHint') },
+    { id: 'ask' as const, label: t('autonomy.ask'), desc: t('autonomy.askHint') },
+    { id: 'abort' as const, label: t('autonomy.abort'), desc: t('autonomy.abortHint') },
+  ]
   return (
     <div className="flex flex-col gap-5">
       <DetailHeader
-        title="Fehlerverhalten"
-        subtitle="Die Einstellung steuert, wie TRION nach fehlgeschlagenen Schritten weiter eskaliert."
+        title={t('autonomy.errorTitle')}
+        subtitle={t('autonomy.errorSubtitle')}
         onBack={onBack}
       />
       <div className="rounded-2xl border border-white/6 bg-white/[0.02] p-4">
-        {OPTIONS.map((o, i) => (
+        {options.map((o, i) => (
           <button
             key={o.id}
             type="button"
             onClick={() => onChange(o.id)}
             className={cn(
               'flex w-full items-center gap-3 py-3 text-left transition',
-              i < OPTIONS.length - 1 && 'border-b border-white/5',
+              i < options.length - 1 && 'border-b border-white/5',
             )}
           >
             <div className={cn(

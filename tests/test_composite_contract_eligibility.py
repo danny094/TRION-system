@@ -6,6 +6,8 @@ from pathlib import Path
 from core.orchestrator.contracts import ToolDescriptor
 from core.orchestrator.tool_descriptor_projection import descriptor_from_raw
 from core.orchestrator.tool_eligibility import eligible_tools_for_contract
+from core.routing_frame.contracts import OperationTransition
+from tests.operation_contract_context import canonical_contract_context
 
 
 _BUNDLE_INTENTS = Path("examples/container_commander_bundle/tool_intents.json")
@@ -13,16 +15,10 @@ _OUTPUT_SCHEMAS = Path("mcp-servers/container-commander/output_schemas.json")
 
 
 def _contract() -> dict:
-    return {
-        "domain": "container_runtime",
-        "primary_operation": "list",
-        "target": "trion-home",
-        "required_evidence": ["runtime_status"],
-        "allowed_operations": ["list"],
-        "allowed_transitions": ["list->logs"],
-        "mutating_action": False,
-        "scope_lock": "home",
-    }
+    return canonical_contract_context(
+        target="trion-home", required_evidence=("runtime_status",), scope_lock="home",
+        transition_requirements=(OperationTransition("list", "logs", ("runtime_logs",)),),
+    )["routing_frame"]["operation_contract"]
 
 
 def _tool(name: str, operation: str) -> ToolDescriptor:

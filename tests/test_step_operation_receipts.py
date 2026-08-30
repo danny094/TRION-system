@@ -16,6 +16,7 @@ from core.task_loop.contracts import (
     TaskLoopState,
 )
 from core.task_loop.executor import TaskToolResult
+from core.task_loop.executable_now import details_by_name
 from core.task_loop.runner import run_task_loop
 from core.thinking.contracts import PlanStep, RiskLevel, ThinkingPlan
 from core.routing_frame.contracts import OperationTransition
@@ -126,6 +127,7 @@ def test_executor_and_snapshot_preserve_receipt_with_actual_status():
         step_receipts={"list-step": receipt},
         receipt_validator=build_step_receipt_validator(_context(), [_tool("inventory", "list")], plan),
         receipt_mode=True,
+        tool_details_by_name=details_by_name([_tool("inventory", "list")]),
     )
 
     execution = result.snapshot.step_operation_executions[0]

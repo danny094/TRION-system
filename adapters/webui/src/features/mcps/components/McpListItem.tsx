@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { ChevronRight, Server } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { McpStatus, McpSummary } from '@/lib/contracts/mcp'
+import { useTranslation } from '@/lib/i18n'
 
 interface McpListItemProps {
   mcp: McpSummary
@@ -16,14 +17,14 @@ const STATUS_DOT: Record<McpStatus, string> = {
   error: 'bg-rose-400',
 }
 
-const STATUS_LABEL: Record<McpStatus, string> = {
-  active: 'läuft',
-  inactive: 'aus',
-  error: 'fehler',
-}
-
 export function McpListItem({ mcp, active, index, onSelect }: McpListItemProps) {
   const status = statusForMcp(mcp)
+  const { t } = useTranslation()
+  const statusLabels: Record<McpStatus, string> = {
+    active: t('mcp.statusRunning'),
+    inactive: t('mcp.statusOff'),
+    error: t('mcp.statusError'),
+  }
 
   return (
     <motion.button
@@ -48,7 +49,7 @@ export function McpListItem({ mcp, active, index, onSelect }: McpListItemProps) 
             'absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-black/60',
             STATUS_DOT[status],
           )}
-          title={STATUS_LABEL[status]}
+          title={statusLabels[status]}
         />
       </div>
 
@@ -62,7 +63,7 @@ export function McpListItem({ mcp, active, index, onSelect }: McpListItemProps) 
           </span>
         </div>
         <div className="truncate text-xs text-white/40">
-          {mcp.toolsCount} Tools · {STATUS_LABEL[status]}
+          {t('mcp.toolsWithStatus', { count: mcp.toolsCount, status: statusLabels[status] })}
         </div>
       </div>
 

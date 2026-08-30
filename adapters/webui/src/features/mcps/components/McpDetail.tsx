@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils'
 import type { McpDetails, McpStatus } from '@/lib/contracts/mcp'
 import { McpActions } from './McpActions'
 import { McpManifestView } from './McpManifestView'
+import { useTranslation } from '@/lib/i18n'
 
 interface McpDetailProps {
   detail: McpDetails
@@ -13,6 +14,7 @@ interface McpDetailProps {
 }
 
 export function McpDetail({ detail, saving, onToggle, onRemove, onClose }: McpDetailProps) {
+  const { t } = useTranslation()
   const status = statusForMcp(detail)
   const rawJson = detail.rawConfig || JSON.stringify(detail.mcp, null, 2)
 
@@ -22,6 +24,7 @@ export function McpDetail({ detail, saving, onToggle, onRemove, onClose }: McpDe
         <button
           type="button"
           onClick={onClose}
+          aria-label={t('common.close')}
           className="absolute right-4 top-4 rounded-full p-1 text-white/40 transition-colors hover:bg-white/5 hover:text-white/80"
         >
           <X className="h-4 w-4" />
@@ -37,7 +40,7 @@ export function McpDetail({ detail, saving, onToggle, onRemove, onClose }: McpDe
               <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[10px] uppercase text-white/55">
                 {detail.mcp.transport}
               </span>
-              <span className="text-xs text-white/40">{detail.mcp.toolsCount} Tools</span>
+              <span className="text-xs text-white/40">{t('mcp.tools', { count: detail.mcp.toolsCount })}</span>
             </div>
           </div>
         </div>
@@ -47,24 +50,24 @@ export function McpDetail({ detail, saving, onToggle, onRemove, onClose }: McpDe
 
       <div className="flex-1 space-y-6 overflow-y-auto p-5">
         <section>
-          <p className="text-sm leading-relaxed text-white/70">{detail.mcp.description || 'Keine Beschreibung vorhanden.'}</p>
+          <p className="text-sm leading-relaxed text-white/70">{detail.mcp.description || t('mcp.noDescription')}</p>
         </section>
 
         <div className="grid grid-cols-2 gap-3">
           <ProvidesBox
-            title="Runtime"
+            title={t('mcp.runtime')}
             rows={[
-              { icon: <TerminalSquare className="h-3.5 w-3.5" />, value: `${detail.mcp.toolsCount} Tools` },
+              { icon: <TerminalSquare className="h-3.5 w-3.5" />, value: t('mcp.tools', { count: detail.mcp.toolsCount }) },
               { icon: <Server className="h-3.5 w-3.5" />, value: detail.mcp.transport },
               { icon: <HardDrive className="h-3.5 w-3.5" />, value: detail.mcp.url || '—' },
             ]}
           />
           <ProvidesBox
-            title="Modus"
+            title={t('mcp.mode')}
             rows={[
-              { icon: null, value: detail.editableConfig ? 'Custom MCP' : 'Core MCP' },
-              { icon: null, value: detail.mcp.enabled ? 'Enabled' : 'Disabled' },
-              { icon: null, value: detail.mcp.online ? 'Online' : 'Offline' },
+              { icon: null, value: detail.editableConfig ? t('mcp.custom') : t('mcp.core') },
+              { icon: null, value: detail.mcp.enabled ? t('common.enabled') : t('mcp.disabled') },
+              { icon: null, value: detail.mcp.online ? t('common.online') : t('common.offline') },
             ]}
           />
         </div>
@@ -86,10 +89,11 @@ export function McpDetail({ detail, saving, onToggle, onRemove, onClose }: McpDe
 }
 
 function StatusBadge({ status, toolsCount }: { status: McpStatus; toolsCount: number }) {
+  const { t } = useTranslation()
   const styles = {
-    active: { cls: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300', label: 'Running', Icon: CheckCircle2 },
-    inactive: { cls: 'border-white/10 bg-white/5 text-white/55', label: 'Disabled', Icon: Power },
-    error: { cls: 'border-rose-500/20 bg-rose-500/10 text-rose-300', label: 'Error', Icon: AlertCircle },
+    active: { cls: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300', label: t('mcp.running'), Icon: CheckCircle2 },
+    inactive: { cls: 'border-white/10 bg-white/5 text-white/55', label: t('mcp.disabled'), Icon: Power },
+    error: { cls: 'border-rose-500/20 bg-rose-500/10 text-rose-300', label: t('mcp.error'), Icon: AlertCircle },
   } as const
 
   const { cls, label, Icon } = styles[status]
@@ -102,7 +106,7 @@ function StatusBadge({ status, toolsCount }: { status: McpStatus; toolsCount: nu
       </span>
       {toolsCount > 0 && (
         <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-white/55">
-          {toolsCount} Tools registriert
+          {t('mcp.registeredTools', { count: toolsCount })}
         </span>
       )}
     </div>
@@ -136,13 +140,14 @@ function ProvidesBox({ title, rows, mono }: ProvidesBoxProps) {
 }
 
 function ToolsList({ tools }: { tools: McpDetails['tools'] }) {
+  const { t } = useTranslation()
   return (
     <section>
-      <h3 className="mb-3 text-xs uppercase tracking-[0.14em] text-white/35">Registrierte Tools</h3>
+      <h3 className="mb-3 text-xs uppercase tracking-[0.14em] text-white/35">{t('mcp.registeredToolsTitle')}</h3>
       <div className="space-y-2">
         {tools.length === 0 ? (
           <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-xs text-white/35">
-            Keine Tool-Definitionen geladen.
+            {t('mcp.noTools')}
           </div>
         ) : (
           tools.map((tool) => (
@@ -151,7 +156,7 @@ function ToolsList({ tools }: { tools: McpDetails['tools'] }) {
               className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3"
             >
               <div className="font-mono text-xs text-white/80">{tool.name}</div>
-              <div className="mt-1 text-xs text-white/45">{tool.description || 'Keine Beschreibung'}</div>
+              <div className="mt-1 text-xs text-white/45">{tool.description || t('mcp.noDescription')}</div>
             </div>
           ))
         )}

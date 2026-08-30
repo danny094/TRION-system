@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
 import { DetailHeader } from './DetailHeader'
+import { useTranslation } from '@/lib/i18n'
 
 export type LoopSensitivity = 2 | 3 | 5 | 10
 
@@ -19,23 +20,25 @@ const SENSITIVITY_OPTIONS: { value: LoopSensitivity; label: string }[] = [
 ]
 
 export function SchleifenerkennungPanel({ active, sensitivity, onToggle, onSensitivity, onBack }: Props) {
+  const { t } = useTranslation()
   return (
     <div className="flex flex-col gap-5">
       <DetailHeader
-        title="Schleifenerkennung"
-        subtitle="TRION erkennt wenn er im Kreis läuft und unterbricht den Task automatisch."
+        title={t('autonomy.loopTitle')}
+        subtitle={t('autonomy.loopSubtitle')}
         onBack={onBack}
       />
       <div className="rounded-2xl border border-white/6 bg-white/[0.02] p-4">
         <div className="flex items-center justify-between gap-4 border-b border-white/5 pb-4">
           <div>
-            <div className="text-[12px] text-white/85">Schleifenerkennung aktiv</div>
-            <div className="mt-1 text-[11px] text-white/40">Erkennt identische Tool-Calls in Folge</div>
+            <div className="text-[12px] text-white/85">{t('autonomy.loopActive')}</div>
+            <div className="mt-1 text-[11px] text-white/40">{t('autonomy.loopHint')}</div>
           </div>
           <button
             type="button"
             role="switch"
             aria-checked={active}
+            aria-label={t('autonomy.loopActive')}
             onClick={onToggle}
             className={cn(
               'relative h-5 w-9 shrink-0 rounded-full transition-colors duration-200',
@@ -50,7 +53,7 @@ export function SchleifenerkennungPanel({ active, sensitivity, onToggle, onSensi
         </div>
         <div className={cn('pt-4 transition', !active && 'pointer-events-none opacity-35')}>
           <div className="mb-3 text-[11px] text-white/45">
-            Empfindlichkeit — nach wie vielen Wiederholungen bricht TRION ab?
+            {t('autonomy.sensitivity')}
           </div>
           <div className="flex gap-2">
             {SENSITIVITY_OPTIONS.map((o) => (
@@ -70,7 +73,7 @@ export function SchleifenerkennungPanel({ active, sensitivity, onToggle, onSensi
             ))}
           </div>
           <p className="mt-3 text-[11px] text-white/30">
-            Unterbricht nach {sensitivity} identischen Wiederholungen
+            {t('autonomy.interruptAfter', { count: sensitivity })}
           </p>
         </div>
       </div>

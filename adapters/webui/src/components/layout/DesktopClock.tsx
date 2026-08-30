@@ -1,23 +1,23 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from '@/lib/i18n'
 
-const DAYS   = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
-const MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
-
-function snapshot() {
+function snapshot(locale: string) {
   const d = new Date()
   return {
     time: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
-    date: `${DAYS[d.getDay()]}, ${d.getDate()}. ${MONTHS[d.getMonth()]}`,
+    date: new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'short' }).format(d),
   }
 }
 
 export function DesktopClock() {
-  const [display, setDisplay] = useState(snapshot)
+  const { locale } = useTranslation()
+  const [display, setDisplay] = useState(() => snapshot(locale))
 
   useEffect(() => {
-    const id = setInterval(() => setDisplay(snapshot()), 10_000)
+    setDisplay(snapshot(locale))
+    const id = setInterval(() => setDisplay(snapshot(locale)), 10_000)
     return () => clearInterval(id)
-  }, [])
+  }, [locale])
 
   return (
     <div className="fixed top-4 right-6 z-50 flex flex-col items-end gap-0.5 pointer-events-none select-none">

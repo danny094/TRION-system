@@ -6,6 +6,9 @@ from core.task_loop.task_loop import start_task_loop
 from tests._task_loop_runner_helpers import _plan, _step
 
 
+_TOOL_DETAILS = {"demo_tool": {"name": "demo_tool", "capability_required_args": []}}
+
+
 def test_runner_blocks_total_step_governor_before_executing_and_tool_runner():
     events = []
     called = {"value": False}
@@ -18,6 +21,7 @@ def test_runner_blocks_total_step_governor_before_executing_and_tool_runner():
         _plan(_step("step-1")),
         _snapshot(max_total_steps=0),
         runner,
+        tool_details_by_name=_TOOL_DETAILS,
         event_sink=lambda payload: events.append(dict(payload)),
     )
 
@@ -30,7 +34,10 @@ def test_runner_blocks_total_step_governor_before_executing_and_tool_runner():
 
 
 def test_allowed_step_increments_total_steps():
-    result = run_task_loop(_plan(_step("step-1")), _snapshot(max_total_steps=1), _successful_runner)
+    result = run_task_loop(
+        _plan(_step("step-1")), _snapshot(max_total_steps=1), _successful_runner,
+        tool_details_by_name=_TOOL_DETAILS,
+    )
 
     assert result.state == TaskLoopState.COMPLETED
     assert result.snapshot.total_steps == 1
@@ -54,6 +61,7 @@ def test_toolcall_governor_block_counts_step_but_not_toolcall():
         _plan(_step("step-1")),
         _snapshot(max_total_steps=1, max_tool_calls=0, max_replans=0),
         _successful_runner,
+        tool_details_by_name=_TOOL_DETAILS,
     )
 
     assert result.state == TaskLoopState.BLOCKED
@@ -85,6 +93,7 @@ def test_replan_does_not_reset_total_steps():
         conversation_id="conv-1",
         objective="replan once",
         tool_runner=runner,
+        tool_details_by_name=_TOOL_DETAILS,
         replanner_fn=replanner,
         max_steps=5,
         max_replans=1,
@@ -99,6 +108,7 @@ def test_existing_total_steps_blocks_resume_snapshot_at_limit():
         _plan(_step("step-1")),
         _snapshot(total_steps=1, max_total_steps=1),
         _successful_runner,
+        tool_details_by_name=_TOOL_DETAILS,
     )
 
     assert result.state == TaskLoopState.BLOCKED

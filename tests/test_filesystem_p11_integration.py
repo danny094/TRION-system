@@ -133,6 +133,21 @@ def test_admin_runtime_mounts_trion_home_read_only_with_exact_root():
     assert "- trion-home:/trion-home\n" not in admin
 
 
+def test_home_owner_retains_read_write_mount_and_initializes_owned_files():
+    compose = Path("docker-compose.yml").read_text(encoding="utf-8")
+    match = re.search(
+        r"(?ms)^  trion-home:\n(?P<body>.*?)(?=^  [a-zA-Z0-9_-]+:\n|^volumes:\n|\Z)",
+        compose,
+    )
+    assert match is not None
+    home = match.group("body")
+
+    assert "- trion-home:/home/trion" in home
+    assert "- trion-home:/home/trion:ro" not in home
+    assert "> /home/trion/.trion/home.json" in home
+    assert '> /home/trion/status.txt' in home
+
+
 def test_admin_entrypoint_does_not_prepare_read_only_trion_home_as_writable():
     entrypoint = Path("adapters/admin-api/docker-entrypoint.sh").read_text(
         encoding="utf-8",

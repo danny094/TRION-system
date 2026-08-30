@@ -1,5 +1,4 @@
 import importlib
-import json
 import sys
 from pathlib import Path
 
@@ -12,8 +11,7 @@ from mcp.catalog_contracts import (
 )
 from mcp.catalog_lifecycle import publish_catalog, revoke_catalog_routes
 from mcp.installer_registry import upsert_registry_entry
-from mcp.installer_manifest_normalize import normalize_mcp_manifest
-from mcp.installer_tool_intents import build_tool_intent_mirror
+from mcp.installer_manifest import load_bundle_manifest
 from mcp.protocol_contracts import MCPToolsListProtocolResult, MCPToolsListProtocolStatus
 
 
@@ -35,11 +33,10 @@ def test_filesystem_bundle_survives_catalog_bridge_to_descriptor(monkeypatch, tm
     import mcp.hub as hub_module
 
     server = _server()
-    manifest = normalize_mcp_manifest(json.loads((BUNDLE_ROOT / "mcp.json").read_text(encoding="utf-8")))
-    mirror = build_tool_intent_mirror(BUNDLE_ROOT / "tool_intents.json", bundle_version=manifest["version"])
+    manifest = load_bundle_manifest(BUNDLE_ROOT)
     registry_path = tmp_path / "mcp_registry.json"
     monkeypatch.setattr(mcp_config, "_CONFIG_PATH", registry_path)
-    upsert_registry_entry("filesystem", {**manifest, "tool_intents": mirror})
+    upsert_registry_entry("filesystem", manifest)
     filesystem_config = mcp_config.get_all_mcps()["filesystem"]
 
     class Transport:
@@ -79,7 +76,38 @@ def test_filesystem_bundle_survives_catalog_bridge_to_descriptor(monkeypatch, tm
         "filesystem_metadata",
         "filesystem_read",
     }
-    assert all(descriptor is not None for descriptor in descriptors)
-    assert all(descriptor.capability_domain == "files" for descriptor in descriptors)
-    assert all(descriptor.capability_target_scopes == ["assistant_home"] for descriptor in descriptors)
-    assert all(descriptor.output_schema for descriptor in descriptors)
+    expected_operations = {
+        "filesystem_list": "list",
+        "filesystem_search": "search",
+        "filesystem_metadata": "inspect",
+        "filesystem_read": "read",
+    }
+    live_by_name = {tool["name"]: tool for tool in server.TOOLS}
+    intents_by_name = {
+        tool["name"]: tool for tool in manifest["tool_intents"]["tools"]
+    }
+    for descriptor in descriptors:
+        assert descriptor is not None
+        intent = intents_by_name[descriptor.name]
+        live = live_by_name[descriptor.name]
+        assert descriptor.description == live["description"]
+        assert descriptor.source == "filesystem"
+        assert descriptor.schema == live["inputSchema"]
+        assert descriptor.intent_description == intent["description"]
+        assert descriptor.intent_examples == intent["examples"]
+        assert descriptor.intent_keywords == intent["keywords"]
+        assert descriptor.capability_domain == "files"
+        assert descriptor.capability_operation == expected_operations[descriptor.name]
+        assert descriptor.capability_entity_types == intent["supports_entities"]
+        assert descriptor.capability_evidence_types == ["file_context"]
+        assert descriptor.capability_required_args == intent["requires"]
+        assert descriptor.capability_risk == "read_only"
+        assert descriptor.capability_target_scopes == ["assistant_home"]
+        assert descriptor.capability_freshness_support == "live_only"
+        assert descriptor.capability_output_schema == "mcp_output_schema"
+        assert descriptor.output_schema == live["outputSchema"]
+        assert descriptor.tool_role == "primary"
+        assert descriptor.can_answer_directly is True
+        assert descriptor.mirror_schema_version == 2
+        assert descriptor.mirror_source_sha256 == manifest["tool_intents"]["source_sha256"]
+        assert descriptor.mirror_bundle_version == manifest["version"]

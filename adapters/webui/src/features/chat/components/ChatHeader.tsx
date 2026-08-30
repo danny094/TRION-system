@@ -1,11 +1,13 @@
 import { Bot, Circle } from 'lucide-react'
 import { useChatStore } from '../state/chatStore'
 import { getActiveSession } from '../lib/sessionSelectors'
+import { useTranslation } from '@/lib/i18n'
 
 export function ChatHeader() {
   const { sessions, activeSessionId } = useChatStore()
   const activeSession = getActiveSession(sessions, activeSessionId)
   const isBusy = activeSession?.isBusy ?? false
+  const { t } = useTranslation()
 
   return (
     <div className="flex items-center gap-3 px-5 py-4 border-b border-white/5 bg-white/3 shrink-0">
@@ -25,14 +27,14 @@ export function ChatHeader() {
         <div className="flex items-center gap-1.5 mt-0.5">
           <Circle className="w-1.5 h-1.5 fill-emerald-400 text-emerald-400" />
           <span className="text-[11px] text-emerald-400/80 font-medium">
-            {isBusy ? 'Denkt nach…' : 'Bereit'}
+            {isBusy ? t('chat.thinking') : t('chat.ready')}
           </span>
         </div>
       </div>
 
       {activeSession ? (
         <div className="hidden text-right text-[11px] text-white/30 md:block">
-          <div>{activeSession.messages.length} Nachrichten</div>
+          <div>{t('chat.messages', { count: activeSession.messages.length })}</div>
           <div className="font-mono text-[10px] text-white/20">{activeSession.conversationId}</div>
         </div>
       ) : null}

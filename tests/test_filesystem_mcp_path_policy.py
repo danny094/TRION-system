@@ -19,18 +19,22 @@ def _module(name: str):
     return importlib.import_module(f"filesystem.{name}")
 
 
-@pytest.mark.parametrize("value", ["/etc/passwd", "../secret", "a/../../secret", "bad\x00name"])
-def test_path_policy_blocks_unsafe_relative_paths(tmp_path, value):
+@pytest.mark.parametrize(
+    ("value", "expected_code"),
+    [
+        ("/etc/passwd", "ABSOLUTE_PATH_FORBIDDEN"),
+        ("../secret", "OUTSIDE_ROOT"),
+        ("a/../../secret", "OUTSIDE_ROOT"),
+        ("bad\x00name", "MALFORMED_REQUEST"),
+    ],
+)
+def test_path_policy_blocks_unsafe_relative_paths(tmp_path, value, expected_code):
     policy = _module("path_policy")
 
     with pytest.raises(policy.FilesystemFailure) as failure:
         with policy.open_target(tmp_path, value):
             pass
-    assert failure.value.code in {
-        "ABSOLUTE_PATH_FORBIDDEN",
-        "OUTSIDE_ROOT",
-        "MALFORMED_REQUEST",
-    }
+    assert failure.value.code == expected_code
 
 
 def test_path_policy_blocks_missing_and_symlink_targets(tmp_path):
@@ -89,7 +93,7 @@ def test_descriptor_relative_open_blocks_component_swap(tmp_path, monkeypatch):
 
 def test_settings_accepts_only_the_product_root(monkeypatch):
     settings = _module("settings")
-    monkeypatch.setattr(settings.Path, "is_dir", lambda path: str(path) == "/trion-home")
+    monkeypatch.setattr(settings.Path, "is_dir", lambda _path: True)
 
     assert settings.load_root({}) == Path("/trion-home")
     assert settings.load_root({"TRION_FILESYSTEM_ROOT": "/trion-home"}) == Path("/trion-home")

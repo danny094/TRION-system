@@ -11,6 +11,7 @@ from core.task_loop.contracts import (
     TaskLoopResult, TaskLoopSnapshot, TaskLoopState,
 )
 from core.task_loop.executor import TaskToolResult
+from core.task_loop.executable_now import details_by_name
 from core.task_loop.runner import run_task_loop
 from core.thinking.contracts import PlanStep, RiskLevel, ThinkingPlan
 from core.routing_frame.contracts import OperationTransition
@@ -69,6 +70,7 @@ def _run(plan, snapshot, receipt):
         lambda call: calls.append(call.step_id) or TaskToolResult(True, {}),
         step_receipts={receipt.step_id: receipt}, receipt_mode=True,
         receipt_validator=build_step_receipt_validator(_context(), _tools(), plan),
+        tool_details_by_name=details_by_name(_tools()),
         event_sink=lambda event: events.append(dict(event)),
     )
     return result, calls, events

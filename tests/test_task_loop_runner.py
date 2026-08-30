@@ -5,6 +5,9 @@ from core.task_loop.task_loop import continue_task_loop, start_task_loop
 from tests._task_loop_runner_helpers import _plan, _risky_step, _step
 
 
+_TOOL_DETAILS = {"demo_tool": {"name": "demo_tool", "capability_required_args": []}}
+
+
 def test_start_task_loop_completes_multi_step_plan():
     seen = []
 
@@ -17,6 +20,7 @@ def test_start_task_loop_completes_multi_step_plan():
         conversation_id="conv-1",
         objective="Launch the workflow",
         tool_runner=runner,
+        tool_details_by_name=_TOOL_DETAILS,
         max_steps=5,
         max_replans=2,
     )
@@ -74,7 +78,9 @@ def test_continue_task_loop_advances_after_waiting():
     def runner(call):
         return TaskToolResult(success=True, result={"artifacts": [{"id": call.step_id}]})
 
-    result = continue_task_loop(waiting, "weiter", plan, tool_runner=runner)
+    result = continue_task_loop(
+        waiting, "weiter", plan, tool_runner=runner, tool_details_by_name=_TOOL_DETAILS,
+    )
 
     assert result.state == TaskLoopState.COMPLETED
     assert result.snapshot.objective == "Keep original objective"
@@ -127,7 +133,10 @@ def test_continue_task_loop_retries_same_step_after_risk_gate_waiting():
         seen.append(call.step_id)
         return TaskToolResult(success=True, result={"artifacts": [{"id": call.step_id}]})
 
-    result = continue_task_loop(waiting, "freigeben", _plan(_step("step-1")), tool_runner=runner)
+    result = continue_task_loop(
+        waiting, "freigeben", _plan(_step("step-1")), tool_runner=runner,
+        tool_details_by_name=_TOOL_DETAILS,
+    )
 
     assert result.state == TaskLoopState.COMPLETED
     assert result.snapshot.completed_steps == ["step-1"]
@@ -146,6 +155,7 @@ def test_start_task_loop_permissive_mode_runs_risky_step_without_approval_tool_f
         conversation_id="conv-1",
         objective="Risky but permitted",
         tool_runner=runner,
+        tool_details_by_name=_TOOL_DETAILS,
         approval_mode="permissive",
         max_steps=5,
         max_replans=2,

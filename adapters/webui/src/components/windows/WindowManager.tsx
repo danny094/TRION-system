@@ -18,12 +18,14 @@ import { useMcpsStore } from '@/features/mcps/state/mcpsStore'
 import { findMcpHostApp, isMcpSettingsAppId, mcpNameFromSettingsAppId } from '@/lib/contracts/mcpHostApps'
 import { findPluginApp, isPluginAppId, pluginIdFromAppId } from '@/lib/contracts/pluginApps'
 import { usePluginStore } from '@/features/plugins/state/pluginStore'
+import { useTranslation } from '@/lib/i18n'
 
 export function WindowManager() {
   const { windows, updateWindow, focusWindow } = useWindowStore()
   const mcps = useMcpsStore((s) => s.items)
   const plugins = usePluginStore((s) => s.items)
   const refreshPlugins = usePluginStore((s) => s.refresh)
+  const { t } = useTranslation()
 
   useEffect(() => {
     if (plugins.length === 0) {
@@ -91,7 +93,7 @@ export function WindowManager() {
                   key={win.windowId}
                   onClick={() => restore(win.windowId)}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full glass border border-white/10 hover:border-white/25 hover:bg-white/10 transition-all text-xs text-white/60 hover:text-white/90 select-none"
-                  title={`${win.title} wiederherstellen`}
+                  title={t('window.restore', { title: win.title })}
                 >
                   {app && <AppIcon name={app.iconName} src={app.iconUrl} className="w-3.5 h-3.5" />}
                   <span>{win.title}</span>
