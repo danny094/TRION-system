@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import re
 from pathlib import Path
 
@@ -12,6 +13,8 @@ from config.infra.cors import get_allowed_origins
 
 ROOT = Path(__file__).resolve().parents[1]
 COMPOSE = ROOT / "docker-compose.yml"
+ADMIN_DOCKERFILE = ROOT / "adapters/admin-api/Dockerfile"
+SECURITY_CONTRACTS = ROOT / "adapters/admin-api/security_contracts.py"
 SECRET_VOLUME = "trion-secret-resolve-token"
 MEMORY_VOLUME = "trion-memory-read-token"
 
@@ -45,6 +48,54 @@ def _mount(service: str, volume: str) -> str:
     matches = [line for line in _mount_lines(service) if line.startswith(f"{volume}:")]
     assert len(matches) == 1, f"expected one {volume} mount, found {matches}"
     return matches[0]
+
+
+def _dockerfile_copy_sources() -> tuple[Path, ...]:
+    sources = []
+    for line in ADMIN_DOCKERFILE.read_text(encoding="utf-8").splitlines():
+        parts = line.split()
+        if len(parts) == 3 and parts[0] == "COPY":
+            sources.append(ROOT / parts[1])
+    return tuple(sources)
+
+
+def _local_security_contract_imports() -> tuple[Path, ...]:
+    tree = ast.parse(SECURITY_CONTRACTS.read_text(encoding="utf-8"))
+    return tuple(sorted({
+        ROOT / f"{node.module.replace('.', '/')}.py"
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom)
+        and node.module is not None
+        and (ROOT / f"{node.module.replace('.', '/')}.py").is_file()
+    }))
+
+
+def test_admin_image_materializes_local_security_contract_imports() -> None:
+    local_imports = _local_security_contract_imports()
+    copy_sources = _dockerfile_copy_sources()
+
+    missing = [
+        path.relative_to(ROOT).as_posix()
+        for path in sorted(local_imports)
+        if not any(path.is_relative_to(source) for source in copy_sources)
+    ]
+    assert missing == [], f"local security imports missing from admin image: {missing}"
+
+
+def test_admin_runtime_mounts_do_not_shadow_security_import_roots() -> None:
+    admin = _service(_compose_text(), "trion-admin-api")
+    mount_targets = {
+        line.split(":", maxsplit=1)[1].removesuffix(":ro")
+        for line in _mount_lines(admin)
+    }
+    import_roots = {
+        f"/app/{path.relative_to(ROOT).parts[0]}"
+        for path in _local_security_contract_imports()
+    }
+
+    assert mount_targets.isdisjoint(import_roots)
+    assert _mount(admin, "trion-memory-files") == "trion-memory-files:/app/protocol_memory"
+    assert "PROTOCOL_DIR: /app/protocol_memory" in _subsection(admin, "environment")
 
 
 def test_only_loopback_browser_ingress_and_no_memory_port() -> None:

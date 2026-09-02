@@ -19,6 +19,7 @@ COPY config /app/config
 COPY intelligence_modules /app/intelligence_modules
 COPY plugins /app/plugins
 COPY personas /app/persona_defaults
+COPY memory/embedding /app/memory/embedding
 COPY memory/memory_mcp/tool_intents.json /app/memory/memory_mcp/tool_intents.json
 
 # Copy application last

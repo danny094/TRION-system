@@ -42,6 +42,7 @@ services:
       CUSTOM_MCPS_DIR: /app/custom_mcps
       MCP_REGISTRY_PATH: /app/data/mcp_registry.json
       MEMORY_URL: http://trion-memory:8081
+      PROTOCOL_DIR: /app/protocol_memory
       PERSONAS_DIR: /app/personas
       TRION_FILESYSTEM_ROOT: /trion-home
       TRION_PLUGINS_DIR: /app/ui_plugins
@@ -61,7 +62,7 @@ services:
       - trion-admin-api-data:/app/data
       - trion-custom-mcps:/app/custom_mcps
       - trion-home:/trion-home:ro
-      - trion-memory-files:/app/memory
+      - trion-memory-files:/app/protocol_memory
       - trion-memory-speicher:/app/memory_speicher
       - trion-storage-broker:/app/storage_broker
       - trion-personas:/app/personas
