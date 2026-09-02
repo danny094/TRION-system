@@ -56,9 +56,9 @@ from config import (
 from utils.embedding.resolver import resolve_embedding_target
 from utils.routing.role_endpoint import resolve_ollama_base_endpoint
 from utils.routing.service_endpoint import default_service_endpoint
+from memory.embedding.config import EMBEDDINGS_RUNTIME_ROUTE, MODELS_EFFECTIVE_ROUTE
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
-
 class MasterSettings(BaseModel):
     enabled: bool = True
     use_thinking_layer: bool = False
@@ -176,7 +176,7 @@ async def get_model_overrides():
     return {k: v for k, v in settings.settings.items() if k in ALLOWED_MODEL_KEYS}
 
 
-@router.get("/models/effective")
+@router.get(MODELS_EFFECTIVE_ROUTE.removeprefix(router.prefix))
 async def get_model_settings_effective():
     """
     Return effective model settings with source tracking.
@@ -264,7 +264,7 @@ class EmbeddingRuntimeUpdate(BaseModel):
     EMBEDDING_ENDPOINT_MODE: Optional[Literal["single", "dual"]] = None
 
 
-@router.get("/embeddings/runtime")
+@router.get(EMBEDDINGS_RUNTIME_ROUTE.removeprefix(router.prefix))
 async def get_embedding_runtime():
     """
     Return effective embedding runtime settings with source tracking.
@@ -335,7 +335,7 @@ async def get_embedding_runtime():
     return {"effective": effective, "defaults": defaults, "runtime": snapshot}
 
 
-@router.post("/embeddings/runtime")
+@router.post(EMBEDDINGS_RUNTIME_ROUTE.removeprefix(router.prefix))
 async def update_embedding_runtime(update: EmbeddingRuntimeUpdate):
     """
     Typed, validated embedding runtime settings update.

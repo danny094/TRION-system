@@ -1,6 +1,17 @@
 import type { TextCatalog } from '@/lib/i18n/types'
 
 export const deExtra: TextCatalog = {
+  'auth.loginTitle': 'Bei TRION anmelden',
+  'auth.loginDescription': 'Gib das lokale Administrator-Passwort ein, um deine Sitzung zu starten.',
+  'auth.password': 'Passwort',
+  'auth.login': 'Anmelden',
+  'auth.loggingIn': 'Anmeldung läuft…',
+  'auth.loginFailed': 'Anmeldung fehlgeschlagen. Prüfe das Passwort und versuche es erneut.',
+  'auth.checkingSession': 'Sitzung wird geprüft…',
+  'auth.sessionExpired': 'Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.',
+  'auth.signedInAs': 'Sitzung: {principal}',
+  'auth.logout': 'Abmelden',
+  'auth.logoutFailed': 'Abmelden fehlgeschlagen. Deine Sitzung bleibt aktiv; versuche es erneut.',
   'memory.thisConversationOnly': 'Nur diese Unterhaltung',
   'settings.fontSizeSmall': 'Klein',
   'settings.fontSizeMedium': 'Mittel',

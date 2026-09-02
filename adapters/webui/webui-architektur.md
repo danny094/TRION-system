@@ -15,13 +15,14 @@ Sie ist modular aufgebaut:
 
 ```
 App.tsx
-└── DesktopShell          ← globale Shell, DnD-Kontext, Glow-Effekte, Right-Click
-    ├── WindowManager     ← rendert alle offenen Fenster + Minimize-Tray
-    ├── LaunchpadButton   ← Quick-Launch-Buttons unten links
-    ├── DesktopClock      ← Uhr oben rechts
-    ├── Dock              ← gepinnte Apps, sortierbar, Drop-Zone
-    ├── DesktopContextMenu ← Rechtsklick-Menü auf den Desktop
-    └── SearchBar         ← globale Suche oben
+└── AuthGate              ← Login, Sessionprüfung und Logout
+    └── DesktopShell      ← globale Shell, DnD-Kontext, Glow-Effekte, Right-Click
+        ├── WindowManager     ← rendert alle offenen Fenster + Minimize-Tray
+        ├── LaunchpadButton   ← Quick-Launch-Buttons unten links
+        ├── DesktopClock      ← Uhr oben rechts
+        ├── Dock              ← gepinnte Apps, sortierbar, Drop-Zone
+        ├── DesktopContextMenu ← Rechtsklick-Menü auf den Desktop
+        └── SearchBar         ← globale Suche oben
 ```
 
 Die Shell verdrahtet nur UI und Navigation.  
@@ -58,6 +59,11 @@ src/
 │       └── WindowManager.tsx       ← rendert alle windows[] + Minimize-Tray
 │
 ├── features/
+│   ├── auth/
+│   │   ├── contracts.ts           ← Principal-, Ablauf- und CSRF-Metadaten
+│   │   ├── AuthGate.tsx           ← Sessionprüfung, Login und Logout
+│   │   └── AuthGate.css           ← Login-/Sessiondarstellung
+│   │
 │   ├── chat/
 │   │   ├── components/
 │   │   │   ├── ChatWindow.tsx
@@ -131,7 +137,7 @@ src/
 │
 ├── lib/
 │   ├── api/
-│   │   └── client.ts               ← fetch-Wrapper, Basis-URL, Fehler-Normalisierung
+│   │   └── client.ts               ← same-origin Credentials, CSRF, 401-Signal, Response-Helper
 │   ├── contracts/
 │   │   ├── appRegistry.ts          ← APP_REGISTRY: alle Apps + ihre Window-Configs
 │   │   └── chatEvents.ts           ← typisierte Chat-Event-Contracts vom Backend
@@ -144,6 +150,17 @@ src/
     ├── dockStore.ts                ← gepinnte Dock-Apps, persistent (localStorage)
     └── uiStore.ts                  ← UI-Präferenzen: fontSize, backgroundImage, accentColor (persistent)
 ```
+
+---
+
+## Browser-Authentisierung
+
+`AuthGate` ist der einzige Einstieg in `DesktopShell`. Es bezieht
+Principal-, Ablauf- und CSRF-Metadaten aus `/api/auth/session`; Credential und
+Session-Key bleiben serverseitig. Der zentrale API-Client sendet Cookies nur
+same-origin und fuegt `x-csrf-token` nur mutierenden Methoden hinzu. Die Admin
+API prueft dazu die lokale Origin. Chat-, Memory- und Plugin-Host-Requests
+nutzen denselben Client; der rohe Response-Pfad fuer NDJSON bleibt erhalten.
 
 ---
 
@@ -514,6 +531,7 @@ Farben haben Bedeutung (laut Design-Regeln):
 
 Status-Wahrheit für MCP-Installer-Lücken: [`docs/mcp/21-mcp-installer.md`](../../docs/mcp/21-mcp-installer.md)
 unter „Aktuelle Grenzen". Hier nur die WebUI-seitige Sicht.
+Es besteht kein aktueller Runtime-PASS.
 
 | Was | Status |
 |---|---|
@@ -530,4 +548,4 @@ unter „Aktuelle Grenzen". Hier nur die WebUI-seitige Sicht.
 | Weitere Apps im Launchpad | `APP_REGISTRY` bereit für Erweiterung |
 | Command Palette | nicht implementiert |
 | Notification Center | nicht implementiert |
-| Plugin-System | siehe [[22-plugins]], initial fuer `launchpad`- und `settings.tab`-Mounts implementiert; HTML laeuft im iframe, browser-ready `entry.js` kann direkt im Host rendern, `TRIONBridge` ist aktiv |
+| Plugin-System | siehe [[22-plugins]], initial fuer `launchpad`- und `settings.tab`-Mounts implementiert; HTML laeuft im opaque-origin iframe ohne `allow-same-origin`, `.js`/`.mjs` bleibt blockiert und authentisierte Parent-Mediation folgt erst in P16-SP4 |

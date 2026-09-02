@@ -16,6 +16,10 @@ wenn ein Key nicht existiert oder der Endpunkt 404 zurückgibt.
 import os
 
 from config.infra.adapter import settings
+from config.infra.security import get_secret_resolve_token_path
+
+
+SECRET_RESOLVE_TOKEN_FILE = get_secret_resolve_token_path()
 
 
 def get_skill_secret_enforcement() -> str:
@@ -32,11 +36,11 @@ def get_skill_secret_enforcement() -> str:
 
 
 def get_secret_resolve_token() -> str:
-    """Interner Token für /api/secrets/resolve/{name}."""
-    return settings.get(
-        "INTERNAL_SECRET_RESOLVE_TOKEN",
-        os.getenv("INTERNAL_SECRET_RESOLVE_TOKEN", ""),
-    )
+    """Read the internal resolve token from its mounted secret file."""
+    try:
+        return SECRET_RESOLVE_TOKEN_FILE.read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
 
 
 def get_secret_rate_limit() -> int:

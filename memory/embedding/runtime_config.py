@@ -5,13 +5,15 @@ import requests
 from typing import Optional, Dict, Any
 
 from .config import (
-    SETTINGS_API_URL,
+    ADMIN_API_URL,
+    COMPUTE_ROUTING_ROUTE,
+    EMBEDDINGS_RUNTIME_ROUTE,
     _RT_DEFAULTS,
     _RUNTIME_FETCH_TIMEOUT_S,
     _ROUTE_FETCH_TIMEOUT_S,
     _RUNTIME_REFRESH_INTERVAL_S,
     _REFRESH_WARN_THROTTLE_S,
-    _runtime_api_base,
+    _memory_read_headers,
 )
 
 _rt_cache: dict = {"config": None, "ts": 0.0}
@@ -44,10 +46,11 @@ def _warn_throttled(kind: str, msg: str) -> None:
 
 def _refresh_runtime_config_once() -> None:
     cfg = _default_runtime_config()
-    if SETTINGS_API_URL:
+    if ADMIN_API_URL:
         try:
             resp = requests.get(
-                f"{SETTINGS_API_URL}/embeddings/runtime",
+                f"{ADMIN_API_URL}{EMBEDDINGS_RUNTIME_ROUTE}",
+                headers=_memory_read_headers(),
                 timeout=_RUNTIME_FETCH_TIMEOUT_S,
             )
             resp.raise_for_status()
@@ -72,14 +75,15 @@ def _refresh_runtime_config_once() -> None:
 
 
 def _refresh_route_once() -> None:
-    base = _runtime_api_base()
+    base = ADMIN_API_URL
     if not base:
         _route_cache["value"] = None
         _route_cache["ts"] = time.time()
         return
     try:
         resp = requests.get(
-            f"{base}/api/runtime/compute/routing",
+            f"{base}{COMPUTE_ROUTING_ROUTE}",
+            headers=_memory_read_headers(),
             timeout=_ROUTE_FETCH_TIMEOUT_S,
         )
         resp.raise_for_status()

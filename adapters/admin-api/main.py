@@ -10,6 +10,19 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from config.infra import (
+    ENABLE_CORS,
+    get_admin_cookie_name,
+    get_admin_cookie_secure,
+    get_admin_csrf_header_name,
+    get_admin_session_ttl_seconds,
+    get_allowed_origins,
+)
+from security_auth import SecurityAuthority
+from security_contracts import MiddlewareConfig, SecurityPaths
+from security_middleware import SecurityMiddleware
+from security_routes import create_security_router
+
 logger = logging.getLogger(__name__)
 
 # ── App ────────────────────────────────────────────────────
@@ -21,13 +34,23 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+allowed_origins = get_allowed_origins()
+security_authority = SecurityAuthority(SecurityPaths.from_config(), get_admin_session_ttl_seconds())
+security_config = MiddlewareConfig(
+    cookie_name=get_admin_cookie_name(),
+    csrf_header_name=get_admin_csrf_header_name(),
+    allowed_origins=allowed_origins,
+    cookie_secure=get_admin_cookie_secure(),
 )
+if ENABLE_CORS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(allowed_origins),
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", security_config.csrf_header_name],
+    )
+app.add_middleware(SecurityMiddleware, authority=security_authority, config=security_config)
 
 # ── Routers ────────────────────────────────────────────────
 
@@ -55,6 +78,13 @@ from plugins_routes import router as plugins_router
 from memory_routes import router as memory_app_router
 from memory_defaults_routes import router as memory_defaults_router
 
+security_router = create_security_router(
+    security_authority,
+    cookie_name=security_config.cookie_name,
+    cookie_secure=security_config.cookie_secure,
+)
+
+app.include_router(security_router)
 app.include_router(settings_router)
 app.include_router(provider_keys_router)
 app.include_router(commander_router)
@@ -110,6 +140,9 @@ async def root():
 @app.on_event("startup")
 async def startup_event():
     logger.info("TRION Admin API starting...")
+    if not security_authority.is_provisioned():
+        logger.warning("[Startup] Admin security is not provisioned; request handlers remain disabled")
+        return
 
     async def _init_commander_store():
         try:

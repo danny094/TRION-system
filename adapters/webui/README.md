@@ -33,6 +33,24 @@ npm run dev
 Die Dev-WebUI laeuft auf `http://localhost:3000`.
 `/api/*` wird in `vite.config.ts` an die Admin API weitergereicht.
 
+## Anmeldung und API-Sicherheit
+
+`App.tsx` rendert `DesktopShell` ausschliesslich innerhalb des `AuthGate`.
+Das Gate prueft `GET /api/auth/session`, zeigt bei Bedarf den zweisprachigen
+Login fuer `POST /api/auth/login` und beendet die Session ueber
+`POST /api/auth/logout`.
+
+Der zentrale Client in `src/lib/api/client.ts` besitzt den Browservertrag:
+
+- `credentials: same-origin` fuer alle `/api`-Requests,
+- `x-csrf-token` fuer `POST`, `PUT`, `PATCH` und `DELETE`,
+- ein Sessionverlust-Event bei `401`,
+- einen rohen `Response`-Helper fuer den unveraenderten NDJSON-Chatstream.
+
+Chat, Memory und Plugin-Host umgehen diesen Client nicht. Das Session-Cookie
+ist `HttpOnly`/`SameSite=Strict`; mutierende Requests werden serverseitig
+zusaetzlich gegen ihre lokale Origin geprueft.
+
 ## Build
 
 ```bash
@@ -65,6 +83,7 @@ Wichtige Pfade:
 - `src/components/layout/`: Dock, LaunchpadButton, SearchBar
 - `src/components/windows/`: WindowManager, WindowFrame, ChatPanelFrame
 - `src/features/chat/`: Chat, Session-Sidebar, NDJSON-Stream, Task-Loop-UI
+- `src/features/auth/`: AuthGate, Browser-Session-Contract und Login-Styles
 - `src/features/launchpad/`: App-Grid mit Drag-Sources
 - `src/features/settings/`: Settings-Fenster mit 5 Tabs
 - `src/lib/api/`: HTTP-Client

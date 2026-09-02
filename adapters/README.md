@@ -2,24 +2,43 @@
 
 Zwei Services: **WebUI** (Frontend + Chat-Proxy) und **Admin-API** (Backend-Logik).
 
+## Lokale Sicherheitsgrenze
+
+- WebUI und direkter Admin-Port binden nur an `127.0.0.1`; der
+  Memory-Dienst besitzt keinen Hostport.
+- Vor dem ersten Start erzeugt
+  `docker compose --profile bootstrap run --rm trion-security-bootstrap`
+  das lokale Admin-Credential und die installationsspezifischen Secret-Dateien.
+- Browseraufrufe verwenden ein signiertes `HttpOnly`-/`SameSite=Strict`-
+  Session-Cookie. Mutierende Methoden brauchen zusaetzlich erlaubte Origin
+  und den sessiongebundenen Header `x-csrf-token`.
+- Der Secret-Resolve-Token gilt nur fuer
+  `GET /api/secrets/resolve/{name}`. Der getrennte Memory-Read-Token gilt nur
+  fuer die drei Settings-/Routing-GETs; beide werden aus Secret-Dateien gelesen.
+- Docker-Netz-Naehe erzeugt keinen Principal. Die Admin-Middleware prueft
+  Browser- und interne Caller vor den Routern.
+
 ---
 
 ## WebUI
 
-Leichtgewichtiger Proxy-Layer zwischen Browser und dem Kern-System.
+Frontend- und Proxy-Layer zwischen Browser und Admin API. Der fuehrende
+kuratierte Vertrag steht in `docs/adapters/17-webui-api-endpoints.md`; die
+mechanisch generierte lokale Decorator-Inventar steht in
+`docs/reference/20-backend-api-reference.md`. Aus anderen Paketen importierte
+und in `main.py` montierte Router bleiben zusaetzlich an ihren Mount- und
+Quelldateien gebunden.
 
-### Core
+### Port 3000
 | Methode | Pfad | Beschreibung |
 |---------|------|--------------|
+| GET | `/` | SPA-Einstieg |
+| GET | `/assets/*` | Gebaute Frontend-Assets |
 | GET | `/health` | Health-Check |
-| POST | `/chat` | Chat-Anfrage absenden |
+| GET/POST/... | `/api/*` | Proxy zur Admin API |
 
-### MCP
-| Methode | Pfad | Beschreibung |
-|---------|------|--------------|
-| GET | `/mcp` | MCP Hub-Endpunkt |
-| GET | `/mcp/status` | MCP Status |
-| GET | `/mcp/tools` | Verfügbare MCP-Tools |
+Die folgenden Abschnitte katalogisieren Backendpfade der Admin API, nicht
+zusaetzliche WebUI-Routen auf Port 3000.
 
 ### Maintenance — `/api/maintenance`
 | Methode | Pfad | Beschreibung |
@@ -55,10 +74,6 @@ Haupt-Backend mit allen Steuerungsfunktionen.
 | Methode | Pfad | Beschreibung |
 |---------|------|--------------|
 | POST | `/api/chat` | Chat-Anfrage |
-| POST | `/api/chat/deep-jobs` | Deep-Job starten |
-| GET | `/api/chat/deep-jobs/{job_id}` | Deep-Job Status |
-| POST | `/api/chat/deep-jobs/{job_id}/cancel` | Deep-Job abbrechen |
-| GET | `/api/chat/deep-jobs-stats` | Deep-Jobs Statistik |
 
 ### Workspace — `/api/workspace`
 | Methode | Pfad | Beschreibung |
@@ -104,17 +119,17 @@ Haupt-Backend mit allen Steuerungsfunktionen.
 | POST | `/api/protocol/summarize-yesterday` | Gestern zusammenfassen |
 | GET | `/api/protocol/rolling-summary` | Rolling Summary |
 
-### Commander — `/api/commander`
+### Commander — Root-Pfade
 | Methode | Pfad | Beschreibung |
 |---------|------|--------------|
-| GET | `/api/commander/blueprints` | Alle Blueprints |
-| GET | `/api/commander/blueprints/{blueprint_id}` | Blueprint abrufen |
-| POST | `/api/commander/blueprints` | Blueprint erstellen |
-| PUT | `/api/commander/blueprints/{blueprint_id}` | Blueprint aktualisieren |
-| DELETE | `/api/commander/blueprints/{blueprint_id}` | Blueprint löschen |
-| POST | `/api/commander/blueprints/import` | Blueprint importieren |
-| GET | `/api/commander/blueprints/{blueprint_id}/yaml` | Blueprint als YAML |
-| POST | `/api/commander/containers/deploy` | Container deployen |
+| GET | `/blueprints` | Alle Blueprints |
+| GET | `/blueprints/{blueprint_id}` | Blueprint abrufen |
+| POST | `/blueprints` | Blueprint erstellen |
+| PUT | `/blueprints/{blueprint_id}` | Blueprint aktualisieren |
+| DELETE | `/blueprints/{blueprint_id}` | Blueprint löschen |
+| POST | `/blueprints/import` | Blueprint importieren |
+| GET | `/blueprints/{blueprint_id}/yaml` | Blueprint als YAML |
+| POST | `/containers/deploy` | Container deployen |
 
 ### Secrets — `/api/secrets`
 | Methode | Pfad | Beschreibung |
@@ -125,18 +140,18 @@ Haupt-Backend mit allen Steuerungsfunktionen.
 | DELETE | `/api/secrets/{name}` | Secret löschen |
 | GET | `/api/secrets/resolve/{name}` | Secret auflösen |
 
-### Vault — `/api/vault`
+### Vault — Root-Pfade
 | Methode | Pfad | Beschreibung |
 |---------|------|--------------|
-| GET | `/api/vault/status` | Vault-Status |
-| POST | `/api/vault/setup` | Vault initialisieren |
-| POST | `/api/vault/unlock` | Vault entsperren |
-| POST | `/api/vault/lock` | Vault sperren |
-| GET | `/api/vault/entries` | Alle Einträge |
-| GET | `/api/vault/entries/{entry_id}/password` | Passwort abrufen |
-| POST | `/api/vault/entries` | Eintrag erstellen |
-| PUT | `/api/vault/entries/{entry_id}` | Eintrag aktualisieren |
-| DELETE | `/api/vault/entries/{entry_id}` | Eintrag löschen |
+| GET | `/status` | Vault-Status |
+| POST | `/setup` | Vault initialisieren |
+| POST | `/unlock` | Vault entsperren |
+| POST | `/lock` | Vault sperren |
+| GET | `/entries` | Alle Einträge |
+| GET | `/entries/{entry_id}/password` | Passwort abrufen |
+| POST | `/entries` | Eintrag erstellen |
+| PUT | `/entries/{entry_id}` | Eintrag aktualisieren |
+| DELETE | `/entries/{entry_id}` | Eintrag löschen |
 
 ### TRION Memory — Root-Pfade des Home-/Note-Memory
 | Methode | Pfad | Beschreibung |
@@ -194,28 +209,3 @@ Abgrenzung:
 | POST | `/api/storage-broker/format` | Datenträger formatieren |
 | POST | `/api/storage-broker/partition` | Partition erstellen |
 | GET | `/api/storage-broker/audit` | Audit-Log |
-
-### Autonomous Jobs — `/api/autonomous`
-| Methode | Pfad | Beschreibung |
-|---------|------|--------------|
-| POST | `/api/autonomous` | Job starten (Legacy) |
-| POST | `/api/autonomous/jobs` | Job erstellen |
-| GET | `/api/autonomous/jobs/{job_id}` | Job-Status |
-| POST | `/api/autonomous/jobs/{job_id}/cancel` | Job abbrechen |
-| POST | `/api/autonomous/jobs/{job_id}/retry` | Job wiederholen |
-| GET | `/api/autonomous/jobs-stats` | Job-Statistiken |
-
-### Autonomy Cron — `/api/autonomy/cron`
-| Methode | Pfad | Beschreibung |
-|---------|------|--------------|
-| GET | `/api/autonomy/cron/status` | Cron-Status |
-| GET | `/api/autonomy/cron/queue` | Cron-Queue |
-| GET | `/api/autonomy/cron/jobs` | Alle Cron-Jobs |
-| POST | `/api/autonomy/cron/validate` | Cron-Ausdruck validieren |
-| POST | `/api/autonomy/cron/jobs` | Cron-Job erstellen |
-| GET | `/api/autonomy/cron/jobs/{cron_job_id}` | Cron-Job abrufen |
-| PUT | `/api/autonomy/cron/jobs/{cron_job_id}` | Cron-Job aktualisieren |
-| DELETE | `/api/autonomy/cron/jobs/{cron_job_id}` | Cron-Job löschen |
-| POST | `/api/autonomy/cron/jobs/{cron_job_id}/pause` | Cron-Job pausieren |
-| POST | `/api/autonomy/cron/jobs/{cron_job_id}/resume` | Cron-Job fortsetzen |
-| POST | `/api/autonomy/cron/jobs/{cron_job_id}/run-now` | Cron-Job sofort ausführen |

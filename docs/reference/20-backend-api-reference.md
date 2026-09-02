@@ -1,7 +1,10 @@
 ---
 title: Backend-API-Reference
 tags: [backend, api, reference, admin-api]
-updated: 2026-08-27
+created: 2026-06-15
+updated: 2026-09-01
+status: ACTIVE
+authority: backend-api-reference
 ---
 
 # Backend-API-Reference
@@ -22,7 +25,8 @@ safe to expose to an untrusted network.
 - Effektiver Pfad = `APIRouter(prefix=...)` + Decorator-Pfad.
 - `commander_api/*`-Sub-Router werden in `commander_routes.py` ohne Prefix eingehängt — die Pfade gelten so wie im Decorator.
 - `trion_memory_router` ist zusätzlich unter `/trion/memory/...` gemountet (Sonderfall, hier nicht doppelt gelistet).
-- Diese Liste enthält *alle* Backend-Endpunkte, auch interne (z. B. `/api/secrets/resolve/{name}`, Bearer-geschützt) und Übergangspfade (`/api/storage-broker/*`).
+- Diese Liste ist das lokale Decorator-Inventar unter `adapters/admin-api`; sie erhebt keinen Anspruch auf alle gemounteten Backend-Endpunkte.
+- Importierte Router-Mounts werden durch `adapters/admin-api/main.py` und die kuratierten Endpointdokumente beschrieben.
 
 ## `adapters/admin-api/autonomy_profile_routes.py`
 
@@ -278,9 +282,18 @@ _Prefix:_ `/api/secrets`
 |---------|------|---------|--------------|
 | `GET` | `/api/secrets` | `list_secrets()` | List all secret names — values are never returned. |
 | `POST` | `/api/secrets` | `create_secret()` | Store a new encrypted secret. |
-| `GET` | `/api/secrets/resolve/{name}` | `resolve_secret()` | Internal: resolve a secret value for skill sandbox use. |
+| `GET` | `/api/secrets/resolve/{name}` | `resolve_secret()` | Resolve a secret for the exact middleware-authenticated internal caller. |
 | `DELETE` | `/api/secrets/{name}` | `delete_secret()` | Delete a secret. |
 | `PUT` | `/api/secrets/{name}` | `update_secret()` | Update an existing secret. |
+
+## `adapters/admin-api/security_routes.py`
+_Prefix:_ `/api/auth`
+
+| Methode | Pfad | Handler | Beschreibung |
+|---------|------|---------|--------------|
+| `POST` | `/api/auth/login` | `login()` | — |
+| `POST` | `/api/auth/logout` | `logout()` | — |
+| `GET` | `/api/auth/session` | `session()` | — |
 
 ## `adapters/admin-api/settings_routes.py`
 _Prefix:_ `/api/settings`
@@ -374,4 +387,4 @@ _Prefix:_ `/api/storage-broker`
 
 ---
 
-**Gesamt:** 194 Endpunkte.
+**Gesamt:** 197 Endpunkte.

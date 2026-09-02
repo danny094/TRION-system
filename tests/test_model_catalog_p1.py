@@ -165,7 +165,7 @@ def test_ollama_cloud_complete_chat_missing_key_is_explicit(monkeypatch, tmp_pat
     monkeypatch.delenv("OLLAMA_KEY", raising=False)
     monkeypatch.delenv("OLLAMA", raising=False)
     monkeypatch.delenv("INTERNAL_SECRET_RESOLVE_TOKEN", raising=False)
-    monkeypatch.setattr("core.llm.secrets._env_or_dotenv", lambda name, default="": default)
+    monkeypatch.setattr("core.llm.secrets._secret_resolve_headers", lambda: {})
     # W1/SP4.1: _DB_PATH zeigt produktionsseitig auf /app/data, das es in der
     # Test-Sandbox nicht gibt. Isolierung ueber tmp_path statt Produktionscode.
     monkeypatch.setattr(

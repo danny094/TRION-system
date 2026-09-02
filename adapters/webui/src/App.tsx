@@ -1,8 +1,11 @@
 import { DesktopShell } from '@/app/shell/DesktopShell'
+import { AuthGate } from '@/features/auth/AuthGate'
 
 function App() {
   return (
-    <DesktopShell />
+    <AuthGate>
+      <DesktopShell />
+    </AuthGate>
   )
 }
 

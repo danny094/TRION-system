@@ -1,5 +1,6 @@
 import React from 'react'
 import type { PluginSummary } from '@/lib/contracts/plugin'
+import { fetchApiResponse } from '@/lib/api/client'
 
 export interface PluginBridge {
   request: (path: string, options?: PluginRequestOptions) => Promise<PluginBridgeResponse>
@@ -32,9 +33,9 @@ export function pluginAssetUrl(plugin: PluginSummary, assetPath: string): string
   return `/api/plugins/${encodeURIComponent(plugin.id)}/asset/${assetPath}`
 }
 
-export function pluginEntryMode(plugin: PluginSummary): 'iframe' | 'host' {
+export function pluginEntryMode(plugin: PluginSummary): 'iframe' | 'blocked' {
   const entry = plugin.entry.toLowerCase()
-  return entry.endsWith('.js') || entry.endsWith('.mjs') ? 'host' : 'iframe'
+  return entry.endsWith('.html') ? 'iframe' : 'blocked'
 }
 
 export function createPluginBridge(plugin: PluginSummary): PluginBridge {
@@ -54,15 +55,12 @@ export function createPluginBridge(plugin: PluginSummary): PluginBridge {
 }
 
 async function postBridge(plugin: PluginSummary, path: string, payload: unknown): Promise<PluginBridgeResponse> {
-  const response = await fetch(`/api/plugins/${encodeURIComponent(plugin.id)}${path}`, {
+  const response = await fetchApiResponse(`/plugins/${encodeURIComponent(plugin.id)}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload || {}),
   })
   const contentType = response.headers.get('content-type') || ''
   const data = contentType.includes('application/json') ? await response.json() : await response.text()
-  if (!response.ok) {
-    throw new Error(typeof data === 'string' ? data : String((data as { detail?: unknown })?.detail || response.status))
-  }
   return { ok: true, status: response.status, data }
 }

@@ -1,6 +1,17 @@
 import type { TextCatalog } from '@/lib/i18n/types'
 
 export const enExtra: TextCatalog = {
+  'auth.loginTitle': 'Login to TRION',
+  'auth.loginDescription': 'Enter the local administrator password to start your session.',
+  'auth.password': 'Password',
+  'auth.login': 'Login',
+  'auth.loggingIn': 'Logging in…',
+  'auth.loginFailed': 'Login failed. Check the password and try again.',
+  'auth.checkingSession': 'Checking session…',
+  'auth.sessionExpired': 'Your session has expired. Please login again.',
+  'auth.signedInAs': 'Session: {principal}',
+  'auth.logout': 'Logout',
+  'auth.logoutFailed': 'Logout failed. Your session remains active; please try again.',
   'memory.thisConversationOnly': 'This conversation only',
   'settings.fontSizeSmall': 'Small',
   'settings.fontSizeMedium': 'Medium',

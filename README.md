@@ -76,8 +76,14 @@ TRION ships with a Docker development stack (WebUI + Admin API + Memory + a
 managed home container):
 
 ```bash
+docker compose --profile bootstrap run --rm trion-security-bootstrap
 docker compose up --build -d
 ```
+
+The one-time bootstrap creates installation-specific session and service
+credentials and prints the initial local administrator password once. Run it
+before starting a fresh installation; later runs do not overwrite or reveal
+the credential again.
 
 This starts:
 - `trion-webui` — the web interface (Vite / React / TypeScript)
@@ -87,11 +93,12 @@ This starts:
 
 Health checks: `GET /health` on both the Admin API and the WebUI.
 
-> **Security boundary:** the default Compose file is for a trusted local
-> development host. It exposes service ports, enables CORS, and mounts the
-> Docker socket into the Admin API. Do not expose this stack to an untrusted
-> network or multi-user host without adding authentication, restrictive network
-> bindings, a CORS allowlist, and a narrower container-control boundary.
+> **Security boundary:** WebUI and direct Admin API access bind to loopback,
+> Memory has no host port, and browser requests use an authenticated session
+> with same-origin CSRF checks. The stack is still for a trusted local
+> development host: the Docker socket remains mounted into the Admin API until
+> the isolated broker boundary is implemented. Do not expose it to an
+> untrusted network or multi-user host.
 
 > **Tested on:** macOS on Apple Silicon (M4). The stack is fully Docker-based, so it is expected to run on any Docker host — other platforms are simply not yet as widely tested. Ubuntu support is planned.
 
@@ -149,10 +156,11 @@ validation, the SQL memory server, WebUI v2, and the Docker development stack.
 The Container Commander includes read-only inventory plus guarded lifecycle
 operations.
 
-Current work is tightening the full container-ID/evidence handoff, consolidating
-phase-one Container Commander contracts, and hardening authentication, Docker
-authority, provider credentials, and persistence. Interfaces may still change;
-this snapshot is not a production-security claim.
+Local browser authentication, loopback ingress, internal Memory access and
+route-scoped service credentials are materialized at code and contract level.
+Current work continues on the isolated Docker authority, provider credentials,
+persistence, supply-chain evidence and runtime acceptance. Interfaces may still
+change; this snapshot is not a production-security or runtime-PASS claim.
 
 ## Known limitations
 
@@ -162,16 +170,18 @@ this snapshot is not a production-security claim.
   expectations, and one truth-reasoning capability case. The rest of the
   configured suite must pass; a green public CI run does not claim these ten
   contracts are complete.
-- **The default Docker stack is development-only.** Authentication and Docker
-  authority hardening remain required before deployment on an untrusted host.
+- **The default Docker stack is development-only.** Local authentication and
+  ingress are hardened, but the Docker socket is still mounted directly into
+  the Admin API. The isolated broker, negative runtime probes and full P16
+  lifecycle remain open.
 - **WebUI localization is still partial.** English is the default on migrated
   surfaces, while some legacy Appearance controls and other untouched views
   still contain German text. This snapshot does not claim complete localization.
-- **WebUI quality gates are incomplete, not green.** Both TypeScript project
-  checks pass, but the local Vite production build and ESLint run each made no
-  further progress and were stopped after 180 seconds; neither is claimed as a
-  pass. The unchanged lockfile reports 1 low and 4 high dependency advisories
-  in `npm audit`.
+- **WebUI quality gates are only partially green.** TypeScript checks and the
+  Vite production build pass. Full ESLint still reports 15 errors and 5
+  warnings in 14 unchanged legacy paths, and the public workflow does not yet
+  enforce separate frontend jobs. The unchanged lockfile currently reports 1
+  low and 5 high dependency advisories in `npm audit`.
 - **Release supply-chain evidence remains incomplete.** The repository does
   not yet provide a central reproducible Python lock/constraint process, a
   dependency-license policy, CycloneDX SBOMs for every shipped image and

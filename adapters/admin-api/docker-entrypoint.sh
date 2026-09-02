@@ -14,6 +14,10 @@ HOME_DIR="${ADMIN_API_HOME:-${APP_DATA_DIR}/home}"
 PERSONAS_DIR="${PERSONAS_DIR:-/app/personas}"
 PERSONA_DEFAULTS_DIR="${PERSONA_DEFAULTS_DIR:-/app/persona_defaults}"
 PLUGINS_DIR="${TRION_PLUGINS_DIR:-/app/ui_plugins}"
+: "${TRION_SECRET_RESOLVE_TOKEN_FILE:?TRION_SECRET_RESOLVE_TOKEN_FILE must be set}"
+: "${TRION_MEMORY_READ_TOKEN_FILE:?TRION_MEMORY_READ_TOKEN_FILE must be set}"
+SECRET_RESOLVE_TOKEN_DIR="$(dirname "$TRION_SECRET_RESOLVE_TOKEN_FILE")"
+MEMORY_READ_TOKEN_DIR="$(dirname "$TRION_MEMORY_READ_TOKEN_FILE")"
 
 prepare_writable_dir() {
   dir="$1"
@@ -50,6 +54,10 @@ if [ "$(id -u)" = "0" ]; then
   prepare_writable_dir "$HOME_DIR"
   prepare_writable_dir "$PERSONAS_DIR"
   prepare_writable_dir "$PLUGINS_DIR"
+  if [ "${TRION_SECURITY_BOOTSTRAP_MODE:-false}" = "true" ]; then
+    prepare_writable_dir "$SECRET_RESOLVE_TOKEN_DIR"
+    prepare_writable_dir "$MEMORY_READ_TOKEN_DIR"
+  fi
   seed_persona_defaults
   chown -R "${APP_UID}:${APP_GID}" "$PERSONAS_DIR"
 

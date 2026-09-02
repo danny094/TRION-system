@@ -10,13 +10,67 @@ Run from repo root:
 from __future__ import annotations
 
 import ast
-from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ADMIN_API = ROOT / "adapters" / "admin-api"
 
 HTTP_METHODS = {"get", "post", "put", "delete", "patch", "head", "options"}
+API_REFERENCE_UPDATED = "2026-09-01"
+
+
+def _imported_string_constants(tree: ast.Module) -> dict[str, str]:
+    """Resolve direct string constants imported from repository modules."""
+    values: dict[str, str] = {}
+    for node in tree.body:
+        if not isinstance(node, ast.ImportFrom) or not node.module:
+            continue
+        source = ROOT / f"{node.module.replace('.', '/')}.py"
+        if not source.is_file():
+            continue
+        imported = ast.parse(source.read_text(encoding="utf-8"))
+        literals = {
+            item.targets[0].id: str(item.value.value)
+            for item in imported.body
+            if isinstance(item, ast.Assign)
+            and len(item.targets) == 1
+            and isinstance(item.targets[0], ast.Name)
+            and isinstance(item.value, ast.Constant)
+            and isinstance(item.value.value, str)
+        }
+        for alias in node.names:
+            if alias.name in literals:
+                values[alias.asname or alias.name] = literals[alias.name]
+    return values
+
+
+def _resolve_string(node: ast.AST, values: dict[str, str], prefix: str) -> str | None:
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.Name):
+        return values.get(node.id)
+    if (
+        isinstance(node, ast.Attribute)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "router"
+        and node.attr == "prefix"
+    ):
+        return prefix
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+        base = _resolve_string(node.func.value, values, prefix)
+        arg = _resolve_string(node.args[0], values, prefix) if len(node.args) == 1 else None
+        if base is not None and arg is not None and node.func.attr == "removeprefix":
+            return base.removeprefix(arg)
+    if isinstance(node, ast.JoinedStr):
+        parts: list[str] = []
+        for item in node.values:
+            target = item.value if isinstance(item, ast.FormattedValue) else item
+            value = _resolve_string(target, values, prefix)
+            if value is None:
+                return None
+            parts.append(value)
+        return "".join(parts)
+    return None
 
 
 def extract_router_prefix(tree: ast.Module) -> str:
@@ -31,9 +85,10 @@ def extract_router_prefix(tree: ast.Module) -> str:
     return ""
 
 
-def extract_routes(tree: ast.Module) -> list[tuple[str, str, str, str]]:
+def extract_routes(tree: ast.Module, prefix: str) -> list[tuple[str, str, str, str]]:
     """Return [(method, path, function_name, docstring_first_line), ...]."""
     routes: list[tuple[str, str, str, str]] = []
+    values = _imported_string_constants(tree)
     for node in ast.walk(tree):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
@@ -49,9 +104,15 @@ def extract_routes(tree: ast.Module) -> list[tuple[str, str, str, str]]:
                 continue
             if func.attr.lower() not in HTTP_METHODS:
                 continue
-            if not decorator.args or not isinstance(decorator.args[0], ast.Constant):
-                continue
-            path = str(decorator.args[0].value)
+            path_node = decorator.args[0] if decorator.args else next(
+                (keyword.value for keyword in decorator.keywords if keyword.arg == "path"), None
+            )
+            if path_node is None:
+                raise ValueError(f"unresolved route path for {node.name}: missing path")
+            path = _resolve_string(path_node, values, prefix)
+            if path is None:
+                expression = ast.unparse(path_node)
+                raise ValueError(f"unresolved route path for {node.name}: {expression}")
             doc = ast.get_docstring(node) or ""
             doc_first = doc.split("\n", 1)[0].strip().replace("|", "\\|")
             routes.append((func.attr.upper(), path, node.name, doc_first))
@@ -60,7 +121,8 @@ def extract_routes(tree: ast.Module) -> list[tuple[str, str, str, str]]:
 
 def parse_file(path: Path) -> tuple[str, list[tuple[str, str, str, str]]]:
     tree = ast.parse(path.read_text(encoding="utf-8"))
-    return extract_router_prefix(tree), extract_routes(tree)
+    prefix = extract_router_prefix(tree)
+    return prefix, extract_routes(tree, prefix)
 
 
 def collect_files() -> list[Path]:
@@ -68,12 +130,14 @@ def collect_files() -> list[Path]:
 
 
 def render() -> str:
-    today = date.today().isoformat()
     out: list[str] = [
         "---",
         "title: Backend-API-Reference",
         "tags: [backend, api, reference, admin-api]",
-        f"updated: {today}",
+        "created: 2026-06-15",
+        f"updated: {API_REFERENCE_UPDATED}",
+        "status: ACTIVE",
+        "authority: backend-api-reference",
         "---",
         "",
         "# Backend-API-Reference",
@@ -94,7 +158,8 @@ def render() -> str:
         "- Effektiver Pfad = `APIRouter(prefix=...)` + Decorator-Pfad.",
         "- `commander_api/*`-Sub-Router werden in `commander_routes.py` ohne Prefix eingehängt — die Pfade gelten so wie im Decorator.",
         "- `trion_memory_router` ist zusätzlich unter `/trion/memory/...` gemountet (Sonderfall, hier nicht doppelt gelistet).",
-        "- Diese Liste enthält *alle* Backend-Endpunkte, auch interne (z. B. `/api/secrets/resolve/{name}`, Bearer-geschützt) und Übergangspfade (`/api/storage-broker/*`).",
+        "- Diese Liste ist das lokale Decorator-Inventar unter `adapters/admin-api`; sie erhebt keinen Anspruch auf alle gemounteten Backend-Endpunkte.",
+        "- Importierte Router-Mounts werden durch `adapters/admin-api/main.py` und die kuratierten Endpointdokumente beschrieben.",
         "",
     ]
 

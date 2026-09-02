@@ -21,7 +21,7 @@ retrieval_hints:
   - wie authentifiziere
   - interner token
 confidence: high
-last_reviewed: 2026-04-21
+last_reviewed: 2026-09-01
 ---
 
 ## Invarianten
@@ -29,32 +29,57 @@ last_reviewed: 2026-04-21
 - Auth-Regel != Live-Konfiguration.
 - Diese Datei beschreibt Zugriffsmodell, nicht aktuelle Reachability.
 - Secret-Werte sind nie ausgabefähig.
-- Interne Docker-Kommunikation ist nicht automatisch öffentlich.
+- Docker- oder Hostnetz-Naehe erzeugt keinen Principal.
+- Vor dem Router wird jeder Admin-API-Caller authentisiert, ausser
+  `GET /health` und der provisionierte `POST /api/auth/login`. Unprovisionierter
+  Login wird bereits in der Middleware vor der Bodyvalidierung blockiert.
 - Resolve-sensitive Endpoints sind nicht als externe Standardpfade zu behandeln.
 
 ## Auth-Zonen
 
 | zone | regel |
 |---|---|
-| docker_internal_trust | interne Service-zu-Service-Kommunikation im Docker-Netz |
-| token_guarded_secret_resolve | Secret-Klartextauflösung braucht Bearer-Token |
-| proxy_exposed | bestimmte Services sind extern via nginx/proxy erreichbar |
+| browser_session | signiertes `HttpOnly`-/`SameSite=Strict`-Cookie; Mutation zusaetzlich Origin und CSRF |
+| token_guarded_secret_resolve | eigener Secret-Datei-Bearer nur fuer den Resolve-GET |
+| token_guarded_memory_read | getrennter Secret-Datei-Bearer nur fuer drei Settings-/Routing-GETs |
+| plugin_delegation | nur der von der Middleware verifizierte Browserbeleg wird weitergereicht |
+| proxy_exposed | WebUI same-origin `/api`; WebUI/Admin nur loopback, Memory ohne Hostport |
 | tool_guarded_access | operative Nutzung bevorzugt über Tools statt rohe Direktcalls |
 
 ## Secret-Endpoints
 
 | endpoint | auth | netzregel | ausgabe |
 |---|---|---|---|
-| `GET /api/secrets` | kein Klartext-Secret-Auth | intern bevorzugt | nur Namen |
-| `GET /api/secrets/resolve/{NAME}` | Bearer `INTERNAL_SECRET_TOKEN` | Docker-Netz-only, nicht via nginx | Klartext-Secret |
+| `POST /api/auth/login` | installiertes lokales Credential | loopback/same-origin | Session-Cookie + feste Metadaten |
+| `GET /api/auth/session` | gueltiges Session-Cookie | loopback/same-origin | Principal, Ablauf, CSRF |
+| `POST /api/auth/logout` | Session + Origin + CSRF | loopback/same-origin | widerruft Sessiongeneration |
+| `GET /api/secrets` | Browser-Session | loopback/same-origin | nur Namen |
+| `GET /api/secrets/resolve/{NAME}` | route-spezifischer Bearer aus Secret-Datei | Docker-Netz, nicht normaler Browserpfad | Klartext-Secret |
+| drei Memory-Settings-/Routing-GETs | getrennter Memory-Read-Bearer aus Secret-Datei | Docker-Netz | nicht geheime Konfiguration |
 | Admin-API → MCP `secret_save` | interner Call | Docker-Netz | persistiert verschlüsselt |
 
 ## Allgemeine Regeln
 
-- `trion-admin-api` ist für interne Calls grundsätzlich Docker-intern vertrauensbasiert.
-- Secret-Resolve ist die explizite Ausnahme mit zusätzlichem Bearer-Schutz.
+- Die Admin-Middleware ist die einzige technische Principal-Verifikation vor
+  den Routern; fehlendes Bootstrap-Material blockiert ausser `/health`.
+- Secret-Resolve und Memory-Read verwenden getrennte, route-spezifische Tokens
+  aus read-only Secret-Dateien ohne ENV-/`.env`-Fallback.
 - Resolve-Endpoint ist sensitiv, auch wenn Name bekannt ist.
 - Secret-Namen sind weniger sensitiv als Secret-Werte, aber nicht frei publizierbar.
+
+## Browser und Plugins
+
+- `AuthGate` umschliesst die WebUI-Shell und konsumiert Login, Sessionstatus
+  und Logout ueber den zentralen same-origin API-Client.
+- Browsermutationen brauchen den sessiongebundenen Header `x-csrf-token` und
+  eine erlaubte lokale Origin.
+- Installierbare Plugins laufen in SP1 ausschliesslich als
+  `OPAQUE_IFRAME_ONLY` ohne Browser-Session; same-origin ESM bleibt blockiert.
+- Die authentisierte Parent-Mediation ist bis P16-SP4 nicht aktiv. Ihr
+  gespeicherter Backend-Bridgevertrag besitzt kein Service-Secret und darf
+  spaeter ausschliesslich serverseitig verifizierte Delegationsheader nutzen.
+- Plugin-Payloads koennen Cookie, Authorization, Origin oder CSRF weder setzen
+  noch einen serverseitig verifizierten Wert ueberschreiben.
 
 ## Skill-Regeln
 
@@ -67,7 +92,7 @@ last_reviewed: 2026-04-21
 ## Nie nach außen geben
 
 - Secret-Werte
-- Bearer-Token für Secret-Resolve
+- Bearer-Token für Secret-Resolve oder Memory-Read
 - Authorization-Header
 - API-Key-Strings
 - Klartext-Secrets in Tool-Trace
@@ -88,11 +113,13 @@ last_reviewed: 2026-04-21
 
 - Für Secret-Verwendung in Skills: `get_secret("NAME")`.
 - Für Secret-Inventar: `GET /api/secrets` oder entsprechende interne Tool-Pfade.
-- Für Klartext-Resolve: nur intern, nur mit Bearer, nur wenn operativ nötig.
+- Für Klartext-Resolve: nur intern, nur mit dem route-spezifischen
+  Secret-Datei-Bearer und nur wenn operativ nötig.
 - Für normale Agentenentscheidungen erst read-only Pfade bevorzugen.
 
 ## Grenzen
 
+- Status: kein aktueller Runtime-PASS; diese Datei ist nur statischer Vertrag.
 - Diese Datei sagt nicht, ob ein Token aktuell gesetzt ist.
 - Diese Datei sagt nicht, ob nginx aktuell einen Pfad exponiert.
 - Diese Datei sagt nicht, ob ein Endpoint aktuell erreichbar ist.

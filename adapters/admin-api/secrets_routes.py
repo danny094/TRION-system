@@ -2,27 +2,21 @@
 Secrets Management Routes
 Stores encrypted API keys. Values never leave the server in plaintext.
 """
+import hashlib
 import os
 import json
 import httpx
-from fastapi import APIRouter, HTTPException, Request, Header
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 import time
 from collections import defaultdict, deque
 from fastapi.responses import JSONResponse
 
+from config.infra.security import SECRET_RESOLVE_ROUTE_PREFIX
+
 router = APIRouter(prefix="/api/secrets", tags=["secrets"])
 
 MEMORY_URL = os.getenv("MEMORY_URL", "http://mcp-sql-memory:8081")
-
-# C8 Secret Policy: Static internal token and rate-limiting
-def get_internal_token() -> str:
-    try:
-        from config import get_secret_resolve_token
-        token = get_secret_resolve_token()
-    except Exception:
-        token = os.getenv("INTERNAL_SECRET_RESOLVE_TOKEN", "")
-    return str(token or "")
 
 def get_rate_limit() -> int:
     try:
@@ -35,13 +29,16 @@ def get_rate_limit() -> int:
             val = 100
     return max(1, min(10_000, val))
 
-# Rate limiting state: {"<client>|<token-prefix>": deque([timestamps])}
+# Rate limiting state: {"<principal>|<client>|<token-digest>": deque([timestamps])}
 _rate_limits = defaultdict(deque)
 _audit_events = deque(maxlen=500)
 
 def _rate_limit_key(request: Request, token: str) -> str:
     client_ip = request.client.host if request.client else "unknown"
-    return f"{client_ip}|{token[:16]}"
+    principal = request.state.auth_principal
+    principal_id = str(getattr(principal, "subject", "unknown"))[:128]
+    token_digest = hashlib.sha256(token.encode("utf-8")).hexdigest()[:16]
+    return f"{principal_id}|{client_ip}|{token_digest}"
 
 def check_rate_limit(request: Request, token: str) -> bool:
     """Returns True if request is allowed, False if limited."""
@@ -71,12 +68,15 @@ def _audit_log(
     safe_name = str(name).upper().strip()[:128]
     safe_reason = str(reason)[:120]
     client_ip = request.client.host if request and request.client else "unknown"
+    principal = getattr(request.state, "auth_principal", None) if request else None
+    principal_id = str(getattr(principal, "subject", "unknown"))[:128]
     _audit_events.append({
         "action": action,
         "target": safe_name,
         "status": status,
         "reason": safe_reason,
         "client": client_ip,
+        "principal": principal_id,
         "ts": int(time.time()),
     })
 
@@ -144,28 +144,13 @@ async def delete_secret(name: str):
     return result
 
 
-@router.get("/resolve/{name}")
-async def resolve_secret(name: str, request: Request, authorization: str | None = Header(default=None)):
+@router.get(f"{SECRET_RESOLVE_ROUTE_PREFIX.removeprefix(router.prefix)}/{{name}}")
+async def resolve_secret(name: str, request: Request):
     """
-    Internal: resolve a secret value for skill sandbox use.
-    Only reachable within Docker network — not exposed via nginx.
+    Resolve a secret for the exact middleware-authenticated internal caller.
     """
-    # 1. Token Auth
-    internal_token = get_internal_token()
-    if not internal_token:
-        _audit_log("resolve", name, False, "unconfigured_token", request=request)
-        raise HTTPException(status_code=500, detail="Secret resolution unconfigured")
-
-    if not authorization or not authorization.startswith("Bearer "):
-        _audit_log("resolve", name, False, "invalid_authorization", request=request)
-        raise HTTPException(status_code=401, detail="Unauthorized")
-        
-    token = authorization.split(" ")[1]
-    if token != internal_token:
-        _audit_log("resolve", name, False, "invalid_token", request=request)
-        raise HTTPException(status_code=403, detail="Forbidden")
-
-    # 2. Rate Limiting
+    # Authentication and exact route scoping are owned by SecurityMiddleware.
+    token = str(request.state.auth_token)
     if not check_rate_limit(request, token):
         _audit_log("resolve", name, False, "rate_limited", request=request)
         raise HTTPException(status_code=429, detail="Too Many Requests")

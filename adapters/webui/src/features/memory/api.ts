@@ -6,61 +6,48 @@ import type {
   SearchRequest,
   SearchResponse,
 } from './contracts'
-
-async function readJson<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} ${response.statusText}`)
-  }
-  return (await response.json()) as T
-}
+import { fetchApi } from '@/lib/api/client'
 
 export async function fetchRecent(conversationId?: string | null, limit = 20): Promise<MemoryEntry[]> {
   const params = new URLSearchParams()
   if (conversationId) params.set('conversation_id', conversationId)
   params.set('limit', String(limit))
-  const response = await fetch(`/api/memory/recent?${params.toString()}`)
-  const payload = await readJson<{ entries: MemoryEntry[]; count: number }>(response)
+  const payload = await fetchApi<{ entries: MemoryEntry[]; count: number }>(`/memory/recent?${params.toString()}`)
   return payload.entries ?? []
 }
 
 export async function fetchConversations(limit = 50): Promise<ConversationSummary[]> {
   const params = new URLSearchParams({ limit: String(limit) })
-  const response = await fetch(`/api/memory/conversations?${params.toString()}`)
-  const payload = await readJson<{ conversations: ConversationSummary[]; count: number }>(response)
+  const payload = await fetchApi<{ conversations: ConversationSummary[]; count: number }>(`/memory/conversations?${params.toString()}`)
   return payload.conversations ?? []
 }
 
 export async function fetchConversationEntries(conversationId: string, limit = 50): Promise<MemoryEntry[]> {
   const params = new URLSearchParams({ limit: String(limit) })
-  const response = await fetch(`/api/memory/conversations/${encodeURIComponent(conversationId)}?${params.toString()}`)
-  const payload = await readJson<{ entries: MemoryEntry[]; count: number }>(response)
+  const payload = await fetchApi<{ entries: MemoryEntry[]; count: number }>(`/memory/conversations/${encodeURIComponent(conversationId)}?${params.toString()}`)
   return payload.entries ?? []
 }
 
 export async function fetchConversationPolicy(conversationId: string): Promise<ConversationPolicy> {
-  const response = await fetch(`/api/memory/conversations/${encodeURIComponent(conversationId)}/policy`)
-  return readJson<ConversationPolicy>(response)
+  return fetchApi<ConversationPolicy>(`/memory/conversations/${encodeURIComponent(conversationId)}/policy`)
 }
 
 export async function searchMemory(request: SearchRequest): Promise<SearchResponse> {
-  const response = await fetch('/api/memory/search', {
+  return fetchApi<SearchResponse>('/memory/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
   })
-  return readJson<SearchResponse>(response)
 }
 
 export async function deleteMemory(id: number): Promise<DeleteResponse> {
-  const response = await fetch(`/api/memory/${id}`, { method: 'DELETE' })
-  return readJson<DeleteResponse>(response)
+  return fetchApi<DeleteResponse>(`/memory/${id}`, { method: 'DELETE' })
 }
 
 export async function deleteMemoryBulk(ids: number[]): Promise<DeleteResponse> {
-  const response = await fetch('/api/memory/delete-bulk', {
+  return fetchApi<DeleteResponse>('/memory/delete-bulk', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ids }),
   })
-  return readJson<DeleteResponse>(response)
 }

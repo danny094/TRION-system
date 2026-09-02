@@ -37,7 +37,7 @@ def test_root_config_preserves_domain_api_identity() -> None:
         owner = import_module(owner_name)
         expected[export_name] = getattr(owner, export_name)
 
-    assert len(expected) == 244
+    assert len(expected) == 249
     for export_name, expected_object in expected.items():
         assert getattr(config, export_name) is expected_object
 

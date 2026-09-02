@@ -2,7 +2,13 @@ import time
 import requests
 from typing import Optional
 
-from .config import SETTINGS_API_URL, _EMBED_DEFAULT, _CACHE_TTL
+from .config import (
+    ADMIN_API_URL,
+    MODELS_EFFECTIVE_ROUTE,
+    _CACHE_TTL,
+    _EMBED_DEFAULT,
+    _memory_read_headers,
+)
 
 _cache: dict = {"value": None, "ts": 0.0}
 
@@ -16,10 +22,11 @@ def _resolve_embedding_model() -> str:
     if _cache["value"] is not None and (now - _cache["ts"]) < _CACHE_TTL:
         return _cache["value"]
 
-    if SETTINGS_API_URL:
+    if ADMIN_API_URL:
         try:
             resp = requests.get(
-                f"{SETTINGS_API_URL}/models/effective",
+                f"{ADMIN_API_URL}{MODELS_EFFECTIVE_ROUTE}",
+                headers=_memory_read_headers(),
                 timeout=2,
             )
             resp.raise_for_status()

@@ -7,10 +7,10 @@ services:
     environment:
       DB_PATH: /app/data/memory.db
       ADMIN_API_URL: http://trion-admin-api:8200
+      TRION_MEMORY_READ_TOKEN_FILE: /run/trion-security/memory-read/token
     volumes:
       - trion-memory-data:/app/data
-    ports:
-      - "${MEMORY_PORT:-8001}:8081"
+      - trion-memory-read-token:/run/trion-security/memory-read:ro
     healthcheck:
       test:
         [
@@ -26,6 +26,7 @@ services:
     restart: unless-stopped
 
   trion-admin-api:
+    image: trion-admin-api:local
     build:
       context: .
       dockerfile: adapters/admin-api/Dockerfile
@@ -52,7 +53,8 @@ services:
       TASK_LOOP_APPROVAL_MODE: ${TASK_LOOP_APPROVAL_MODE:-permissive}
       TRION_OLLAMA_CLOUD_SMOKE_MODEL: ${TRION_OLLAMA_CLOUD_SMOKE_MODEL:-ministral-3:8b}
       ENABLE_CORS: "true"
-      ALLOWED_ORIGINS: "*"
+      TRION_SECRET_RESOLVE_TOKEN_FILE: /run/trion-security/secret-resolve/token
+      TRION_MEMORY_READ_TOKEN_FILE: /run/trion-security/memory-read/token
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -64,9 +66,11 @@ services:
       - trion-storage-broker:/app/storage_broker
       - trion-personas:/app/personas
       - trion-plugins:/app/ui_plugins
+      - trion-secret-resolve-token:/run/trion-security/secret-resolve:ro
+      - trion-memory-read-token:/run/trion-security/memory-read:ro
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
-      - "${ADMIN_API_PORT:-8200}:8200"
+      - "127.0.0.1:${ADMIN_API_PORT:-8200}:8200"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8200/health', timeout=3).read()"]
       interval: 30s
@@ -74,6 +78,23 @@ services:
       retries: 5
       start_period: 15s
     restart: unless-stopped
+
+  trion-security-bootstrap:
+    image: trion-admin-api:local
+    build:
+      context: .
+      dockerfile: adapters/admin-api/Dockerfile
+    profiles: ["bootstrap"]
+    environment:
+      TRION_SECURITY_BOOTSTRAP_MODE: "true"
+      TRION_SECRET_RESOLVE_TOKEN_FILE: /run/trion-security/secret-resolve/token
+      TRION_MEMORY_READ_TOKEN_FILE: /run/trion-security/memory-read/token
+    volumes:
+      - trion-admin-api-data:/app/data
+      - trion-secret-resolve-token:/run/trion-security/secret-resolve
+      - trion-memory-read-token:/run/trion-security/memory-read
+    command: ["python", "-B", "security_bootstrap.py"]
+    restart: "no"
 
   trion-webui:
     build:
@@ -83,7 +104,7 @@ services:
       trion-admin-api:
         condition: service_healthy
     ports:
-      - "${WEBUI_PORT:-3000}:3000"
+      - "127.0.0.1:${WEBUI_PORT:-3000}:3000"
     restart: unless-stopped
 
   trion-home:
@@ -118,3 +139,5 @@ volumes:
   trion-storage-broker:
   trion-personas:
   trion-plugins:
+  trion-secret-resolve-token:
+  trion-memory-read-token:

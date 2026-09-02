@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-import os
 import time
-from pathlib import Path
 from typing import Dict, Tuple
 
 import httpx
 
 from config import get_secret_resolve_miss_ttl_s, get_secret_resolve_not_found_ttl_s
+from config.infra.security import SECRET_RESOLVE_ROUTE_PREFIX
+from config.skills.secrets import SECRET_RESOLVE_TOKEN_FILE
 from core.llm.provider_registry import normalize_provider, provider_secret_names
 from core.secret_resolve_runtime import (
     clear_provider_miss,
@@ -23,7 +23,7 @@ from utils.provider_keys_store import resolve_provider_key
 
 API_KEY_CACHE: Dict[str, Tuple[float, str]] = {}
 API_KEY_TTL_S = 20.0
-_ROOT = Path(__file__).resolve().parents[2]
+_SECRET_RESOLVE_BASE = f"http://127.0.0.1:8200{SECRET_RESOLVE_ROUTE_PREFIX}"
 
 
 def clear_api_key_cache(provider: str | None = None) -> None:
@@ -33,34 +33,17 @@ def clear_api_key_cache(provider: str | None = None) -> None:
     API_KEY_CACHE.clear()
 
 
-def _env_or_dotenv(name: str, default: str = "") -> str:
-    value = str(os.getenv(name, "")).strip()
-    if value:
-        return value
-
-    env_path = _ROOT / ".env"
-    if not env_path.exists():
-        return default
+def _secret_resolve_headers() -> dict[str, str]:
     try:
-        for raw in env_path.read_text(encoding="utf-8").splitlines():
-            line = raw.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, _, raw_value = line.partition("=")
-            if key.strip() != name:
-                continue
-            value = raw_value.strip().strip("'\"")
-            return value or default
-    except Exception:
-        return default
-    return default
+        token = SECRET_RESOLVE_TOKEN_FILE.read_text(encoding="utf-8").strip()
+    except OSError:
+        return {}
+    if not token:
+        return {}
+    return {"Authorization": f"Bearer {token}"}
 
 def _secret_resolve_base() -> str:
-    explicit = str(os.getenv("SECRETS_API_URL", "")).strip()
-    if explicit:
-        return explicit.rstrip("/")
-    admin_api = str(os.getenv("ADMIN_API_URL", "http://trion-admin-api:8200")).strip().rstrip("/")
-    return f"{admin_api}/api/secrets/resolve"
+    return _SECRET_RESOLVE_BASE
 
 
 async def resolve_cloud_api_key(provider: str) -> str:
@@ -86,13 +69,12 @@ async def resolve_cloud_api_key(provider: str) -> str:
             mark_secret_success(provider_norm, secret_name)
             return value
 
-    token = _env_or_dotenv("INTERNAL_SECRET_RESOLVE_TOKEN", "")
+    headers = _secret_resolve_headers()
     base = _secret_resolve_base()
-    if not token or not base:
+    if not headers or not base:
         mark_provider_miss(provider_norm, now)
         return ""
 
-    headers = {"Authorization": f"Bearer {token}"}
     attempted_remote = False
     saw_not_found = False
     try:

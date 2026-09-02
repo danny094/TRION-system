@@ -1,5 +1,6 @@
 import { parseNDJSONStream } from '@/lib/stream/ndjsonParser'
 import type { ChatEvent } from '@/lib/contracts/chatEvents'
+import { fetchApi, fetchApiResponse } from '@/lib/api/client'
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system'
@@ -12,7 +13,7 @@ export async function sendMessageStream(
   model: string = 'default',
   autonomousMode: boolean = false
 ): Promise<AsyncGenerator<ChatEvent, void, unknown>> {
-  const response = await fetch('/api/chat', {
+  const response = await fetchApiResponse('/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -23,10 +24,6 @@ export async function sendMessageStream(
       autonomous_mode: autonomousMode,
     })
   })
-
-  if (!response.ok) {
-    throw new Error(`Chat API failed: ${response.status} ${response.statusText}`)
-  }
 
   return parseNDJSONStream(response)
 }
@@ -43,15 +40,10 @@ export async function approveTask(
   taskId: string,
   userText: string = 'approve'
 ): Promise<TaskApproveResponse> {
-  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/approve`, {
+  return fetchApi<TaskApproveResponse>(`/tasks/${encodeURIComponent(taskId)}/approve`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ user_text: userText }),
   })
 
-  if (!response.ok) {
-    throw new Error(`Task approve failed: ${response.status} ${response.statusText}`)
-  }
-
-  return response.json() as Promise<TaskApproveResponse>
 }

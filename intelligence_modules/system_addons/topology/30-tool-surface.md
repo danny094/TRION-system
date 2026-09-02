@@ -20,7 +20,7 @@ retrieval_hints:
   - verfügbare tools
   - tool liste
 confidence: high
-last_reviewed: 2026-04-21
+last_reviewed: 2026-09-01
 ---
 
 ## Invarianten
@@ -32,6 +32,7 @@ last_reviewed: 2026-04-21
 - Tool-Existenz != Tool-Gesundheit.
 - Read-only bevorzugen, bevor write/execute genutzt wird.
 - Secrets sind eine sensible Domäne; Secret-Werte sind nicht ausgabefähig.
+- Netzwerknaehe und Plugin-Permissions ersetzen keinen Admin-API-Principal.
 
 ## Typische Tool-Klassen
 
@@ -90,6 +91,12 @@ last_reviewed: 2026-04-21
 | `GET /api/secrets/resolve/{NAME}` | secrets | sensitive_read |
 | `secret_save` | secrets | write |
 
+Die zwei internen Bearer sind keine allgemeine Tool-Surface: Der
+Secret-Resolve-Token gilt nur fuer den exakten Resolve-GET, der getrennte
+Memory-Read-Token nur fuer drei fest gebundene Settings-/Routing-GETs. Beide
+werden aus read-only Secret-Dateien gelesen und nie an Browser oder Plugins
+verteilt.
+
 ### Skills via MCP / Bridge
 
 | tool_klasse | domäne | modus |
@@ -115,6 +122,8 @@ last_reviewed: 2026-04-21
 3. MCP-Verfügbarkeit nicht annehmen; discovery/live inventory prüfen.
 4. Write-/Execute-Tools nur bei echter Änderungsabsicht.
 5. Secret-bezogene Pfade nie für normale Antwortgenerierung verwenden.
+6. Plugin-Bridge-Aufrufe nur mit der serverseitig verifizierten
+   Browserdelegation weiterleiten; die Plugin-Runtime besitzt kein Service-Secret.
 
 ## Domänenregeln
 

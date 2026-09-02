@@ -1,4 +1,7 @@
 (function () {
+  let csrfToken = null
+  const csrfHeaderName = '__TRION_CSRF_HEADER_NAME__'
+
   function currentPluginId() {
     const match = window.location.pathname.match(/\/api\/plugins\/([^/]+)\/asset\//)
     if (!match) throw new Error('TRIONBridge could not resolve plugin id from current URL.')
@@ -15,12 +18,25 @@
     return { ok: true, status: response.status, data }
   }
 
+  async function sessionCsrf() {
+    if (csrfToken) return csrfToken
+    const response = await fetch('/api/auth/session', { credentials: 'same-origin' })
+    if (!response.ok) throw new Error(`TRION session unavailable (${response.status})`)
+    const session = await response.json()
+    csrfToken = String(session.csrf_token || '')
+    if (!csrfToken) throw new Error('TRION session did not provide CSRF metadata.')
+    return csrfToken
+  }
+
   async function send(pluginId, path, payload) {
+    const csrf = await sessionCsrf()
     const response = await fetch(`/api/plugins/${encodeURIComponent(pluginId)}${path}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', [csrfHeaderName]: csrf },
       body: JSON.stringify(payload || {}),
     })
+    if (response.status === 401) csrfToken = null
     return parseBridgeResponse(response)
   }
 

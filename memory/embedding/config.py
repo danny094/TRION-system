@@ -1,6 +1,8 @@
 import os
 import logging
 
+from config.infra.security import get_memory_read_token_path
+
 logger = logging.getLogger(__name__)
 
 _ROUTING_LOG_LEVEL = str(
@@ -9,13 +11,33 @@ _ROUTING_LOG_LEVEL = str(
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434")
 
-SETTINGS_API_URL = os.getenv("SETTINGS_API_URL", "").strip()
-if not SETTINGS_API_URL:
-    _admin_api = os.getenv(
-        "ADMIN_API_URL",
-        os.getenv("TRION_ADMIN_API_URL", "http://trion-admin-api:8200"),
-    ).rstrip("/")
-    SETTINGS_API_URL = f"{_admin_api}/api/settings"
+_ALLOWED_ADMIN_API_URLS = frozenset(
+    {
+        "http://trion-admin-api:8200",
+        "http://127.0.0.1:8200",
+        "http://localhost:8200",
+    }
+)
+
+
+def _admin_api_url() -> str:
+    settings_url = os.getenv("SETTINGS_API_URL", "").strip().rstrip("/")
+    base = settings_url.removesuffix("/api/settings") if settings_url else ""
+    candidate = base or os.getenv("ADMIN_API_URL", "http://trion-admin-api:8200").strip().rstrip("/")
+    if candidate not in _ALLOWED_ADMIN_API_URLS:
+        raise RuntimeError("Admin API URL is outside the local security boundary")
+    return candidate
+
+
+ADMIN_API_URL = _admin_api_url()
+
+MEMORY_READ_TOKEN_FILE = get_memory_read_token_path()
+MODELS_EFFECTIVE_ROUTE = "/api/settings/models/effective"
+EMBEDDINGS_RUNTIME_ROUTE = "/api/settings/embeddings/runtime"
+COMPUTE_ROUTING_ROUTE = "/api/runtime/compute/routing"
+MEMORY_READ_ROUTES = frozenset(
+    {MODELS_EFFECTIVE_ROUTE, EMBEDDINGS_RUNTIME_ROUTE, COMPUTE_ROUTING_ROUTE}
+)
 
 _EMBED_DEFAULT = os.getenv("EMBEDDING_MODEL", "hellord/mxbai-embed-large-v1:f16")
 _CACHE_TTL = int(os.getenv("SETTINGS_CACHE_TTL", "60"))
@@ -45,12 +67,12 @@ _RT_DEFAULTS = {
 }
 
 
-def _runtime_api_base() -> str:
-    """Leitet API-Base aus SETTINGS_API_URL ab (.../api/settings → .../api/runtime/...)."""
-    if not SETTINGS_API_URL:
-        return ""
-    marker = "/api/settings"
-    idx = SETTINGS_API_URL.find(marker)
-    if idx >= 0:
-        return SETTINGS_API_URL[:idx]
-    return SETTINGS_API_URL.rstrip("/")
+def _memory_read_headers() -> dict[str, str]:
+    """Read the memory principal token only from its mounted secret file."""
+    try:
+        token = MEMORY_READ_TOKEN_FILE.read_text(encoding="utf-8").strip()
+    except OSError as exc:
+        raise RuntimeError("memory read token unavailable") from exc
+    if not token:
+        raise RuntimeError("memory read token unavailable")
+    return {"Authorization": f"Bearer {token}"}

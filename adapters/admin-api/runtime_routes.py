@@ -37,8 +37,8 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
 
+from memory.embedding.config import COMPUTE_ROUTING_ROUTE
 from utils import ollama_endpoint_manager as _compute
-
 router = APIRouter(tags=["runtime"])
 
 
@@ -155,7 +155,7 @@ async def stop_compute_instance(instance_id: str):
         _raise_compute_http(exc)
 
 
-@router.get("/api/runtime/compute/routing")
+@router.get(COMPUTE_ROUTING_ROUTE)
 async def get_compute_routing():
     """
     Return persisted layer routing + effective target resolution snapshot.
@@ -176,7 +176,7 @@ async def get_compute_routing():
         _raise_compute_http(exc)
 
 
-@router.post("/api/runtime/compute/routing")
+@router.post(COMPUTE_ROUTING_ROUTE)
 async def post_compute_routing(update: ComputeRoutingUpdate):
     """
     Persist layer routing (thinking/control/output/tool_selector/embedding).
